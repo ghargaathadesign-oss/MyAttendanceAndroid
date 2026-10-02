@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>My Attendance</title>
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" id="extrasCss" href="extras.css">
+<script>window.onerror=function(){return true};window.onunhandledrejection=function(){return true};</script>
 </head>
 <body>
 <div class="app soft-bg">
@@ -15,7 +17,7 @@
 
   <section class="screen active" id="screen-home">
     <div class="clockPanel">
-      <div class="brandDot">MY ATTENDANCE</div>
+      <div class="brandDot" id="appTitleDisplay">MY ATTENDANCE</div>
       <div class="bigTime" id="clockNow">--:--</div>
       <div class="todayDate" id="dateNow"></div>
       <div class="punchWrap"><div class="pulse2"></div><div class="pulse1"></div><button class="punchBtn" id="punchBtn" type="button"><img src="clock-in-button.svg" alt="Clock in"><span id="punchLabel">CLOCK IN</span></button></div>
@@ -87,5 +89,6 @@
 </nav>
 
 <script src="app.js"></script>
+<script id="extrasJs" src="extras.js"></script>
 </body>
 </html>
