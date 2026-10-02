@@ -16,6 +16,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Prepare supplied app icon
+        shell: bash
+        run: |
+          mkdir -p app/src/main/res/drawable
+          base64 -d ci/app_icon.webp.b64 > app/src/main/res/drawable/app_icon.webp
+          test -s app/src/main/res/drawable/app_icon.webp
+
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
