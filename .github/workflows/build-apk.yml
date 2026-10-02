@@ -23,7 +23,7 @@ jobs:
           base64 -d ci/app_icon.webp.b64 > app/src/main/res/drawable/app_icon.webp
           test -s app/src/main/res/drawable/app_icon.webp
 
-      - name: Prepare v9.2 app and Lottie animations
+      - name: Prepare v9.3 app and Lottie animations
         shell: bash
         run: |
           set -e
@@ -32,7 +32,7 @@ jobs:
           base64 -d /tmp/v83_bundle.b64 > /tmp/v83_bundle.zip
           echo "e71c15e01ff07294f2df5989d88ff25704f8024c97323d40a7d3bb04e2415904  /tmp/v83_bundle.zip" | sha256sum -c -
           rm -f app/src/main/assets/index.html app/src/main/assets/app.css app/src/main/assets/app.js app/src/main/assets/extras.js app/src/main/assets/extras.css app/src/main/assets/navfix.js app/src/main/assets/lottie-runtime.js
-          rm -rf app/src/main/assets/lottie
+          rm -rf app/src/main/assets/lottie app/src/main/assets/lottie-dark app/src/main/assets/lottie-white
           unzip -q -o /tmp/v83_bundle.zip -d app/src/main/assets
 
           cp app/src/main/assets/lottie/setting.json app/src/main/assets/lottie/settings.json
@@ -45,7 +45,7 @@ jobs:
           echo "3d9c671ef4c4cfd2165c7ab4320e31a36089e76190a0fb2e7ef1e191cce7b228  /tmp/v9code.zip" | sha256sum -c -
           unzip -q -o /tmp/v9code.zip -d app/src/main/assets
 
-          # Keep both root and /lottie copies so every existing UI reference resolves locally.
+          # Keep root copies so every existing Lottie path continues to resolve.
           cp app/src/main/assets/lottie/punch.json app/src/main/assets/punch.json
           cp app/src/main/assets/lottie/home.json app/src/main/assets/home.json
           cp app/src/main/assets/lottie/attendance.json app/src/main/assets/attendance.json
@@ -57,42 +57,182 @@ jobs:
           cp app/src/main/assets/lottie/settings.json app/src/main/assets/settings.json
           cp app/src/main/assets/lottie/work.json app/src/main/assets/work.json
 
+          # Create pre-colored Lottie JSON variants. This prevents dark-mode flicker because
+          # colors are correct before each SVG frame is rendered instead of being repainted live.
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, copy
+
+          src=Path('app/src/main/assets/lottie')
+          dark=Path('app/src/main/assets/lottie-dark')
+          white=Path('app/src/main/assets/lottie-white')
+          dark.mkdir(parents=True,exist_ok=True)
+          white.mkdir(parents=True,exist_ok=True)
+
+          def numeric_color(a):
+              return isinstance(a,list) and len(a)>=3 and all(isinstance(x,(int,float)) for x in a[:3]) and all(0 <= float(x) <= 1.0001 for x in a[:3])
+
+          def recolor_color_value(v, mode):
+              if numeric_color(v):
+                  out=list(v)
+                  rgb=[float(x) for x in out[:3]]
+                  if mode=='white' or (mode=='dark' and max(rgb)<=0.08):
+                      out[0]=out[1]=out[2]=1
+                  return out
+              if isinstance(v,list):
+                  return [recolor_color_value(x,mode) for x in v]
+              if isinstance(v,dict):
+                  return {k:recolor_color_value(val,mode) for k,val in v.items()}
+              return v
+
+          def near_black_hex(s):
+              if not isinstance(s,str) or not s.startswith('#'):
+                  return False
+              h=s[1:]
+              if len(h) in (3,4):
+                  h=''.join(ch*2 for ch in h[:3])
+              elif len(h)>=6:
+                  h=h[:6]
+              else:
+                  return False
+              try:
+                  r,g,b=int(h[0:2],16),int(h[2:4],16),int(h[4:6],16)
+                  return max(r,g,b)<=20
+              except Exception:
+                  return False
+
+          def transform(obj,mode):
+              if isinstance(obj,list):
+                  return [transform(x,mode) for x in obj]
+              if not isinstance(obj,dict):
+                  return obj
+              out={}
+              for k,v in obj.items():
+                  if k=='c' and isinstance(v,dict) and 'k' in v:
+                      vv=copy.deepcopy(v)
+                      vv['k']=recolor_color_value(vv['k'],mode)
+                      out[k]=transform(vv,mode)
+                  elif k in ('sc','fc') and isinstance(v,str):
+                      if mode=='white' or (mode=='dark' and near_black_hex(v)):
+                          out[k]='#FFFFFF'
+                      else:
+                          out[k]=v
+                  else:
+                      out[k]=transform(v,mode)
+              return out
+
+          for p in src.glob('*.json'):
+              data=json.loads(p.read_text(encoding='utf-8'))
+              dark.joinpath(p.name).write_text(json.dumps(transform(data,'dark'),separators=(',',':')),encoding='utf-8')
+              white.joinpath(p.name).write_text(json.dumps(transform(data,'white'),separators=(',',':')),encoding='utf-8')
+          PY
+
+          # Redesign Edit Profile photo section: large centered photo, camera button on the
+          # lower-right of the circle and a delete icon at the top-right of the section.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/src/main/assets/index.html')
+          s=p.read_text(encoding='utf-8')
+          old='<div class="profileEditRow"><div class="profilePreview"><img id="profilePreview" src="profile-placeholder.svg" alt="Profile"></div><div class="profilePhotoActions"><label class="btn ghost">Change Photo<input type="file" id="profileFile" accept="image/*" hidden></label><button class="btn ghost" id="removePhoto" type="button">Remove</button></div></div>'
+          new='''<div class="profileImageSection">\n  <div class="profilePreview profilePreviewLarge">\n    <img id="profilePreview" src="profile-placeholder.svg" alt="Profile">\n    <label class="profilePhotoEditIcon" aria-label="Change profile photo" title="Change profile photo">\n      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5 10.4 3h3.2L15 4.5h3A2.5 2.5 0 0 1 20.5 7v10A2.5 2.5 0 0 1 18 19.5H6A2.5 2.5 0 0 1 3.5 17V7A2.5 2.5 0 0 1 6 4.5h3Zm3 3A4.5 4.5 0 1 0 12 16.5 4.5 4.5 0 0 0 12 7.5Zm0 2A2.5 2.5 0 1 1 12 14.5 2.5 2.5 0 0 1 12 9.5Z"/></svg>\n      <input type="file" id="profileFile" accept="image/*" hidden>\n    </label>\n  </div>\n  <button class="profilePhotoDeleteIcon" id="removePhoto" type="button" aria-label="Delete profile photo" title="Delete profile photo">\n    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h10l-.7 11H7.7L7 9Zm3 2v7h2v-7h-2Zm4 0v7h2v-7h-2Z"/></svg>\n  </button>\n</div>'''
+          if old not in s:
+              raise SystemExit('Profile photo markup not found')
+          s=s.replace(old,new)
+          needle='<script src="app.js"></script>'
+          if needle not in s:
+              raise SystemExit('app.js script tag not found')
+          s=s.replace(needle,'<script src="lottie-runtime.js"></script>\n<script src="app.js"></script>')
+          p.write_text(s,encoding='utf-8')
+          PY
+
           cat >> app/src/main/assets/app.css <<'CSS'
-          .profilePhotoActions .btn,
-          .profilePhotoActions label.btn{
+          .profileImageSection{
+            position:relative;
             width:100%;
-            min-height:44px;
-            padding:0 12px!important;
-            display:flex!important;
-            align-items:center!important;
-            justify-content:center!important;
-            text-align:center!important;
-            line-height:1!important;
+            min-height:190px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            margin:2px 0 16px;
+          }
+          .profilePreview.profilePreviewLarge{
+            position:relative;
+            width:156px;
+            height:156px;
+            margin:0 auto;
+            border-radius:50%;
+            overflow:visible;
+            border:4px solid var(--surface);
+            box-shadow:0 12px 32px rgba(40,64,100,.18);
+            background:#eaf1f8;
+          }
+          .profilePreview.profilePreviewLarge>img{
+            width:100%;
+            height:100%;
+            display:block;
+            object-fit:cover;
+            border-radius:50%;
+          }
+          .profilePhotoEditIcon,
+          .profilePhotoDeleteIcon{
+            width:44px;
+            height:44px;
+            border-radius:50%;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:0;
+            cursor:pointer;
+            box-shadow:0 8px 22px rgba(35,57,90,.22);
+            z-index:3;
+          }
+          .profilePhotoEditIcon{
+            position:absolute;
+            right:-2px;
+            bottom:4px;
+            background:linear-gradient(135deg,#4d8fe9,#5578dc);
+            border:3px solid var(--surface);
+          }
+          .profilePhotoDeleteIcon{
+            position:absolute;
+            right:4px;
+            top:4px;
+            border:1px solid #ffd9dd;
+            background:#fff0f1;
+            color:#d14f5c;
+          }
+          .profilePhotoEditIcon svg,
+          .profilePhotoDeleteIcon svg{
+            width:21px;
+            height:21px;
+            display:block;
+            fill:currentColor;
+          }
+          .profilePhotoEditIcon svg{color:#fff}
+          body.dark-mode .profilePhotoDeleteIcon{
+            background:#351a20;
+            border-color:#5b2833;
+            color:#ff8c9a;
           }
           CSS
 
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js -o app/src/main/assets/lottie.min.js
           cp ci/lottie-runtime.js app/src/main/assets/lottie-runtime.js
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('app/src/main/assets/index.html')
-          s=p.read_text()
-          needle='<script src="app.js"></script>'
-          assert needle in s
-          s=s.replace(needle,'<script src="lottie-runtime.js"></script>\n<script src="app.js"></script>')
-          p.write_text(s)
-          PY
 
           test -s app/src/main/assets/index.html
           test -s app/src/main/assets/app.css
           test -s app/src/main/assets/app.js
           test -s app/src/main/assets/lottie-runtime.js
+          test -s app/src/main/assets/lottie-dark/attendance.json
+          test -s app/src/main/assets/lottie-white/punch.json
           test -s app/src/main/assets/punch.json
           test -s app/src/main/assets/attendance.json
           test -s app/src/main/assets/settings.json
           node --check app/src/main/assets/app.js
           node --check app/src/main/assets/lottie-runtime.js
-          echo "v9.2 assets prepared successfully"
+          grep -q 'profilePhotoEditIcon' app/src/main/assets/index.html
+          grep -q 'profilePhotoDeleteIcon' app/src/main/assets/index.html
+          echo "v9.3 assets prepared successfully"
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -119,12 +259,12 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p output
-          cp app/build/outputs/apk/debug/app-debug.apk output/My-Attendance-v9.2.apk
+          cp app/build/outputs/apk/debug/app-debug.apk output/My-Attendance-v9.3.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: My-Attendance-v9.2-APK
-          path: output/My-Attendance-v9.2.apk
+          name: My-Attendance-v9.3-APK
+          path: output/My-Attendance-v9.3.apk
           if-no-files-found: error
           retention-days: 30
