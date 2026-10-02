@@ -23,7 +23,7 @@ jobs:
           base64 -d ci/app_icon.webp.b64 > app/src/main/res/drawable/app_icon.webp
           test -s app/src/main/res/drawable/app_icon.webp
 
-      - name: Prepare v9 app and Lottie animations
+      - name: Prepare v9.2 app and Lottie animations
         shell: bash
         run: |
           cat ci/v83_bundle.part* > /tmp/v83_bundle.b64
@@ -31,7 +31,7 @@ jobs:
           base64 -d /tmp/v83_bundle.b64 > /tmp/v83_bundle.zip
           echo "e71c15e01ff07294f2df5989d88ff25704f8024c97323d40a7d3bb04e2415904  /tmp/v83_bundle.zip" | sha256sum -c -
           unzip -t /tmp/v83_bundle.zip
-          rm -f app/src/main/assets/index.html app/src/main/assets/app.css app/src/main/assets/app.js app/src/main/assets/extras.js app/src/main/assets/extras.css app/src/main/assets/navfix.js
+          rm -f app/src/main/assets/index.html app/src/main/assets/app.css app/src/main/assets/app.js app/src/main/assets/extras.js app/src/main/assets/extras.css app/src/main/assets/navfix.js app/src/main/assets/lottie-runtime.js
           rm -rf app/src/main/assets/lottie
           unzip -q -o /tmp/v83_bundle.zip -d app/src/main/assets
 
@@ -46,25 +46,34 @@ jobs:
           unzip -t /tmp/v9code.zip
           unzip -q -o /tmp/v9code.zip -d app/src/main/assets
 
-          # Profile photo action buttons: keep text perfectly centered on mobile/WebView.
+          # The JSON animations live under assets/lottie/. Point every UI reference there.
+          sed -E -i 's/data-lottie="([^"]+\.json)"/data-lottie="lottie\/\1"/g' app/src/main/assets/index.html
+          sed -i 's/data-lottie="documents.json"/data-lottie="lottie\/documents.json"/g' app/src/main/assets/app.js
+
+          # Profile photo action buttons: keep the label text centered in Android WebView.
           cat >> app/src/main/assets/app.css <<'CSS'
-          .profilePhotoActions .btn{
+          .profilePhotoActions .btn,
+          .profilePhotoActions label.btn{
             width:100%;
-            min-height:42px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            text-align:center;
-            line-height:1.2;
+            min-height:44px;
+            padding:0 12px!important;
+            display:flex!important;
+            align-items:center!important;
+            justify-content:center!important;
+            text-align:center!important;
+            line-height:1!important;
           }
           .profilePhotoActions label.btn{cursor:pointer}
           CSS
 
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js -o app/src/main/assets/lottie.min.js
+          cp ci/lottie-runtime.js app/src/main/assets/lottie-runtime.js
+          sed -i 's#<script src="app.js"></script>#<script src="lottie-runtime.js"></script><script src="app.js"></script>#' app/src/main/assets/index.html
 
           test -s app/src/main/assets/index.html
           test -s app/src/main/assets/app.css
           test -s app/src/main/assets/app.js
+          test -s app/src/main/assets/lottie-runtime.js
           test -s app/src/main/assets/profile-placeholder.svg
           test -s app/src/main/assets/lottie/punch.json
           test -s app/src/main/assets/lottie/salary.json
@@ -78,11 +87,14 @@ jobs:
           test -s app/src/main/assets/lottie/home.json
           test -s app/src/main/assets/lottie.min.js
           node --check app/src/main/assets/app.js
+          node --check app/src/main/assets/lottie-runtime.js
+          grep -q 'data-lottie="lottie/punch.json"' app/src/main/assets/index.html
+          grep -q 'lottie-runtime.js' app/src/main/assets/index.html
           grep -q 'Overtime Starts After Standard Duration' app/src/main/assets/index.html
           grep -q 'Salary Earned' app/src/main/assets/index.html
           grep -q 'screen-setting-appearance' app/src/main/assets/index.html
           grep -q 'for(i=0;i<60;i++)opt(m,i,P(i))' app/src/main/assets/app.js
-          grep -q 'profilePhotoActions .btn' app/src/main/assets/app.css
+          grep -q 'profilePhotoActions label.btn' app/src/main/assets/app.css
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -109,12 +121,12 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p output
-          cp app/build/outputs/apk/debug/app-debug.apk output/My-Attendance-v9.1.apk
+          cp app/build/outputs/apk/debug/app-debug.apk output/My-Attendance-v9.2.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: My-Attendance-v9.1-APK
-          path: output/My-Attendance-v9.1.apk
+          name: My-Attendance-v9.2-APK
+          path: output/My-Attendance-v9.2.apk
           if-no-files-found: error
           retention-days: 30
