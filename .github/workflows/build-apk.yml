@@ -23,6 +23,26 @@ jobs:
           base64 -d ci/app_icon.webp.b64 > app/src/main/res/drawable/app_icon.webp
           test -s app/src/main/res/drawable/app_icon.webp
 
+      - name: Prepare v8.3 app and Lottie animations
+        shell: bash
+        run: |
+          cat ci/v83_bundle.part* > /tmp/v83_bundle.b64
+          test "$(wc -c < /tmp/v83_bundle.b64)" = "61564"
+          base64 -d /tmp/v83_bundle.b64 > /tmp/v83_bundle.zip
+          echo "e71c15e01ff07294f2df5989d88ff25704f8024c97323d40a7d3bb04e2415904  /tmp/v83_bundle.zip" | sha256sum -c -
+          unzip -t /tmp/v83_bundle.zip
+          rm -f app/src/main/assets/index.html app/src/main/assets/app.css app/src/main/assets/app.js app/src/main/assets/extras.js app/src/main/assets/extras.css
+          rm -rf app/src/main/assets/lottie
+          unzip -q -o /tmp/v83_bundle.zip -d app/src/main/assets
+          curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js -o app/src/main/assets/lottie.min.js
+          test -s app/src/main/assets/index.html
+          test -s app/src/main/assets/app.css
+          test -s app/src/main/assets/app.js
+          test -s app/src/main/assets/lottie/punch.json
+          test -s app/src/main/assets/lottie/salary.json
+          test -s app/src/main/assets/lottie.min.js
+          node --check app/src/main/assets/app.js
+
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
