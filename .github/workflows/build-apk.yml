@@ -36,8 +36,12 @@ jobs:
           rm -rf app/src/main/assets/lottie
           unzip -q -o /tmp/v83_bundle.zip -d app/src/main/assets
 
-          # Overlay the finished v9 UI + behavior while preserving the Lottie JSON assets.
-          cat ci/v9code.part* > /tmp/v9code.b64
+          # Alias old animation filenames to the names used by v9.
+          cp app/src/main/assets/lottie/setting.json app/src/main/assets/lottie/settings.json
+          cp app/src/main/assets/lottie/worktime.json app/src/main/assets/lottie/work.json
+
+          # Overlay the finished v9 UI + behavior.
+          cat ci/v9code.fix01a ci/v9code.fix01b ci/v9code.part02 ci/v9code.part03 ci/v9code.part04 > /tmp/v9code.b64
           test "$(wc -c < /tmp/v9code.b64)" = "24804"
           base64 -d /tmp/v9code.b64 > /tmp/v9code.zip
           echo "3d9c671ef4c4cfd2165c7ab4320e31a36089e76190a0fb2e7ef1e191cce7b228  /tmp/v9code.zip" | sha256sum -c -
@@ -54,6 +58,12 @@ jobs:
           test -s app/src/main/assets/lottie/salary.json
           test -s app/src/main/assets/lottie/attendance.json
           test -s app/src/main/assets/lottie/settings.json
+          test -s app/src/main/assets/lottie/work.json
+          test -s app/src/main/assets/lottie/leaves.json
+          test -s app/src/main/assets/lottie/documents.json
+          test -s app/src/main/assets/lottie/backup.json
+          test -s app/src/main/assets/lottie/profile.json
+          test -s app/src/main/assets/lottie/home.json
           test -s app/src/main/assets/lottie.min.js
           node --check app/src/main/assets/app.js
           grep -q 'Overtime Starts After Standard Duration' app/src/main/assets/index.html
