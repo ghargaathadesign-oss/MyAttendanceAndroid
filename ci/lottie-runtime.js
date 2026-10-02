@@ -4,96 +4,133 @@
   if(!lib||!lib.loadAnimation)return;
 
   var originalLoad=lib.loadAnimation.bind(lib);
-  var instances=[];
+  var records=[];
   var sequence=0;
+  var REPLAY_DELAY=4000;
 
-  function isBlack(v){
-    if(!v)return false;
-    v=String(v).toLowerCase().replace(/\s+/g,'');
-    if(v==='black'||v==='#000'||v==='#000000'||v==='rgb(0,0,0)'||v==='rgba(0,0,0,1)')return true;
-    var m=v.match(/^rgb\((\d+),(\d+),(\d+)\)$/);
-    if(m)return (+m[1]<=18&&+m[2]<=18&&+m[3]<=18);
-    m=v.match(/^rgba\((\d+),(\d+),(\d+),([\d.]+)\)$/);
-    if(m)return (+m[1]<=18&&+m[2]<=18&&+m[3]<=18&&+m[4]>0);
-    return false;
+  function isDark(){
+    return !!(document.body&&document.body.classList.contains('dark-mode'));
   }
 
-  function rememberAndSet(el,prop,value){
-    var attr=el.getAttribute(prop),styleVal=el.style&&el.style[prop] ? el.style[prop] : '';
-    if(!el.hasAttribute('data-lottie-orig-'+prop)){
-      el.setAttribute('data-lottie-orig-'+prop, attr===null ? '__NULL__' : attr);
-      el.setAttribute('data-lottie-orig-style-'+prop, styleVal||'__EMPTY__');
-    }
-    el.setAttribute(prop,value);
-    if(el.style)el.style[prop]=value;
+  function baseName(path){
+    path=String(path||'');
+    var q=path.indexOf('?');
+    if(q>=0)path=path.slice(0,q);
+    var p=path.split('/');
+    return p[p.length-1]||path;
   }
 
-  function restore(el,prop){
-    var a='data-lottie-orig-'+prop,sa='data-lottie-orig-style-'+prop;
-    if(!el.hasAttribute(a))return;
-    var old=el.getAttribute(a),oldStyle=el.getAttribute(sa);
-    if(old==='__NULL__')el.removeAttribute(prop);else el.setAttribute(prop,old);
-    if(el.style)el.style[prop]=(oldStyle==='__EMPTY__'?'':oldStyle);
-    el.removeAttribute(a);el.removeAttribute(sa);
+  function resolvedPath(original,forceWhite){
+    var name=baseName(original);
+    if(forceWhite)return 'lottie-white/'+name;
+    if(isDark())return 'lottie-dark/'+name;
+    return original;
   }
 
-  function paint(container,forceWhite){
-    if(!container)return;
-    var dark=document.body.classList.contains('dark-mode');
-    var nodes=container.querySelectorAll('path,rect,circle,ellipse,polygon,polyline,line,g');
-    for(var i=0;i<nodes.length;i++){
-      var el=nodes[i],fill=el.getAttribute('fill')||(el.style?el.style.fill:''),stroke=el.getAttribute('stroke')||(el.style?el.style.stroke:'');
-      if(forceWhite){
-        if(fill&&fill!=='none'&&fill!=='transparent')rememberAndSet(el,'fill','#ffffff');
-        if(stroke&&stroke!=='none'&&stroke!=='transparent')rememberAndSet(el,'stroke','#ffffff');
-      }else if(dark){
-        if(isBlack(fill))rememberAndSet(el,'fill','#ffffff');else if(el.hasAttribute('data-lottie-orig-fill'))restore(el,'fill');
-        if(isBlack(stroke))rememberAndSet(el,'stroke','#ffffff');else if(el.hasAttribute('data-lottie-orig-stroke'))restore(el,'stroke');
+  function clearTimer(rec){
+    if(rec.timer){clearTimeout(rec.timer);rec.timer=null;}
+  }
+
+  function playOnce(rec){
+    if(!rec||!rec.anim)return;
+    try{rec.anim.goToAndPlay(0,true)}catch(e){}
+  }
+
+  function scheduleNormalReplay(rec){
+    clearTimer(rec);
+    rec.timer=setTimeout(function(){
+      if(!rec.container||!document.documentElement.contains(rec.container))return;
+      playOnce(rec);
+    },REPLAY_DELAY);
+  }
+
+  function attachLifecycle(rec,initialDelay){
+    if(!rec.anim)return;
+    rec.anim.addEventListener('DOMLoaded',function(){
+      clearTimer(rec);
+      rec.timer=setTimeout(function(){playOnce(rec)},Math.max(0,initialDelay||0));
+    });
+    rec.anim.addEventListener('complete',function(){
+      if(rec.forceWhite)return;
+      scheduleNormalReplay(rec);
+    });
+  }
+
+  function buildAnim(rec,initialDelay){
+    var cfg={};
+    for(var k in rec.originalCfg)cfg[k]=rec.originalCfg[k];
+    cfg.container=rec.container;
+    cfg.path=resolvedPath(rec.originalPath,rec.forceWhite);
+    cfg.loop=false;
+    cfg.autoplay=false;
+    rec.anim=originalLoad(cfg);
+    attachLifecycle(rec,initialDelay);
+  }
+
+  function reloadForTheme(rec){
+    if(!rec||rec.forceWhite||!rec.container||!document.documentElement.contains(rec.container))return;
+    clearTimer(rec);
+    try{if(rec.anim)rec.anim.destroy()}catch(e){}
+    buildAnim(rec,rec.delay);
+  }
+
+  function reloadAllForTheme(){
+    var alive=[];
+    for(var i=0;i<records.length;i++){
+      var rec=records[i];
+      if(rec.container&&document.documentElement.contains(rec.container)){
+        alive.push(rec);
+        reloadForTheme(rec);
       }else{
-        restore(el,'fill');restore(el,'stroke');
+        clearTimer(rec);
+        try{if(rec.anim)rec.anim.destroy()}catch(e){}
       }
     }
-  }
-
-  function repaintAll(){
-    for(var i=0;i<instances.length;i++)paint(instances[i].container,instances[i].forceWhite);
-  }
-
-  function schedule(anim,delay){
-    var stopped=false,timer=null;
-    function play(){
-      if(stopped)return;
-      try{anim.goToAndPlay(0,true)}catch(e){}
-    }
-    function queue(){
-      if(stopped)return;
-      clearTimeout(timer);
-      timer=setTimeout(play,5000);
-    }
-    anim.addEventListener('complete',queue);
-    timer=setTimeout(play,delay);
-    anim.__stopStagger=function(){stopped=true;clearTimeout(timer)};
+    records=alive;
   }
 
   lib.loadAnimation=function(cfg){
     cfg=cfg||{};
     var container=cfg.container;
     var forceWhite=!!(container&&container.classList&&container.classList.contains('punchLottie'));
-    cfg.loop=false;
-    cfg.autoplay=false;
-    var anim=originalLoad(cfg);
-    var idx=sequence++;
-    var delay=(idx%10)*500;
-    instances.push({anim:anim,container:container,forceWhite:forceWhite});
-    anim.addEventListener('DOMLoaded',function(){paint(container,forceWhite);schedule(anim,delay)});
-    anim.addEventListener('enterFrame',function(){paint(container,forceWhite)});
-    return anim;
+    var rec={
+      container:container,
+      forceWhite:forceWhite,
+      originalPath:cfg.path||'',
+      originalCfg:cfg,
+      anim:null,
+      timer:null,
+      delay:(sequence++%10)*380
+    };
+    records.push(rec);
+    buildAnim(rec,rec.delay);
+
+    if(forceWhite&&container){
+      var button=container.closest?container.closest('#punchBtn,.punchBtn'):null;
+      if(button&&!button.hasAttribute('data-punch-lottie-bound')){
+        button.setAttribute('data-punch-lottie-bound','1');
+        button.addEventListener('click',function(){
+          setTimeout(function(){playOnce(rec)},0);
+        });
+      }
+    }
+    return rec.anim;
   };
+
   if(window.bodymovin&&window.bodymovin!==lib)window.bodymovin.loadAnimation=lib.loadAnimation;
 
   function observeTheme(){
     if(!document.body)return;
-    new MutationObserver(function(){repaintAll()}).observe(document.body,{attributes:true,attributeFilter:['class']});
+    var lastDark=isDark(),themeTimer=null;
+    new MutationObserver(function(){
+      var nowDark=isDark();
+      if(nowDark===lastDark)return;
+      lastDark=nowDark;
+      clearTimeout(themeTimer);
+      themeTimer=setTimeout(reloadAllForTheme,30);
+    }).observe(document.body,{attributes:true,attributeFilter:['class']});
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observeTheme);else observeTheme();
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observeTheme);
+  else observeTheme();
 })();
