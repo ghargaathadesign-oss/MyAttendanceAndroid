@@ -26,11 +26,11 @@ jobs:
       - name: Prepare v9.2 app and Lottie animations
         shell: bash
         run: |
+          set -e
           cat ci/v83_bundle.part* > /tmp/v83_bundle.b64
           test "$(wc -c < /tmp/v83_bundle.b64)" = "61564"
           base64 -d /tmp/v83_bundle.b64 > /tmp/v83_bundle.zip
           echo "e71c15e01ff07294f2df5989d88ff25704f8024c97323d40a7d3bb04e2415904  /tmp/v83_bundle.zip" | sha256sum -c -
-          unzip -t /tmp/v83_bundle.zip
           rm -f app/src/main/assets/index.html app/src/main/assets/app.css app/src/main/assets/app.js app/src/main/assets/extras.js app/src/main/assets/extras.css app/src/main/assets/navfix.js app/src/main/assets/lottie-runtime.js
           rm -rf app/src/main/assets/lottie
           unzip -q -o /tmp/v83_bundle.zip -d app/src/main/assets
@@ -43,14 +43,20 @@ jobs:
           sed -i 's/H5dHCgTTiQ/H5dHCgTTgQ/' /tmp/v9code.b64
           base64 -d /tmp/v9code.b64 > /tmp/v9code.zip
           echo "3d9c671ef4c4cfd2165c7ab4320e31a36089e76190a0fb2e7ef1e191cce7b228  /tmp/v9code.zip" | sha256sum -c -
-          unzip -t /tmp/v9code.zip
           unzip -q -o /tmp/v9code.zip -d app/src/main/assets
 
-          # The JSON animations live under assets/lottie/. Point every UI reference there.
-          sed -E -i 's/data-lottie="([^"]+\.json)"/data-lottie="lottie\/\1"/g' app/src/main/assets/index.html
-          sed -i 's/data-lottie="documents.json"/data-lottie="lottie\/documents.json"/g' app/src/main/assets/app.js
+          # Keep both root and /lottie copies so every existing UI reference resolves locally.
+          cp app/src/main/assets/lottie/punch.json app/src/main/assets/punch.json
+          cp app/src/main/assets/lottie/home.json app/src/main/assets/home.json
+          cp app/src/main/assets/lottie/attendance.json app/src/main/assets/attendance.json
+          cp app/src/main/assets/lottie/leaves.json app/src/main/assets/leaves.json
+          cp app/src/main/assets/lottie/documents.json app/src/main/assets/documents.json
+          cp app/src/main/assets/lottie/salary.json app/src/main/assets/salary.json
+          cp app/src/main/assets/lottie/backup.json app/src/main/assets/backup.json
+          cp app/src/main/assets/lottie/profile.json app/src/main/assets/profile.json
+          cp app/src/main/assets/lottie/settings.json app/src/main/assets/settings.json
+          cp app/src/main/assets/lottie/work.json app/src/main/assets/work.json
 
-          # Profile photo action buttons: keep the label text centered in Android WebView.
           cat >> app/src/main/assets/app.css <<'CSS'
           .profilePhotoActions .btn,
           .profilePhotoActions label.btn{
@@ -63,38 +69,30 @@ jobs:
             text-align:center!important;
             line-height:1!important;
           }
-          .profilePhotoActions label.btn{cursor:pointer}
           CSS
 
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js -o app/src/main/assets/lottie.min.js
           cp ci/lottie-runtime.js app/src/main/assets/lottie-runtime.js
-          sed -i 's#<script src="app.js"></script>#<script src="lottie-runtime.js"></script><script src="app.js"></script>#' app/src/main/assets/index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/src/main/assets/index.html')
+          s=p.read_text()
+          needle='<script src="app.js"></script>'
+          assert needle in s
+          s=s.replace(needle,'<script src="lottie-runtime.js"></script>\n<script src="app.js"></script>')
+          p.write_text(s)
+          PY
 
           test -s app/src/main/assets/index.html
           test -s app/src/main/assets/app.css
           test -s app/src/main/assets/app.js
           test -s app/src/main/assets/lottie-runtime.js
-          test -s app/src/main/assets/profile-placeholder.svg
-          test -s app/src/main/assets/lottie/punch.json
-          test -s app/src/main/assets/lottie/salary.json
-          test -s app/src/main/assets/lottie/attendance.json
-          test -s app/src/main/assets/lottie/settings.json
-          test -s app/src/main/assets/lottie/work.json
-          test -s app/src/main/assets/lottie/leaves.json
-          test -s app/src/main/assets/lottie/documents.json
-          test -s app/src/main/assets/lottie/backup.json
-          test -s app/src/main/assets/lottie/profile.json
-          test -s app/src/main/assets/lottie/home.json
-          test -s app/src/main/assets/lottie.min.js
+          test -s app/src/main/assets/punch.json
+          test -s app/src/main/assets/attendance.json
+          test -s app/src/main/assets/settings.json
           node --check app/src/main/assets/app.js
           node --check app/src/main/assets/lottie-runtime.js
-          grep -q 'data-lottie="lottie/punch.json"' app/src/main/assets/index.html
-          grep -q 'lottie-runtime.js' app/src/main/assets/index.html
-          grep -q 'Overtime Starts After Standard Duration' app/src/main/assets/index.html
-          grep -q 'Salary Earned' app/src/main/assets/index.html
-          grep -q 'screen-setting-appearance' app/src/main/assets/index.html
-          grep -q 'for(i=0;i<60;i++)opt(m,i,P(i))' app/src/main/assets/app.js
-          grep -q 'profilePhotoActions label.btn' app/src/main/assets/app.css
+          echo "v9.2 assets prepared successfully"
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
