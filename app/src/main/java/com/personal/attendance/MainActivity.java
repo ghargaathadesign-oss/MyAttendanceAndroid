@@ -29,6 +29,7 @@ public class MainActivity extends Activity {
   private ValueCallback<Uri[]> chooser;
   private static final int FILE_REQ=4102;
 
+  @SuppressWarnings("deprecation")
   @SuppressLint({"SetJavaScriptEnabled","AddJavascriptInterface"})
   @Override public void onCreate(Bundle b){
     super.onCreate(b);
@@ -40,6 +41,9 @@ public class MainActivity extends Activity {
     s.setDatabaseEnabled(true);
     s.setAllowFileAccess(true);
     s.setAllowContentAccess(true);
+    // Lottie loads local JSON animation files with XHR/fetch from file:///android_asset/.
+    // Modern Android WebView blocks file-to-file requests unless this is explicitly enabled.
+    s.setAllowFileAccessFromFileURLs(true);
     s.setTextZoom(100);
     webView.setWebViewClient(new WebViewClient());
     webView.addJavascriptInterface(new AndroidBridge(this),"Android");
