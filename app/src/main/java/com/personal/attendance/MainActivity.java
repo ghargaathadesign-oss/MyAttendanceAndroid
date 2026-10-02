@@ -41,13 +41,7 @@ public class MainActivity extends Activity {
     s.setAllowFileAccess(true);
     s.setAllowContentAccess(true);
     s.setTextZoom(100);
-    webView.setWebViewClient(new WebViewClient(){
-      @Override public void onPageFinished(WebView view,String url){
-        super.onPageFinished(view,url);
-        String inject="(function(){if(!document.getElementById('extrasCss')){var l=document.createElement('link');l.id='extrasCss';l.rel='stylesheet';l.href='extras.css';document.head.appendChild(l);}if(!document.getElementById('extrasJs')){var s=document.createElement('script');s.id='extrasJs';s.src='extras.js';document.body.appendChild(s);}})();";
-        view.evaluateJavascript(inject,null);
-      }
-    });
+    webView.setWebViewClient(new WebViewClient());
     webView.addJavascriptInterface(new AndroidBridge(this),"Android");
     webView.setWebChromeClient(new WebChromeClient(){
       @Override public boolean onShowFileChooser(WebView w,ValueCallback<Uri[]> cb,FileChooserParams p){
@@ -91,7 +85,7 @@ public class MainActivity extends Activity {
 
   @Override public void onBackPressed(){
     if(webView==null){closeFromBack();return;}
-    webView.evaluateJavascript("(function(){try{return !!(window.appBack&&window.appBack());}catch(e){return false;}})();", value -> {
+    webView.evaluateJavascript("(function(){try{if(window.appBack)return !!window.appBack();var active=document.querySelector('.screen.active');if(active&&active.id!=='screen-home'){var home=document.querySelector('.navBtn[data-screen=\"home\"]');if(home){home.click();return true;}}return false;}catch(e){return false;}})();", value -> {
       if(!"true".equals(value))closeFromBack();
     });
   }
