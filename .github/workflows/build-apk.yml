@@ -26,7 +26,6 @@ jobs:
       - name: Prepare v9 app and Lottie animations
         shell: bash
         run: |
-          # Reuse the already-tested animation package from v8.3.
           cat ci/v83_bundle.part* > /tmp/v83_bundle.b64
           test "$(wc -c < /tmp/v83_bundle.b64)" = "61564"
           base64 -d /tmp/v83_bundle.b64 > /tmp/v83_bundle.zip
@@ -36,13 +35,13 @@ jobs:
           rm -rf app/src/main/assets/lottie
           unzip -q -o /tmp/v83_bundle.zip -d app/src/main/assets
 
-          # Alias old animation filenames to the names used by v9.
           cp app/src/main/assets/lottie/setting.json app/src/main/assets/lottie/settings.json
           cp app/src/main/assets/lottie/worktime.json app/src/main/assets/lottie/work.json
 
-          # Overlay the finished v9 UI + behavior.
-          cat ci/v9code.fix01a ci/v9code.fix01b ci/v9code.part02 ci/v9code.part03 ci/v9code.part04 > /tmp/v9code.b64
+          cat ci/v9code.fix01a ci/v9code.fix01b ci/v9code.fix02a ci/v9code.fix02b ci/v9code.part03 ci/v9code.part04 > /tmp/v9code.b64
           test "$(wc -c < /tmp/v9code.b64)" = "24804"
+          # Correct the single character introduced by the text transport in fix02a.
+          sed -i 's/H5dHCgTTiQ/H5dHCgTTgQ/' /tmp/v9code.b64
           base64 -d /tmp/v9code.b64 > /tmp/v9code.zip
           echo "3d9c671ef4c4cfd2165c7ab4320e31a36089e76190a0fb2e7ef1e191cce7b228  /tmp/v9code.zip" | sha256sum -c -
           unzip -t /tmp/v9code.zip
