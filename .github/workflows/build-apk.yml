@@ -40,12 +40,25 @@ jobs:
 
           cat ci/v9code.fix01a ci/v9code.fix01b ci/v9code.fix02a ci/v9code.fix02b ci/v9code.part03 ci/v9code.part04 > /tmp/v9code.b64
           test "$(wc -c < /tmp/v9code.b64)" = "24804"
-          # Correct the single character introduced by the text transport in fix02a.
           sed -i 's/H5dHCgTTiQ/H5dHCgTTgQ/' /tmp/v9code.b64
           base64 -d /tmp/v9code.b64 > /tmp/v9code.zip
           echo "3d9c671ef4c4cfd2165c7ab4320e31a36089e76190a0fb2e7ef1e191cce7b228  /tmp/v9code.zip" | sha256sum -c -
           unzip -t /tmp/v9code.zip
           unzip -q -o /tmp/v9code.zip -d app/src/main/assets
+
+          # Profile photo action buttons: keep text perfectly centered on mobile/WebView.
+          cat >> app/src/main/assets/app.css <<'CSS'
+          .profilePhotoActions .btn{
+            width:100%;
+            min-height:42px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            text-align:center;
+            line-height:1.2;
+          }
+          .profilePhotoActions label.btn{cursor:pointer}
+          CSS
 
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js -o app/src/main/assets/lottie.min.js
 
@@ -69,6 +82,7 @@ jobs:
           grep -q 'Salary Earned' app/src/main/assets/index.html
           grep -q 'screen-setting-appearance' app/src/main/assets/index.html
           grep -q 'for(i=0;i<60;i++)opt(m,i,P(i))' app/src/main/assets/app.js
+          grep -q 'profilePhotoActions .btn' app/src/main/assets/app.css
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -95,12 +109,12 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p output
-          cp app/build/outputs/apk/debug/app-debug.apk output/My-Attendance-v9.apk
+          cp app/build/outputs/apk/debug/app-debug.apk output/My-Attendance-v9.1.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: My-Attendance-v9-APK
-          path: output/My-Attendance-v9.apk
+          name: My-Attendance-v9.1-APK
+          path: output/My-Attendance-v9.1.apk
           if-no-files-found: error
           retention-days: 30
