@@ -12,6 +12,13 @@ android {
         targetSdk 35
         versionCode 5
         versionName '1.5'
+
+        def firebaseApiKey = System.getenv('FIREBASE_API_KEY') ?: ''
+        buildConfigField 'String', 'FIREBASE_API_KEY', '"' + firebaseApiKey.replace('\\', '\\\\').replace('"', '\\"') + '"'
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     buildTypes {
