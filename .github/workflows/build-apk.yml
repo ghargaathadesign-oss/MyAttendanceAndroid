@@ -23,7 +23,7 @@ jobs:
           base64 -d ci/app_icon.webp.b64 > app/src/main/res/drawable/app_icon.webp
           test -s app/src/main/res/drawable/app_icon.webp
 
-      - name: Prepare v11 app
+      - name: Prepare v11.1 app
         shell: bash
         run: |
           set -e
@@ -31,7 +31,7 @@ jobs:
           test "$(wc -c < /tmp/v83_bundle.b64)" = "61564"
           base64 -d /tmp/v83_bundle.b64 > /tmp/v83_bundle.zip
           echo "e71c15e01ff07294f2df5989d88ff25704f8024c97323d40a7d3bb04e2415904  /tmp/v83_bundle.zip" | sha256sum -c -
-          rm -f app/src/main/assets/index.html app/src/main/assets/app.css app/src/main/assets/app.js app/src/main/assets/extras.js app/src/main/assets/extras.css app/src/main/assets/navfix.js app/src/main/assets/lottie-runtime.js app/src/main/assets/profile-ui.js app/src/main/assets/cloud-ui.js app/src/main/assets/cloud-ui.css app/src/main/assets/v11-ui.js app/src/main/assets/v11-ui.css app/src/main/assets/xlsx.full.min.js app/src/main/assets/firebase-config.json
+          rm -f app/src/main/assets/index.html app/src/main/assets/app.css app/src/main/assets/app.js app/src/main/assets/extras.js app/src/main/assets/extras.css app/src/main/assets/navfix.js app/src/main/assets/lottie-runtime.js app/src/main/assets/profile-ui.js app/src/main/assets/cloud-ui.js app/src/main/assets/cloud-ui.css app/src/main/assets/v11-ui.js app/src/main/assets/v11-ui.css app/src/main/assets/v111-fixes.js app/src/main/assets/xlsx.full.min.js app/src/main/assets/exceljs.min.js app/src/main/assets/firebase-config.json
           rm -rf app/src/main/assets/lottie app/src/main/assets/lottie-dark app/src/main/assets/lottie-white
           unzip -q -o /tmp/v83_bundle.zip -d app/src/main/assets
 
@@ -48,11 +48,14 @@ jobs:
           cp ci/cloud-ui.css app/src/main/assets/cloud-ui.css
           python3 ci/patch_v10.py app/src/main/assets
           python3 ci/patch_v11.py app/src/main/assets
+          python3 ci/patch_v111.py app/src/main/assets
           cp ci/v11-ui.js app/src/main/assets/v11-ui.js
           cp ci/v11-ui.css app/src/main/assets/v11-ui.css
+          cp ci/v111-fixes.js app/src/main/assets/v111-fixes.js
           python3 ci/patch_native_v11.py app/src/main/java/com/personal/attendance/MainActivity.java
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js -o app/src/main/assets/lottie.min.js
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js -o app/src/main/assets/xlsx.full.min.js
+          curl -L --fail --retry 3 https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js -o app/src/main/assets/exceljs.min.js
           cp ci/lottie-runtime.js app/src/main/assets/lottie-runtime.js
 
           test -s app/src/main/assets/index.html
@@ -64,7 +67,9 @@ jobs:
           test -s app/src/main/assets/lottie-runtime.js
           test -s app/src/main/assets/v11-ui.js
           test -s app/src/main/assets/v11-ui.css
+          test -s app/src/main/assets/v111-fixes.js
           test -s app/src/main/assets/xlsx.full.min.js
+          test -s app/src/main/assets/exceljs.min.js
           test -s app/src/main/assets/lottie-dark/attendance.json
           test -s app/src/main/assets/lottie-white/punch.json
           node --check app/src/main/assets/app.js
@@ -72,12 +77,16 @@ jobs:
           node --check app/src/main/assets/cloud-ui.js
           node --check app/src/main/assets/lottie-runtime.js
           node --check app/src/main/assets/v11-ui.js
+          node --check app/src/main/assets/v111-fixes.js
+          grep -q 'window.initLottie' app/src/main/assets/lottie-runtime.js
+          grep -q 'exceljs.min.js' app/src/main/assets/index.html
+          grep -q 'v111-fixes.js' app/src/main/assets/index.html
           grep -q 'deleteProfileBtn' app/src/main/assets/index.html
           grep -q 'exportExcelBtn' app/src/main/assets/index.html
           grep -q 'workProgressRing' app/src/main/assets/index.html
           grep -q 'dailyBalanceMinutes' app/src/main/assets/app.js
           if grep -q 'RE-PUNCH' app/src/main/assets/app.js; then exit 1; fi
-          echo "v11 assets prepared successfully"
+          echo "v11.1 assets prepared successfully"
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -118,14 +127,14 @@ jobs:
         shell: bash
         run: |
           mkdir -p output
-          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v11-unsigned.apk
+          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v11.1-unsigned.apk
           tar -czf output/android-build-tools-35.tar.gz -C "$ANDROID_HOME/build-tools" 35.0.0
 
       - name: Upload unsigned APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: My-Attendance-v11-Unsigned-APK
-          path: output/My-Attendance-v11-unsigned.apk
+          name: My-Attendance-v11.1-Unsigned-APK
+          path: output/My-Attendance-v11.1-unsigned.apk
           if-no-files-found: error
           retention-days: 30
 
