@@ -88,7 +88,20 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Validate Firebase build secret
+        shell: bash
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+        run: |
+          if [ -z "${FIREBASE_API_KEY:-}" ]; then
+            echo "FIREBASE_API_KEY repository secret is missing."
+            exit 1
+          fi
+          echo "Firebase build secret is configured."
+
       - name: Build unsigned release APK
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
         run: gradle --no-daemon clean assembleRelease
 
       - name: Prepare APK and official build tools
