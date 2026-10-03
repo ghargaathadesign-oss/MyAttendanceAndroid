@@ -11,7 +11,7 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -23,7 +23,7 @@ jobs:
           base64 -d ci/app_icon.webp.b64 > app/src/main/res/drawable/app_icon.webp
           test -s app/src/main/res/drawable/app_icon.webp
 
-      - name: Prepare v9.5 app
+      - name: Prepare v10 app
         shell: bash
         run: |
           set -e
@@ -31,7 +31,7 @@ jobs:
           test "$(wc -c < /tmp/v83_bundle.b64)" = "61564"
           base64 -d /tmp/v83_bundle.b64 > /tmp/v83_bundle.zip
           echo "e71c15e01ff07294f2df5989d88ff25704f8024c97323d40a7d3bb04e2415904  /tmp/v83_bundle.zip" | sha256sum -c -
-          rm -f app/src/main/assets/index.html app/src/main/assets/app.css app/src/main/assets/app.js app/src/main/assets/extras.js app/src/main/assets/extras.css app/src/main/assets/navfix.js app/src/main/assets/lottie-runtime.js app/src/main/assets/profile-ui.js
+          rm -f app/src/main/assets/index.html app/src/main/assets/app.css app/src/main/assets/app.js app/src/main/assets/extras.js app/src/main/assets/extras.css app/src/main/assets/navfix.js app/src/main/assets/lottie-runtime.js app/src/main/assets/profile-ui.js app/src/main/assets/cloud-ui.js app/src/main/assets/cloud-ui.css app/src/main/assets/firebase-config.json
           rm -rf app/src/main/assets/lottie app/src/main/assets/lottie-dark app/src/main/assets/lottie-white
           unzip -q -o /tmp/v83_bundle.zip -d app/src/main/assets
 
@@ -44,6 +44,9 @@ jobs:
 
           python3 ci/prepare_v94.py app/src/main/assets
           python3 ci/patch_v95.py app/src/main/assets
+          cp ci/cloud-ui.js app/src/main/assets/cloud-ui.js
+          cp ci/cloud-ui.css app/src/main/assets/cloud-ui.css
+          python3 ci/patch_v10.py app/src/main/assets
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js -o app/src/main/assets/lottie.min.js
           cp ci/lottie-runtime.js app/src/main/assets/lottie-runtime.js
 
@@ -51,16 +54,20 @@ jobs:
           test -s app/src/main/assets/app.css
           test -s app/src/main/assets/app.js
           test -s app/src/main/assets/profile-ui.js
+          test -s app/src/main/assets/cloud-ui.js
+          test -s app/src/main/assets/cloud-ui.css
           test -s app/src/main/assets/lottie-runtime.js
           test -s app/src/main/assets/lottie-dark/attendance.json
           test -s app/src/main/assets/lottie-white/punch.json
           node --check app/src/main/assets/app.js
           node --check app/src/main/assets/profile-ui.js
+          node --check app/src/main/assets/cloud-ui.js
           node --check app/src/main/assets/lottie-runtime.js
-          grep -q 'profileReferenceCard' app/src/main/assets/index.html
           grep -q 'profileInlineFields' app/src/main/assets/index.html
+          grep -q 'googleLoginBtn' app/src/main/assets/index.html
+          grep -q 'cloudBackupBtn' app/src/main/assets/index.html
           if grep -q 'RE-PUNCH' app/src/main/assets/app.js; then exit 1; fi
-          echo "v9.5 assets prepared successfully"
+          echo "v10 assets prepared successfully"
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -81,18 +88,18 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Build APK
-        run: gradle --no-daemon clean assembleDebug
+      - name: Build unsigned release APK
+        run: gradle --no-daemon clean assembleRelease
 
       - name: Prepare APK
         run: |
           mkdir -p output
-          cp app/build/outputs/apk/debug/app-debug.apk output/My-Attendance-v9.5.apk
+          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v10-unsigned.apk
 
-      - name: Upload APK artifact
+      - name: Upload unsigned APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: My-Attendance-v9.5-APK
-          path: output/My-Attendance-v9.5.apk
+          name: My-Attendance-v10-Unsigned-APK
+          path: output/My-Attendance-v10-unsigned.apk
           if-no-files-found: error
           retention-days: 30
