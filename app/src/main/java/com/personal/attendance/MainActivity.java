@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
   private ValueCallback<Uri[]> chooser;
   private static final int FILE_REQ=4102;
   private static final String WEB_CLIENT_ID="312314814209-5nm1pj6a89o6aglpismq5vb4k9lqtglb.apps.googleusercontent.com";
-  private static final String FIREBASE_API_KEY="AIzaSyB9BxnLnNPvmOhXLX4y1sWioehDSMy2hAk";
+  private static final String FIREBASE_API_KEY=BuildConfig.FIREBASE_API_KEY;
   private static final String FIREBASE_APP_ID="1:312314814209:android:764780f6a72c65b9a38500";
   private static final String FIREBASE_PROJECT_ID="my-attendance-c5c23";
   private static final String FIREBASE_STORAGE_BUCKET="my-attendance-c5c23.firebasestorage.app";
@@ -114,6 +114,7 @@ public class MainActivity extends Activity {
 
   private void initFirebase(){
     try{
+      if(FIREBASE_API_KEY==null||FIREBASE_API_KEY.trim().isEmpty())throw new IllegalStateException("Firebase API key was not supplied at build time.");
       if(FirebaseApp.getApps(this).isEmpty()){
         FirebaseOptions options=new FirebaseOptions.Builder()
           .setApiKey(FIREBASE_API_KEY)
