@@ -155,12 +155,14 @@ public class MainActivity extends Activity {
 
   private void js(String code){if(webView!=null)runOnUiThread(() -> webView.evaluateJavascript(code,null));}
   private void jsError(String msg){js("window.onNativeAuthError&&window.onNativeAuthError("+JSONObject.quote(msg==null?"Unknown error":msg)+");");}
+  private void jsNotice(String msg){js("window.onNativeAuthNotice&&window.onNativeAuthNotice("+JSONObject.quote(msg==null?"":msg)+");");}
 
   private void pushAuthState(){
     try{
       JSONObject o=new JSONObject();
       FirebaseUser u=auth==null?null:auth.getCurrentUser();
       o.put("signedIn",u!=null);
+      o.put("emailVerified",u!=null&&u.isEmailVerified());
       if(u!=null){
         o.put("uid",u.getUid());
         o.put("name",u.getDisplayName()==null?"":u.getDisplayName());
@@ -205,15 +207,67 @@ public class MainActivity extends Activity {
     }catch(Exception e){jsError(e.getMessage());}
   }
 
+  private void emailSignUp(String email,String password){
+    if(auth==null){jsError("Firebase initialization failed: "+firebaseInitError);return;}
+    auth.createUserWithEmailAndPassword(email,password).addOnCompleteListener(this,t->{
+      if(!t.isSuccessful()){jsError(t.getException()==null?"Could not create account":t.getException().getMessage());return;}
+      FirebaseUser u=auth.getCurrentUser();
+      if(u==null){jsError("Account was created but user session is unavailable.");return;}
+      u.sendEmailVerification().addOnCompleteListener(this,v->{
+        if(v.isSuccessful())jsNotice("Verification email sent. Open the email and tap the verification link.");
+        else jsError(v.getException()==null?"Could not send verification email":v.getException().getMessage());
+        pushAuthState();
+      });
+    });
+  }
+
+  private void emailSignIn(String email,String password){
+    if(auth==null){jsError("Firebase initialization failed: "+firebaseInitError);return;}
+    auth.signInWithEmailAndPassword(email,password).addOnCompleteListener(this,t->{
+      if(t.isSuccessful())pushAuthState();
+      else jsError(t.getException()==null?"Email or password is incorrect":t.getException().getMessage());
+    });
+  }
+
+  private void resendVerification(){
+    FirebaseUser u=auth==null?null:auth.getCurrentUser();
+    if(u==null){jsError("Please sign in again.");return;}
+    if(u.isEmailVerified()){jsNotice("Your email is already verified.");pushAuthState();return;}
+    u.sendEmailVerification().addOnCompleteListener(this,t->{
+      if(t.isSuccessful())jsNotice("Verification email sent again.");
+      else jsError(t.getException()==null?"Could not resend verification email":t.getException().getMessage());
+    });
+  }
+
+  private void checkEmailVerified(){
+    FirebaseUser u=auth==null?null:auth.getCurrentUser();
+    if(u==null){jsError("Please sign in again.");return;}
+    u.reload().addOnCompleteListener(this,t->{
+      if(!t.isSuccessful()){jsError(t.getException()==null?"Could not check verification":t.getException().getMessage());return;}
+      FirebaseUser fresh=auth.getCurrentUser();
+      if(fresh!=null&&fresh.isEmailVerified())jsNotice("Email verified successfully.");
+      else jsNotice("Email is not verified yet. Open the verification email and tap the link first.");
+      pushAuthState();
+    });
+  }
+
+  private void resetPassword(String email){
+    if(auth==null){jsError("Firebase initialization failed: "+firebaseInitError);return;}
+    auth.sendPasswordResetEmail(email).addOnCompleteListener(this,t->{
+      if(t.isSuccessful())jsNotice("Password reset email sent.");
+      else jsError(t.getException()==null?"Could not send reset email":t.getException().getMessage());
+    });
+  }
+
   private StorageReference backupRef(){
     FirebaseUser u=auth==null?null:auth.getCurrentUser();
-    if(u==null||cloudStorage==null)return null;
+    if(u==null||cloudStorage==null||!u.isEmailVerified())return null;
     return cloudStorage.getReference().child("users").child(u.getUid()).child("backups").child("latest.json");
   }
 
   private void cloudBackup(String json){
     StorageReference ref=backupRef();
-    if(ref==null){js("window.onCloudBackupResult&&window.onCloudBackupResult(false,'Please sign in first',0);");return;}
+    if(ref==null){js("window.onCloudBackupResult&&window.onCloudBackupResult(false,'Please sign in with a verified account first',0);");return;}
     byte[] bytes=(json==null?"{}":json).getBytes(StandardCharsets.UTF_8);
     StorageMetadata meta=new StorageMetadata.Builder().setContentType("application/json").setCustomMetadata("source","My Attendance Android").build();
     ref.putBytes(bytes,meta).addOnSuccessListener(x->{
@@ -224,7 +278,7 @@ public class MainActivity extends Activity {
 
   private void cloudRestore(){
     StorageReference ref=backupRef();
-    if(ref==null){js("window.onCloudRestoreError&&window.onCloudRestoreError('Please sign in first');");return;}
+    if(ref==null){js("window.onCloudRestoreError&&window.onCloudRestoreError('Please sign in with a verified account first');");return;}
     ref.getBytes(25L*1024L*1024L).addOnSuccessListener(bytes->{
       String payload=new String(bytes,StandardCharsets.UTF_8);
       js("window.onCloudRestore&&window.onCloudRestore("+JSONObject.quote(payload)+");");
@@ -274,6 +328,11 @@ public class MainActivity extends Activity {
       }catch(Exception e){toast("Document share failed: "+e.getMessage());}
     }
     @JavascriptInterface public void googleSignIn(){runOnUiThread(() -> beginGoogleSignIn());}
+    @JavascriptInterface public void emailSignUp(String email,String password){runOnUiThread(() -> MainActivity.this.emailSignUp(email,password));}
+    @JavascriptInterface public void emailSignIn(String email,String password){runOnUiThread(() -> MainActivity.this.emailSignIn(email,password));}
+    @JavascriptInterface public void resendVerification(){runOnUiThread(() -> MainActivity.this.resendVerification());}
+    @JavascriptInterface public void checkEmailVerified(){runOnUiThread(() -> MainActivity.this.checkEmailVerified());}
+    @JavascriptInterface public void resetPassword(String email){runOnUiThread(() -> MainActivity.this.resetPassword(email));}
     @JavascriptInterface public void authState(){pushAuthState();}
     @JavascriptInterface public void googleSignOut(){runOnUiThread(()->{if(auth!=null)auth.signOut();pushAuthState();});}
     @JavascriptInterface public void cloudBackup(String json){MainActivity.this.cloudBackup(json);}
