@@ -43,10 +43,8 @@ import com.google.firebase.storage.StorageReference;
 
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -56,6 +54,11 @@ public class MainActivity extends Activity {
   private ValueCallback<Uri[]> chooser;
   private static final int FILE_REQ=4102;
   private static final String WEB_CLIENT_ID="312314814209-5nm1pj6a89o6aglpismq5vb4k9lqtglb.apps.googleusercontent.com";
+  private static final String FIREBASE_API_KEY="AIzaSyB9BxnLnNPvmOhXLX4y1sWioehDSMy2hAk";
+  private static final String FIREBASE_APP_ID="1:312314814209:android:764780f6a72c65b9a38500";
+  private static final String FIREBASE_PROJECT_ID="my-attendance-c5c23";
+  private static final String FIREBASE_STORAGE_BUCKET="my-attendance-c5c23.firebasestorage.app";
+  private static final String FIREBASE_SENDER_ID="312314814209";
   private FirebaseAuth auth;
   private FirebaseStorage cloudStorage;
   private CredentialManager credentialManager;
@@ -111,28 +114,24 @@ public class MainActivity extends Activity {
 
   private void initFirebase(){
     try{
-      if(!FirebaseApp.getApps(this).isEmpty()){
-        auth=FirebaseAuth.getInstance();
-        cloudStorage=FirebaseStorage.getInstance();
-        return;
+      if(FirebaseApp.getApps(this).isEmpty()){
+        FirebaseOptions options=new FirebaseOptions.Builder()
+          .setApiKey(FIREBASE_API_KEY)
+          .setApplicationId(FIREBASE_APP_ID)
+          .setProjectId(FIREBASE_PROJECT_ID)
+          .setStorageBucket(FIREBASE_STORAGE_BUCKET)
+          .setGcmSenderId(FIREBASE_SENDER_ID)
+          .build();
+        FirebaseApp.initializeApp(this,options);
       }
-      InputStream in=getAssets().open("firebase-config.json");
-      ByteArrayOutputStream out=new ByteArrayOutputStream();
-      byte[] buf=new byte[4096];int n;
-      while((n=in.read(buf))>0)out.write(buf,0,n);
-      in.close();
-      JSONObject j=new JSONObject(out.toString("UTF-8"));
-      FirebaseOptions.Builder b=new FirebaseOptions.Builder()
-        .setApiKey(j.getString("apiKey"))
-        .setApplicationId(j.getString("applicationId"))
-        .setProjectId(j.getString("projectId"))
-        .setStorageBucket(j.getString("storageBucket"));
-      String sender=j.optString("senderId","");
-      if(!sender.isEmpty())b.setGcmSenderId(sender);
-      FirebaseApp.initializeApp(this,b.build());
       auth=FirebaseAuth.getInstance();
       cloudStorage=FirebaseStorage.getInstance();
-    }catch(Exception e){firebaseInitError=e.getMessage()==null?"Firebase configuration unavailable":e.getMessage();}
+      firebaseInitError="";
+    }catch(Exception e){
+      auth=null;
+      cloudStorage=null;
+      firebaseInitError=e.getMessage()==null?"Firebase initialization failed":e.getMessage();
+    }
   }
 
   @Override protected void onActivityResult(int r,int c,Intent d){
@@ -168,13 +167,13 @@ public class MainActivity extends Activity {
         o.put("email",u.getEmail()==null?"":u.getEmail());
         o.put("photo",u.getPhotoUrl()==null?"":u.getPhotoUrl().toString());
       }
-      if(auth==null)o.put("setupError",firebaseInitError);
+      if(auth==null)o.put("setupError",firebaseInitError.isEmpty()?"Firebase initialization failed":firebaseInitError);
       js("window.onNativeAuthChanged&&window.onNativeAuthChanged("+o.toString()+");");
     }catch(Exception e){jsError(e.getMessage());}
   }
 
   private void beginGoogleSignIn(){
-    if(auth==null){jsError("Firebase is not configured in this APK.");return;}
+    if(auth==null){jsError("Firebase initialization failed: "+firebaseInitError);return;}
     try{
       GetGoogleIdOption option=new GetGoogleIdOption.Builder()
         .setFilterByAuthorizedAccounts(false)
