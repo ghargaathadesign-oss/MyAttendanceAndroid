@@ -59,3 +59,58 @@ jobs:
           export GOOGLE_APPLICATION_CREDENTIALS="$CREDS"
           firebase deploy --only storage --project my-attendance-c5c23 --non-interactive
           rm -f "$CREDS"
+
+
+  configure-app-check:
+    if: github.ref == 'refs/heads/main'
+    needs: test-storage-rules
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - name: Check Firebase deployment credentials
+        id: creds
+        shell: bash
+        run: |
+          if [ -n "${FIREBASE_SERVICE_ACCOUNT_JSON:-}" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Firebase deployment credentials are not configured; App Check server configuration is skipped."
+          fi
+      - name: Authenticate to Google Cloud
+        if: steps.creds.outputs.available == 'true'
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          token_format: access_token
+      - name: Configure App Check Play Integrity for sideloaded APKs
+        if: steps.creds.outputs.available == 'true'
+        shell: bash
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: |
+          set -euo pipefail
+          APP_ID='1:312314814209:android:764780f6a72c65b9a38500'
+          PROJECT_NUMBER='312314814209'
+          NAME="projects/$PROJECT_NUMBER/apps/$APP_ID/playIntegrityConfig"
+          URL="https://firebaseappcheck.googleapis.com/v1/$NAME?updateMask=appIntegrity.allowUnrecognizedVersion,deviceIntegrity.minDeviceRecognitionLevel,accountDetails.requireLicensed"
+          cat > "$RUNNER_TEMP/app-check.json" <<JSON
+          {
+            "name": "$NAME",
+            "appIntegrity": {"allowUnrecognizedVersion": true},
+            "deviceIntegrity": {"minDeviceRecognitionLevel": "MEETS_DEVICE_INTEGRITY"},
+            "accountDetails": {"requireLicensed": false}
+          }
+          JSON
+          curl --fail-with-body --silent --show-error \
+            -X PATCH "$URL" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data-binary @"$RUNNER_TEMP/app-check.json" \
+            | tee "$RUNNER_TEMP/app-check-response.json"
+          grep -q '"allowUnrecognizedVersion": true' "$RUNNER_TEMP/app-check-response.json"
+          grep -q '"minDeviceRecognitionLevel": "MEETS_DEVICE_INTEGRITY"' "$RUNNER_TEMP/app-check-response.json"
+          rm -f "$RUNNER_TEMP/app-check.json" "$RUNNER_TEMP/app-check-response.json"
