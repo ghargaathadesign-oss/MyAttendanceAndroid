@@ -3,7 +3,7 @@ name: Build My Attendance APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, v12.6-hardening]
+    branches: [main, v12.6-hardening, v12.7-device-auth]
 
 permissions:
   contents: read
@@ -23,7 +23,7 @@ jobs:
           base64 -d ci/app_icon.webp.b64 > app/src/main/res/drawable/app_icon.webp
           test -s app/src/main/res/drawable/app_icon.webp
 
-      - name: Prepare v12.6 app
+      - name: Prepare v12.7 app
         shell: bash
         run: |
           set -e
@@ -75,6 +75,9 @@ jobs:
           cp ci/cloud-ui-v126.js app/src/main/assets/cloud-ui.js
           python3 ci/patch_v126.py app/src/main/assets
           python3 ci/patch_native_v126.py app/src/main/java/com/personal/attendance/MainActivity.java
+          cp ci/cloud-ui-v127.js app/src/main/assets/cloud-ui.js
+          python3 ci/patch_v127.py app/src/main/assets
+          python3 ci/patch_native_v127.py app/src/main/java/com/personal/attendance/MainActivity.java
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js -o app/src/main/assets/lottie.min.js
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js -o app/src/main/assets/xlsx.full.min.js
           curl -L --fail --retry 3 https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js -o app/src/main/assets/exceljs.min.js
@@ -137,12 +140,21 @@ jobs:
           grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
           grep -q 'attendanceDocEncryptFile' app/src/main/assets/app.js
           grep -q 'encVersion:2' app/src/main/assets/document-crypto.js
-          grep -q 'End-to-end encrypted backup' app/src/main/assets/index.html
+          grep -q 'Protected by your phone security' app/src/main/assets/index.html
+          if grep -q 'backupRecoveryPassword' app/src/main/assets/index.html; then exit 1; fi
+          if grep -q 'saveBackupRecoveryBtn' app/src/main/assets/index.html; then exit 1; fi
           grep -q 'PBKDF2-HMAC-SHA256' app/src/main/assets/backup-crypto.js
           grep -q 'secureReplacePrefix' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q 'WebViewAssetLoader' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q 'deleteAccountDataWithPassword' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q 'androidx.webkit:webkit:1.16.0' app/build.gradle
+          grep -q 'androidx.biometric:biometric:1.1.0' app/build.gradle
+          grep -q 'BiometricPrompt' app/src/main/java/com/personal/attendance/MainActivity.java
+          grep -q 'secureCloudBackup' app/src/main/java/com/personal/attendance/MainActivity.java
+          grep -q 'secureCloudRestore' app/src/main/java/com/personal/attendance/MainActivity.java
+          grep -q 'BACKUP_KEY_ALIAS_PREFIX' app/src/main/java/com/personal/attendance/MainActivity.java
+          grep -q 'FIREBASE_APP_CHECK_ENABLED' app/src/main/java/com/personal/attendance/MainActivity.java
+          if grep -q 'private void withAppCheck' app/src/main/java/com/personal/attendance/MainActivity.java; then exit 1; fi
           grep -q 'profileDangerZone' app/src/main/assets/index.html
           grep -q 'confirmClockOut' app/src/main/assets/app.js
           grep -q 'isSpecialOTRecord' app/src/main/assets/app.js
@@ -152,10 +164,11 @@ jobs:
           if grep -q 'Standard day: 8h 00m' app/src/main/assets/index.html; then exit 1; fi
           grep -q 'AttendancePolicy.salaryMonth' app/src/main/assets/app.js
           grep -q 'AttendancePolicy.balanceMinutes' app/src/main/assets/v112-fixes.js
-          grep -q 'older backups are migrated automatically' app/src/main/assets/cloud-ui.js
+          grep -q 'secureCloudBackup' app/src/main/assets/cloud-ui.js
+          grep -q 'oldRecoveryPassword' app/src/main/assets/cloud-ui.js
           grep -q 'Documents are encrypted with Android Keystore and stored only on this device' app/src/main/assets/index.html
           if grep -q 'RE-PUNCH' app/src/main/assets/app.js; then exit 1; fi
-          echo "v12.6 assets prepared successfully"
+          echo "v12.7 assets prepared successfully"
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -190,13 +203,14 @@ jobs:
       - name: Build unsigned release APK
         env:
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_APP_CHECK_ENABLED: ${{ secrets.FIREBASE_APP_CHECK_ENABLED }}
         run: gradle --no-daemon clean assembleRelease
 
       - name: Prepare APK and official build tools
         shell: bash
         run: |
           mkdir -p output
-          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v12.6-unsigned.apk
+          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v12.7-unsigned.apk
           tar -czf output/android-build-tools-35.tar.gz -C "$ANDROID_HOME/build-tools" 35.0.0
 
       - name: Sign APK with permanent release key
@@ -214,11 +228,11 @@ jobs:
             exit 0
           fi
           KEYSTORE="$RUNNER_TEMP/my-attendance-release.jks"
-          ALIGNED="$RUNNER_TEMP/My-Attendance-v12.6-aligned.apk"
-          SIGNED="output/My-Attendance-v12.6-signed.apk"
+          ALIGNED="$RUNNER_TEMP/My-Attendance-v12.7-aligned.apk"
+          SIGNED="output/My-Attendance-v12.7-signed.apk"
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
           chmod 600 "$KEYSTORE"
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -P 16 4 output/My-Attendance-v12.6-unsigned.apk "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -P 16 4 output/My-Attendance-v12.7-unsigned.apk "$ALIGNED"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign             --ks "$KEYSTORE"             --ks-key-alias "$ANDROID_KEY_ALIAS"             --ks-pass env:ANDROID_KEYSTORE_PASSWORD             --key-pass env:ANDROID_KEY_PASSWORD             --out "$SIGNED"             "$ALIGNED"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$SIGNED" | tee output/apksigner-report.txt
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$SIGNED"
@@ -232,21 +246,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SIGNED="output/My-Attendance-v12.6-signed.apk"
+          SIGNED="output/My-Attendance-v12.7-signed.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$SIGNED" | tee output/package-badging.txt
           grep -q "package: name='com.personal.attendance'" output/package-badging.txt
-          grep -q "versionCode='16'" output/package-badging.txt
-          grep -q "versionName='3.0'" output/package-badging.txt
-          sha256sum "$SIGNED" | tee output/My-Attendance-v12.6-signed.apk.sha256
+          grep -q "versionCode='17'" output/package-badging.txt
+          grep -q "versionName='3.1'" output/package-badging.txt
+          sha256sum "$SIGNED" | tee output/My-Attendance-v12.7-signed.apk.sha256
 
       - name: Upload signed APK artifact
         if: env.SIGNED_APK_AVAILABLE == '1'
         uses: actions/upload-artifact@v4
         with:
-          name: My-Attendance-v12.6-Signed-APK
+          name: My-Attendance-v12.7-Signed-APK
           path: |
-            output/My-Attendance-v12.6-signed.apk
-            output/My-Attendance-v12.6-signed.apk.sha256
+            output/My-Attendance-v12.7-signed.apk
+            output/My-Attendance-v12.7-signed.apk.sha256
             output/apksigner-report.txt
             output/package-badging.txt
           if-no-files-found: error
@@ -255,8 +269,8 @@ jobs:
       - name: Upload unsigned APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: My-Attendance-v12.6-Unsigned-APK
-          path: output/My-Attendance-v12.6-unsigned.apk
+          name: My-Attendance-v12.7-Unsigned-APK
+          path: output/My-Attendance-v12.7-unsigned.apk
           if-no-files-found: error
           retention-days: 30
 
