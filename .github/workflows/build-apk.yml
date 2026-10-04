@@ -23,7 +23,7 @@ jobs:
           base64 -d ci/app_icon.webp.b64 > app/src/main/res/drawable/app_icon.webp
           test -s app/src/main/res/drawable/app_icon.webp
 
-      - name: Prepare v12.2 app
+      - name: Prepare v12.3 app
         shell: bash
         run: |
           set -e
@@ -58,11 +58,12 @@ jobs:
           cp ci/v113-ui.css app/src/main/assets/v113-ui.css
           python3 ci/patch_v112.py app/src/main/assets
           python3 ci/patch_v113.py app/src/main/assets
-          cp ci/user-storage.js app/src/main/assets/user-storage.js
+          cp ci/user-storage-v123.js app/src/main/assets/user-storage.js
           python3 ci/patch_v12.py app/src/main/assets
           python3 ci/patch_native_v11.py app/src/main/java/com/personal/attendance/MainActivity.java
           python3 ci/patch_native_v12.py app/src/main/java/com/personal/attendance/MainActivity.java
           python3 ci/patch_native_v121.py app/src/main/java/com/personal/attendance/MainActivity.java
+          python3 ci/patch_native_v123.py app/src/main/java/com/personal/attendance/MainActivity.java
           python3 ci/patch_v122.py app/src/main/assets
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js -o app/src/main/assets/lottie.min.js
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js -o app/src/main/assets/xlsx.full.min.js
@@ -112,6 +113,10 @@ jobs:
           grep -q 'currentUserUid' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q 'PlayIntegrityAppCheckProviderFactory' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q 'firebase-appcheck-playintegrity' app/build.gradle
+          grep -q 'secureStorageAvailable' app/src/main/java/com/personal/attendance/MainActivity.java
+          grep -q 'my_attendance_local_aes_v1' app/src/main/java/com/personal/attendance/MainActivity.java
+          grep -q 'attendanceSecureLocalStorage' app/src/main/assets/user-storage.js
+          grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
           grep -q 'Manual cloud backup ready' app/src/main/assets/cloud-ui.js
           grep -q 'profileDangerZone' app/src/main/assets/index.html
           grep -q 'confirmClockOut' app/src/main/assets/app.js
@@ -119,7 +124,7 @@ jobs:
           if grep -q '<script src="v111-fixes.js"' app/src/main/assets/index.html; then exit 1; fi
           grep -q 'dailyBalanceMinutes' app/src/main/assets/app.js
           if grep -q 'RE-PUNCH' app/src/main/assets/app.js; then exit 1; fi
-          echo "v12.2 assets prepared successfully"
+          echo "v12.3 assets prepared successfully"
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -160,7 +165,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p output
-          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v12.2-unsigned.apk
+          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v12.3-unsigned.apk
           tar -czf output/android-build-tools-35.tar.gz -C "$ANDROID_HOME/build-tools" 35.0.0
 
       - name: Sign APK with permanent release key
@@ -178,11 +183,11 @@ jobs:
             exit 0
           fi
           KEYSTORE="$RUNNER_TEMP/my-attendance-release.jks"
-          ALIGNED="$RUNNER_TEMP/My-Attendance-v12.2-aligned.apk"
-          SIGNED="output/My-Attendance-v12.2-signed.apk"
+          ALIGNED="$RUNNER_TEMP/My-Attendance-v12.3-aligned.apk"
+          SIGNED="output/My-Attendance-v12.3-signed.apk"
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
           chmod 600 "$KEYSTORE"
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -p 4 output/My-Attendance-v12.2-unsigned.apk "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -p 4 output/My-Attendance-v12.3-unsigned.apk "$ALIGNED"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign             --ks "$KEYSTORE"             --ks-key-alias "$ANDROID_KEY_ALIAS"             --ks-pass env:ANDROID_KEYSTORE_PASSWORD             --key-pass env:ANDROID_KEY_PASSWORD             --out "$SIGNED"             "$ALIGNED"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$SIGNED"
           rm -f "$KEYSTORE" "$ALIGNED"
@@ -192,16 +197,16 @@ jobs:
         if: env.SIGNED_APK_AVAILABLE == '1'
         uses: actions/upload-artifact@v4
         with:
-          name: My-Attendance-v12.2-Signed-APK
-          path: output/My-Attendance-v12.2-signed.apk
+          name: My-Attendance-v12.3-Signed-APK
+          path: output/My-Attendance-v12.3-signed.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload unsigned APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: My-Attendance-v12.2-Unsigned-APK
-          path: output/My-Attendance-v12.2-unsigned.apk
+          name: My-Attendance-v12.3-Unsigned-APK
+          path: output/My-Attendance-v12.3-unsigned.apk
           if-no-files-found: error
           retention-days: 30
 
