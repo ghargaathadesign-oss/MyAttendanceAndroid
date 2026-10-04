@@ -207,10 +207,10 @@ if 'private void secureCloudBackup(' not in s:
 # Remove the explicit App Check preflight that caused the visible 403 error.
 s=re.sub(r'  private void withAppCheck\(Runnable action,java\.util\.function\.Consumer<String> fail\)\{.*?\n  \}\n\n', '', s, count=1, flags=re.S)
 
-pat=re.compile(r'''  private void cloudBackup\(String json\)\{.*?\n  \}\n\n  private void cloudRestore\(\)\{.*?\n  \}\n''',re.S)
-m=pat.search(s)
-if not m: raise SystemExit('cloud backup/restore block missing')
-direct='''  private void cloudBackup(String json){
+backup_pat=re.compile(r'''  private void cloudBackup\(String json\)\{.*?(?=\n  private String authProviderNative\()''',re.S)
+m=backup_pat.search(s)
+if not m: raise SystemExit('cloudBackup block missing')
+backup_direct='''  private void cloudBackup(String json){
     StorageReference ref=backupRef();
     if(ref==null){js("window.onCloudBackupResult&&window.onCloudBackupResult(false,'Please sign in with a verified account first',0);");return;}
     byte[] bytes=(json==null?"{}":json).getBytes(StandardCharsets.UTF_8);
@@ -221,7 +221,13 @@ direct='''  private void cloudBackup(String json){
     }).addOnFailureListener(e->js("window.onCloudBackupResult&&window.onCloudBackupResult(false,"+JSONObject.quote(e.getMessage()==null?"Backup failed":e.getMessage())+",0);"));
   }
 
-  private void cloudRestore(){
+'''
+s=s[:m.start()]+backup_direct+s[m.end():]
+
+restore_pat=re.compile(r'''  private void cloudRestore\(\)\{.*?(?=\n  public class AndroidBridge)''',re.S)
+m=restore_pat.search(s)
+if not m: raise SystemExit('cloudRestore block missing')
+restore_direct='''  private void cloudRestore(){
     StorageReference ref=backupRef();
     if(ref==null){js("window.onCloudRestoreError&&window.onCloudRestoreError('Please sign in with a verified account first');");return;}
     ref.getBytes(25L*1024L*1024L).addOnSuccessListener(bytes->{
@@ -229,8 +235,9 @@ direct='''  private void cloudBackup(String json){
       js("window.onCloudRestore&&window.onCloudRestore("+JSONObject.quote(payload)+");");
     }).addOnFailureListener(e->js("window.onCloudRestoreError&&window.onCloudRestoreError("+JSONObject.quote(e.getMessage()==null?"No backup found":e.getMessage())+");"));
   }
+
 '''
-s=s[:m.start()]+direct+s[m.end():]
+s=s[:m.start()]+restore_direct+s[m.end():]
 
 bridge='    @JavascriptInterface public void cloudRestore(){MainActivity.this.cloudRestore();}\n'
 add='''    @JavascriptInterface public void secureCloudBackup(String json){MainActivity.this.secureCloudBackup(json);}
