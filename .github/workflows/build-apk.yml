@@ -68,8 +68,6 @@ jobs:
           python3 ci/patch_native_v124.py app/src/main/java/com/personal/attendance/MainActivity.java
           python3 ci/patch_v122.py app/src/main/assets
           python3 ci/patch_v124.py app/src/main/assets
-          python3 ci/patch_v124.py app/src/main/assets
-          python3 ci/patch_v124.py app/src/main/assets
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js -o app/src/main/assets/lottie.min.js
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js -o app/src/main/assets/xlsx.full.min.js
           curl -L --fail --retry 3 https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js -o app/src/main/assets/exceljs.min.js
@@ -123,11 +121,9 @@ jobs:
           grep -q 'secureStorageAvailable' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q 'my_attendance_local_aes_v1' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q 'attendanceSecureLocalStorage' app/src/main/assets/user-storage.js
-          grep -q 'docEncryptItem' app/src/main/assets/app.js
-          grep -q 'secureVersion:1' app/src/main/assets/app.js
           grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
-          grep -q 'docEncryptItem' app/src/main/assets/app.js
-          grep -q 'secureVersion' app/src/main/assets/app.js
+          grep -q 'attendanceDocEncryptFile' app/src/main/assets/app.js
+          grep -q 'encVersion:2' app/src/main/assets/document-crypto.js
           grep -q 'Manual cloud backup ready' app/src/main/assets/cloud-ui.js
           grep -q 'profileDangerZone' app/src/main/assets/index.html
           grep -q 'confirmClockOut' app/src/main/assets/app.js
