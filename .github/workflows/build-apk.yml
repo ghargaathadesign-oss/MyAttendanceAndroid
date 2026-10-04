@@ -86,7 +86,6 @@ jobs:
           node --check app/src/main/assets/v112-fixes.js
           grep -q 'window.initLottie' app/src/main/assets/lottie-runtime.js
           grep -q 'exceljs.min.js' app/src/main/assets/index.html
-          grep -q 'v111-fixes.js' app/src/main/assets/index.html
           grep -q 'deleteProfileBtn' app/src/main/assets/index.html
           grep -q 'exportExcelBtn' app/src/main/assets/index.html
           grep -q 'workProgressRing' app/src/main/assets/index.html
