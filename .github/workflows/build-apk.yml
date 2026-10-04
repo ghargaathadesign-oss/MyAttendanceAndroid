@@ -148,6 +148,12 @@ jobs:
           grep -q 'isSpecialOTRecord' app/src/main/assets/app.js
           if grep -q '<script src="v111-fixes.js"' app/src/main/assets/index.html; then exit 1; fi
           grep -q 'dailyBalanceMinutes' app/src/main/assets/app.js
+          grep -q 'Standard day: 9h 00m' app/src/main/assets/index.html
+          if grep -q 'Standard day: 8h 00m' app/src/main/assets/index.html; then exit 1; fi
+          grep -q 'AttendancePolicy.salaryMonth' app/src/main/assets/app.js
+          grep -q 'AttendancePolicy.balanceMinutes' app/src/main/assets/v112-fixes.js
+          grep -q 'older backups are migrated automatically' app/src/main/assets/cloud-ui.js
+          grep -q 'Documents are encrypted with Android Keystore and stored only on this device' app/src/main/assets/index.html
           if grep -q 'RE-PUNCH' app/src/main/assets/app.js; then exit 1; fi
           echo "v12.6 assets prepared successfully"
 
