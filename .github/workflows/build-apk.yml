@@ -222,12 +222,27 @@ jobs:
           rm -f "$KEYSTORE" "$ALIGNED"
           echo "SIGNED_APK_AVAILABLE=1" >> "$GITHUB_ENV"
 
+      - name: Verify release package metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          SIGNED="output/My-Attendance-v12.6-signed.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$SIGNED" | tee output/package-badging.txt
+          grep -q "package: name='com.personal.attendance'" output/package-badging.txt
+          grep -q "versionCode='16'" output/package-badging.txt
+          grep -q "versionName='3.0'" output/package-badging.txt
+          sha256sum "$SIGNED" | tee output/My-Attendance-v12.6-signed.apk.sha256
+
       - name: Upload signed APK artifact
         if: env.SIGNED_APK_AVAILABLE == '1'
         uses: actions/upload-artifact@v4
         with:
           name: My-Attendance-v12.6-Signed-APK
-          path: output/My-Attendance-v12.6-signed.apk
+          path: |
+            output/My-Attendance-v12.6-signed.apk
+            output/My-Attendance-v12.6-signed.apk.sha256
+            output/apksigner-report.txt
+            output/package-badging.txt
           if-no-files-found: error
           retention-days: 30
 
