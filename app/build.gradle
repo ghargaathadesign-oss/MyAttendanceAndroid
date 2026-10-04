@@ -10,8 +10,8 @@ android {
         applicationId 'com.personal.attendance'
         minSdk 26
         targetSdk 35
-        versionCode 15
-        versionName '2.9'
+        versionCode 16
+        versionName '3.0'
 
         def firebaseApiKey = System.getenv('FIREBASE_API_KEY') ?: ''
         buildConfigField 'String', 'FIREBASE_API_KEY', '"' + firebaseApiKey.replace('\\', '\\\\').replace('"', '\\"') + '"'
@@ -31,6 +31,7 @@ android {
 
 dependencies {
     implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.webkit:webkit:1.16.0'
     implementation platform('com.google.firebase:firebase-bom:34.19.0')
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.firebase:firebase-storage'
