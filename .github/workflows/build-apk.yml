@@ -31,7 +31,7 @@ jobs:
           test "$(wc -c < /tmp/v83_bundle.b64)" = "61564"
           base64 -d /tmp/v83_bundle.b64 > /tmp/v83_bundle.zip
           echo "e71c15e01ff07294f2df5989d88ff25704f8024c97323d40a7d3bb04e2415904  /tmp/v83_bundle.zip" | sha256sum -c -
-          rm -f app/src/main/assets/index.html app/src/main/assets/app.css app/src/main/assets/app.js app/src/main/assets/extras.js app/src/main/assets/extras.css app/src/main/assets/navfix.js app/src/main/assets/lottie-runtime.js app/src/main/assets/profile-ui.js app/src/main/assets/cloud-ui.js app/src/main/assets/cloud-ui.css app/src/main/assets/v11-ui.js app/src/main/assets/v11-ui.css app/src/main/assets/v111-fixes.js app/src/main/assets/v112-fixes.js app/src/main/assets/v112-ui.css app/src/main/assets/v113-fixes.js app/src/main/assets/v113-ui.css app/src/main/assets/user-storage.js app/src/main/assets/xlsx.full.min.js app/src/main/assets/exceljs.min.js app/src/main/assets/firebase-config.json
+          rm -f app/src/main/assets/index.html app/src/main/assets/app.css app/src/main/assets/app.js app/src/main/assets/extras.js app/src/main/assets/extras.css app/src/main/assets/navfix.js app/src/main/assets/lottie-runtime.js app/src/main/assets/profile-ui.js app/src/main/assets/cloud-ui.js app/src/main/assets/cloud-ui.css app/src/main/assets/v11-ui.js app/src/main/assets/v11-ui.css app/src/main/assets/v111-fixes.js app/src/main/assets/v112-fixes.js app/src/main/assets/v112-ui.css app/src/main/assets/v113-fixes.js app/src/main/assets/v113-ui.css app/src/main/assets/user-storage.js app/src/main/assets/document-crypto.js app/src/main/assets/xlsx.full.min.js app/src/main/assets/exceljs.min.js app/src/main/assets/firebase-config.json
           rm -rf app/src/main/assets/lottie app/src/main/assets/lottie-dark app/src/main/assets/lottie-white
           unzip -q -o /tmp/v83_bundle.zip -d app/src/main/assets
 
@@ -59,12 +59,15 @@ jobs:
           python3 ci/patch_v112.py app/src/main/assets
           python3 ci/patch_v113.py app/src/main/assets
           cp ci/user-storage-v123.js app/src/main/assets/user-storage.js
+          cp ci/document-crypto.js app/src/main/assets/document-crypto.js
           python3 ci/patch_v12.py app/src/main/assets
           python3 ci/patch_native_v11.py app/src/main/java/com/personal/attendance/MainActivity.java
           python3 ci/patch_native_v12.py app/src/main/java/com/personal/attendance/MainActivity.java
           python3 ci/patch_native_v121.py app/src/main/java/com/personal/attendance/MainActivity.java
           python3 ci/patch_native_v123.py app/src/main/java/com/personal/attendance/MainActivity.java
+          python3 ci/patch_native_v124.py app/src/main/java/com/personal/attendance/MainActivity.java
           python3 ci/patch_v122.py app/src/main/assets
+          python3 ci/patch_v124.py app/src/main/assets
           python3 ci/patch_v124.py app/src/main/assets
           python3 ci/patch_v124.py app/src/main/assets
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js -o app/src/main/assets/lottie.min.js
@@ -87,6 +90,7 @@ jobs:
           test -s app/src/main/assets/v113-fixes.js
           test -s app/src/main/assets/v113-ui.css
           test -s app/src/main/assets/user-storage.js
+          test -s app/src/main/assets/document-crypto.js
           test -s app/src/main/assets/xlsx.full.min.js
           test -s app/src/main/assets/exceljs.min.js
           test -s app/src/main/assets/lottie-dark/attendance.json
@@ -100,6 +104,7 @@ jobs:
           node --check app/src/main/assets/v112-fixes.js
           node --check app/src/main/assets/v113-fixes.js
           node --check app/src/main/assets/user-storage.js
+          node --check app/src/main/assets/document-crypto.js
           grep -q 'window.initLottie' app/src/main/assets/lottie-runtime.js
           grep -q 'exceljs.min.js' app/src/main/assets/index.html
           grep -q 'deleteProfileBtn' app/src/main/assets/index.html
