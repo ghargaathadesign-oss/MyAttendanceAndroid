@@ -126,6 +126,12 @@ jobs:
           if grep -q 'RE-PUNCH' app/src/main/assets/app.js; then exit 1; fi
           echo "v12.3 assets prepared successfully"
 
+      - name: Inspect document storage hooks
+        shell: bash
+        run: |
+          echo "=== document storage snippets ==="
+          grep -n -E "DOC_DB|DOC_STORE|indexedDB|docDb|saveDoc|deleteDoc|documents" app/src/main/assets/app.js | head -n 120 || true
+
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
