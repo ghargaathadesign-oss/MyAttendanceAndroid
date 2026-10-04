@@ -1,3 +1,4 @@
+# Step 9 / v13.0 production R8 rules
 # My Attendance release hardening for R8.
 #
 # WebView JavaScript bridge methods are invoked by JavaScript name at runtime.
