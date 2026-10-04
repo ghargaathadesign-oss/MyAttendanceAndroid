@@ -1,0 +1,20 @@
+'use strict';
+if(typeof globalThis.btoa!=='function')globalThis.btoa=s=>Buffer.from(s,'binary').toString('base64');
+if(typeof globalThis.atob!=='function')globalThis.atob=s=>Buffer.from(s,'base64').toString('binary');
+const assert=require('assert');
+const t=require('./transfer-crypto.js');
+(async()=>{
+  assert.strictEqual(t.validPin('123456'),true);
+  assert.strictEqual(t.validPin('12345'),false);
+  assert.strictEqual(t.validPin('1234567890123'),false);
+  const plain=JSON.stringify({version:3,userUid:'u1',storage:{attendance_v8:'[]'}});
+  const encrypted=await t.encrypt(plain,'482915','u1');
+  const env=JSON.parse(encrypted);
+  assert.strictEqual(env.version,6);
+  assert.strictEqual(env.portable,true);
+  assert.strictEqual(env.cipher,'AES-256-GCM');
+  assert.strictEqual(await t.decrypt(encrypted,'482915','u1'),plain);
+  let bad=false;try{await t.decrypt(encrypted,'111111','u1')}catch(e){bad=true}assert(bad);
+  let other=false;try{await t.decrypt(encrypted,'482915','u2')}catch(e){other=true}assert(other);
+  console.log('transfer crypto tests passed');
+})().catch(e=>{console.error(e);process.exit(1)});
