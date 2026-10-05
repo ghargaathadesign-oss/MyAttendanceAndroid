@@ -54,7 +54,7 @@ jobs:
         run: npx firebase-tools emulators:exec --only storage --project demo-my-attendance "node ci/test-storage-rules.mjs"
 
   backend-preflight:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push')
+    if: github.event_name == 'workflow_dispatch'
     needs: test-storage-rules
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -226,8 +226,8 @@ jobs:
           echo "Enforcement is intentionally separate so legitimate v13.2 users are not locked out." >> "$GITHUB_STEP_SUMMARY"
 
   enforce-storage-app-check:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [test-storage-rules, backend-preflight]
+    if: github.event_name == 'workflow_dispatch' && inputs.enforce_app_check
+    needs: [configure-app-check]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
