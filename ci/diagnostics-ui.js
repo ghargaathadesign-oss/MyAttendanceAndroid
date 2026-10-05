@@ -8,6 +8,7 @@ function boolText(v){return v===true?'Good':v===false?'Attention':'Checking'}
 function fmtBytes(n){n=Number(n)||0;if(n<1024)return n+' B';if(n<1024*1024)return(n/1024).toFixed(1)+' KB';return(n/(1024*1024)).toFixed(1)+' MB'}
 function row(label,value,kind){return'<div class="diagRow"><span>'+esc(label)+'</span><b class="'+esc(kind||'')+'">'+esc(value)+'</b></div>'}
 function currentStorage(){try{return window.attendanceSnapshotCurrentUser?window.attendanceSnapshotCurrentUser():{}}catch(e){return{}}}
+function todayLocal(){var d=new Date(),m=d.getMonth()+1,x=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(x<10?'0':'')+x}
 function render(){
   if(!E('diagnosticsSummary'))return;
   state.health=window.AttendanceDiagnostics?AttendanceDiagnostics.health(state.local,state.native,state.documents,state.cloud):state.health;
@@ -17,7 +18,7 @@ function render(){
   var n=state.native||{},l=state.local||{},d=state.documents||{},c=state.cloud||{};
   E('diagAppCard').innerHTML=row('App version',(n.versionName||'—')+' ('+(n.versionCode||'—')+')')+row('Android','SDK '+(n.sdk||'—')+' • '+(n.androidRelease||'—'))+row('R8 protection','Enabled','ok');
   E('diagSecurityCard').innerHTML=row('Encrypted local storage',boolText(n.secureStorage),n.secureStorage?'ok':'bad')+row('Phone screen lock',boolText(n.deviceSecure),n.deviceSecure?'ok':'bad')+row('Device backup key',n.backupKeyPresent===true?'Ready':(n.backupKeyPresent===false?'Not created yet':'Checking'),n.backupKeyPresent===false?'warn':'ok')+row('WebView file access',n.webViewFileAccess===false?'Blocked':'Attention',n.webViewFileAccess===false?'ok':'bad')+row('Safe Browsing',boolText(n.safeBrowsing),n.safeBrowsing?'ok':'warn')+row('Firebase account',n.signedIn?(n.emailVerified?'Verified':'Needs verification'):'Not signed in',n.signedIn&&n.emailVerified?'ok':'warn');
-  E('diagDataCard').innerHTML=row('Attendance data',l.ok?'Valid':'Needs attention',l.ok?'ok':'bad')+row('Attendance records',l.recordCount||0)+row('Duplicate dates',l.duplicateDates||0,l.duplicateDates?'warn':'ok')+row('Incomplete punch pairs',l.incompletePunches||0,l.incompletePunches?'warn':'ok')+row('Legacy data repair',l.legacyNormalized?'Available':'Not needed',l.legacyNormalized?'warn':'ok')+row('Job documents',d.ok===false?'Check unavailable':(d.ok===null?'Checking…':d.count),d.ok===false?'warn':'');
+  E('diagDataCard').innerHTML=row('Attendance data',l.ok?'Valid':'Needs attention',l.ok?'ok':'bad')+row('Attendance records',l.recordCount||0)+row('Duplicate dates',l.duplicateDates||0,l.duplicateDates?'warn':'ok')+row('Historical incomplete punches',l.incompletePunches||0,l.incompletePunches?'warn':'ok')+row('Open shift today',l.openShiftToday||0,l.openShiftToday?'ok':'')+row('Legacy data repair',l.legacyNormalized?'Available':'Not needed',l.legacyNormalized?'warn':'ok')+row('Job documents',d.ok===false?'Check unavailable':(d.ok===null?'Checking…':d.count),d.ok===false?'warn':'');
   var cloudStatus=c.ok===null?'Checking…':(c.ok===false?'Check unavailable':(c.exists?'Backup found':'No backup found'));
   E('diagCloudCard').innerHTML=row('Cloud status',cloudStatus,c.ok===false?'warn':(c.exists?'ok':'warn'))+row('Backup format',c.exists?'v'+(c.version||'?'):'—')+row('Same-device copy',c.hasDevice===true?'Available':(c.exists?'No':'—'),c.hasDevice===true?'ok':'')+row('Switch-device copy',c.hasTransfer===true?'Available':(c.exists?'No':'—'),c.hasTransfer===true?'ok':'')+row('Encrypted size',c.exists?fmtBytes(c.bytes):'—');
   var notes=(h.issues||[]).concat(h.warnings||[]);
@@ -26,15 +27,18 @@ function render(){
 function docsCheck(){
   state.documents={ok:null,count:0};render();
   try{
-    if(typeof window.dbOpen!=='function'){state.documents={ok:false,count:0};render();return}
-    var done=false,t=setTimeout(function(){if(!done){done=true;state.documents={ok:false,count:0};render()}},2500);
-    window.dbOpen(function(db){try{var req=db.transaction(['documents'],'readonly').objectStore('documents').count();req.onsuccess=function(){if(done)return;done=true;clearTimeout(t);state.documents={ok:true,count:Number(req.result)||0};render()};req.onerror=function(){if(done)return;done=true;clearTimeout(t);state.documents={ok:false,count:0};render()}}catch(e){if(done)return;done=true;clearTimeout(t);state.documents={ok:false,count:0};render()}});
+    if(typeof window.attendanceDocumentCount!=='function'){state.documents={ok:false,count:0};render();return}
+    var ready=window.attendanceDocumentsReady&&typeof window.attendanceDocumentsReady.then==='function'?window.attendanceDocumentsReady:Promise.resolve();
+    var done=false,t=setTimeout(function(){if(!done){done=true;state.documents={ok:false,count:0};render()}},3500);
+    ready.then(function(){return window.attendanceDocumentCount()}).then(function(count){
+      if(done)return;done=true;clearTimeout(t);state.documents={ok:true,count:Number(count)||0};render();
+    }).catch(function(){if(done)return;done=true;clearTimeout(t);state.documents={ok:false,count:0};render()});
   }catch(e){state.documents={ok:false,count:0};render()}
 }
 function run(){
   state.cloud={ok:null,exists:null};
   var storage=currentStorage();
-  state.local=window.AttendanceDiagnostics?AttendanceDiagnostics.inspectStorage(storage,window.AttendancePolicy):{ok:false,error:'Diagnostics engine unavailable'};
+  state.local=window.AttendanceDiagnostics?AttendanceDiagnostics.inspectStorage(storage,window.AttendancePolicy,todayLocal()):{ok:false,error:'Diagnostics engine unavailable'};
   try{state.native=window.Android&&Android.diagnosticsSummary?parse(Android.diagnosticsSummary(),{}):{}}catch(e){state.native={}}
   render();docsCheck();
   try{if(window.Android&&Android.diagnosticsCloudBackup)Android.diagnosticsCloudBackup();else{state.cloud={ok:false,exists:null};render()}}catch(e){state.cloud={ok:false,exists:null};render()}
