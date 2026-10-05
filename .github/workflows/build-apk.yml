@@ -3,7 +3,7 @@ name: Build My Attendance APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, v12.6-hardening, v12.7-device-auth, v12.8-restore-compat, v12.9-step7-delete, v13.0-step9-r8, v13.1-step12-diagnostics]
+    branches: [main, v12.6-hardening, v12.7-device-auth, v12.8-restore-compat, v12.9-step7-delete, v13.0-step9-r8, v13.1-step12-diagnostics, v13.2-diagnostics-polish]
 
 permissions:
   contents: read
@@ -23,7 +23,7 @@ jobs:
           base64 -d ci/app_icon.webp.b64 > app/src/main/res/drawable/app_icon.webp
           test -s app/src/main/res/drawable/app_icon.webp
 
-      - name: Prepare v13.1 app
+      - name: Prepare v13.2 app
         shell: bash
         run: |
           set -e
@@ -199,6 +199,11 @@ jobs:
           grep -q 'diagnosticsCloudBackupNative' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q 'clearDiagnosticsCacheNative' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q '@JavascriptInterface public String diagnosticsSummary' app/src/main/java/com/personal/attendance/MainActivity.java
+          grep -q 'attendanceDocumentCount' app/src/main/assets/document-crypto.js
+          grep -q 'openShiftToday' app/src/main/assets/diagnostics-core.js
+          grep -q 'Historical incomplete punches' app/src/main/assets/diagnostics-ui.js
+          grep -q 'diagnosticsWebViewFileAccess' app/src/main/java/com/personal/attendance/MainActivity.java
+          grep -q 'diagnosticsSafeBrowsing' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q 'profileDangerZone' app/src/main/assets/index.html
           grep -q 'confirmClockOut' app/src/main/assets/app.js
           grep -q 'isSpecialOTRecord' app/src/main/assets/app.js
@@ -218,7 +223,7 @@ jobs:
           grep -q 'Short Day' app/src/main/assets/policy-engine.js
           grep -q 'Documents are encrypted with Android Keystore and stored only on this device' app/src/main/assets/index.html
           if grep -q 'RE-PUNCH' app/src/main/assets/app.js; then exit 1; fi
-          echo "v13.1 assets prepared successfully"
+          echo "v13.2 assets prepared successfully"
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -278,7 +283,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p output
-          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v13.1-unsigned.apk
+          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v13.2-unsigned.apk
           tar -czf output/android-build-tools-35.tar.gz -C "$ANDROID_HOME/build-tools" 35.0.0
 
       - name: Sign APK with permanent release key
@@ -296,11 +301,11 @@ jobs:
             exit 0
           fi
           KEYSTORE="$RUNNER_TEMP/my-attendance-release.jks"
-          ALIGNED="$RUNNER_TEMP/My-Attendance-v13.1-aligned.apk"
-          SIGNED="output/My-Attendance-v13.1-signed.apk"
+          ALIGNED="$RUNNER_TEMP/My-Attendance-v13.2-aligned.apk"
+          SIGNED="output/My-Attendance-v13.2-signed.apk"
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
           chmod 600 "$KEYSTORE"
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -P 16 4 output/My-Attendance-v13.1-unsigned.apk "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -P 16 4 output/My-Attendance-v13.2-unsigned.apk "$ALIGNED"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign             --ks "$KEYSTORE"             --ks-key-alias "$ANDROID_KEY_ALIAS"             --ks-pass env:ANDROID_KEYSTORE_PASSWORD             --key-pass env:ANDROID_KEY_PASSWORD             --out "$SIGNED"             "$ALIGNED"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$SIGNED" | tee output/apksigner-report.txt
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$SIGNED"
@@ -314,21 +319,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SIGNED="output/My-Attendance-v13.1-signed.apk"
+          SIGNED="output/My-Attendance-v13.2-signed.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$SIGNED" | tee output/package-badging.txt
           grep -q "package: name='com.personal.attendance'" output/package-badging.txt
-          grep -q "versionCode='21'" output/package-badging.txt
-          grep -q "versionName='3.5'" output/package-badging.txt
-          sha256sum "$SIGNED" | tee output/My-Attendance-v13.1-signed.apk.sha256
+          grep -q "versionCode='22'" output/package-badging.txt
+          grep -q "versionName='3.6'" output/package-badging.txt
+          sha256sum "$SIGNED" | tee output/My-Attendance-v13.2-signed.apk.sha256
 
       - name: Upload signed APK artifact
         if: env.SIGNED_APK_AVAILABLE == '1'
         uses: actions/upload-artifact@v4
         with:
-          name: My-Attendance-v13.1-Signed-APK
+          name: My-Attendance-v13.2-Signed-APK
           path: |
-            output/My-Attendance-v13.1-signed.apk
-            output/My-Attendance-v13.1-signed.apk.sha256
+            output/My-Attendance-v13.2-signed.apk
+            output/My-Attendance-v13.2-signed.apk.sha256
             output/apksigner-report.txt
             output/package-badging.txt
           if-no-files-found: error
@@ -337,8 +342,8 @@ jobs:
       - name: Upload unsigned APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: My-Attendance-v13.1-Unsigned-APK
-          path: output/My-Attendance-v13.1-unsigned.apk
+          name: My-Attendance-v13.2-Unsigned-APK
+          path: output/My-Attendance-v13.2-unsigned.apk
           if-no-files-found: error
           retention-days: 30
 
