@@ -117,12 +117,32 @@ jobs:
     env:
       FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
     steps:
-      - name: Authenticate to Google Cloud
-        id: auth
-        uses: google-github-actions/auth@v2
+      - uses: actions/setup-node@v4
         with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-          token_format: access_token
+          node-version: '22'
+      - name: Create OAuth access token from service-account key
+        id: auth
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          npm install --no-save google-auth-library@latest >/dev/null 2>&1
+          ACCESS_TOKEN="$(node - <<'NODE'
+          const {GoogleAuth}=require('google-auth-library');
+          (async()=>{
+            const creds=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+            const auth=new GoogleAuth({credentials:creds,scopes:['https://www.googleapis.com/auth/cloud-platform']});
+            const client=await auth.getClient();
+            const out=await client.getAccessToken();
+            const token=typeof out==='string'?out:out&&out.token;
+            if(!token) throw new Error('No Google OAuth access token returned');
+            process.stdout.write(token);
+          })().catch(e=>{console.error(e.message);process.exit(1)});
+          NODE
+          )"
+          echo "::add-mask::$ACCESS_TOKEN"
+          echo "access_token=$ACCESS_TOKEN" >> "$GITHUB_OUTPUT"
       - name: Configure Play Integrity for APKs distributed outside Google Play
         shell: bash
         env:
@@ -179,12 +199,32 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Authenticate to Google Cloud
-        id: auth
-        uses: google-github-actions/auth@v2
+      - uses: actions/setup-node@v4
         with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-          token_format: access_token
+          node-version: '22'
+      - name: Create OAuth access token from service-account key
+        id: auth
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          npm install --no-save google-auth-library@latest >/dev/null 2>&1
+          ACCESS_TOKEN="$(node - <<'NODE'
+          const {GoogleAuth}=require('google-auth-library');
+          (async()=>{
+            const creds=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+            const auth=new GoogleAuth({credentials:creds,scopes:['https://www.googleapis.com/auth/cloud-platform']});
+            const client=await auth.getClient();
+            const out=await client.getAccessToken();
+            const token=typeof out==='string'?out:out&&out.token;
+            if(!token) throw new Error('No Google OAuth access token returned');
+            process.stdout.write(token);
+          })().catch(e=>{console.error(e.message);process.exit(1)});
+          NODE
+          )"
+          echo "::add-mask::$ACCESS_TOKEN"
+          echo "access_token=$ACCESS_TOKEN" >> "$GITHUB_OUTPUT"
       - name: Enforce App Check for Cloud Storage
         shell: bash
         env:
