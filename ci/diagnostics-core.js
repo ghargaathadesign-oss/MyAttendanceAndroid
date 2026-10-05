@@ -33,6 +33,7 @@ function health(local,nativeInfo,docs,cloud){
   if(nativeInfo&&nativeInfo.webViewFileAccess===true)issues.push('WebView file access is enabled');
   if(nativeInfo&&typeof nativeInfo.webViewFileAccess==='undefined')warnings.push('WebView hardening status could not be read');
   if(nativeInfo&&nativeInfo.safeBrowsing===false)warnings.push('WebView Safe Browsing is disabled');
+  if(nativeInfo&&nativeInfo.appCheckEnabled===false)warnings.push('Firebase App Check client is disabled');
   if(nativeInfo&&typeof nativeInfo.safeBrowsing==='undefined')warnings.push('Safe Browsing status could not be read');
   if(nativeInfo&&nativeInfo.signedIn===false)warnings.push('Not signed in to Firebase');
   if(nativeInfo&&nativeInfo.signedIn===true&&nativeInfo.emailVerified===false)warnings.push('Firebase email is not verified');
