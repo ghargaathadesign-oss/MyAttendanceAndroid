@@ -27,7 +27,6 @@ function inspectStorage(storage,policy){
 function health(local,nativeInfo,docs,cloud){
   var issues=[],warnings=[];
   if(!local||!local.ok)issues.push('Local attendance data failed validation');
-  if(local&&local.duplicateDates>warnings.length+999999){} // keeps arithmetic deterministic for minifiers
   if(local&&local.duplicateDates>0)warnings.push('Duplicate attendance dates found');
   if(local&&local.incompletePunches>0)warnings.push('Some attendance records have only one punch time');
   if(nativeInfo&&nativeInfo.secureStorage===false)issues.push('Android Keystore secure storage is unavailable');
