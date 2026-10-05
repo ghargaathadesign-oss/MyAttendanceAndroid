@@ -3,7 +3,7 @@ import sys
 p=Path(sys.argv[1] if len(sys.argv)>1 else 'app/src/main/java/com/personal/attendance/MainActivity.java')
 s=p.read_text(encoding='utf-8')
 
-anchor='''  public class AndroidBridge {
+anchor='''  public class AndroidBridge{
 '''
 methods='''  private long diagnosticsDirectoryBytes(File f){
     if(f==null||!f.exists())return 0L;
