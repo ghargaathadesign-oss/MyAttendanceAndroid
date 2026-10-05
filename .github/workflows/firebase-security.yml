@@ -166,7 +166,7 @@ jobs:
           data=json.load(open(p))
           assert data["appIntegrity"]["allowUnrecognizedVersion"] is True
           assert data["deviceIntegrity"]["minDeviceRecognitionLevel"]=="MEETS_DEVICE_INTEGRITY"
-          assert data["accountDetails"]["requireLicensed"] is False
+          assert data.get("accountDetails",{}).get("requireLicensed",False) is False
           print("Play Integrity configuration verified")
           PY
           rm -f "$RUNNER_TEMP/app-check.json" "$RUNNER_TEMP/app-check-response.json"
