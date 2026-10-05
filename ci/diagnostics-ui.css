@@ -1,0 +1,11 @@
+.diagSummary{display:flex;align-items:center;gap:14px;padding:18px;border-radius:18px;margin-bottom:14px;border:1px solid var(--line);background:var(--card)}
+.diagSummary .diagShield{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;flex:0 0 46px}
+.diagSummary b{display:block;font-size:17px}.diagSummary small{display:block;margin-top:5px;line-height:1.4;opacity:.72}
+.diagGood .diagShield{background:rgba(46,160,67,.14);color:#2ea043}.diagWarn .diagShield{background:rgba(210,153,34,.16);color:#b27a00}.diagError .diagShield{background:rgba(220,53,69,.14);color:#c73543}
+.diagSectionTitle{font-size:12px;font-weight:800;letter-spacing:.08em;opacity:.55;margin:18px 4px 8px}
+.diagCard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:4px 16px;margin-bottom:12px}
+.diagRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.diagRow:last-child{border-bottom:0}.diagRow span{font-size:14px;opacity:.76}.diagRow b{font-size:14px;text-align:right}.diagRow b.ok{color:#2ea043}.diagRow b.warn{color:#b27a00}.diagRow b.bad{color:#c73543}
+.diagActions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.diagActions .full{grid-column:1/-1}
+.diagNote{padding:11px 13px;border-radius:12px;background:rgba(210,153,34,.10);margin:7px 0;font-size:13px;line-height:1.4}.diagNote.good{background:rgba(46,160,67,.10)}
+.diagPrivacy{font-size:12px;line-height:1.5;opacity:.65;margin-top:10px}
+@media(max-width:480px){.diagActions{grid-template-columns:1fr}}
