@@ -266,7 +266,11 @@ jobs:
           grep -E -q 'secureCloudBackup\(.*\).* -> secureCloudBackup$' "$MAP"
           grep -E -q 'secureCloudRestore\(.*\).* -> secureCloudRestore$' "$MAP"
           grep -E -q 'cloudTransferBackup\(.*\).* -> cloudTransferBackup$' "$MAP"
-          grep -E -q 'deleteAccountDataWithPassword\(.*\).* -> deleteAccountDataWithPassword          python3 -c "from pathlib import Path; p=Path('app/build/outputs/mapping/release/mapping.txt'); lines=p.read_text(errors='replace').splitlines(); pairs=[line[:-1].split(' -> ',1) for line in lines if line and not line.startswith(' ') and ' -> ' in line and line.endswith(':')]; changed=sum(1 for a,b in pairs if a!=b); print(f'R8 verified: {changed} of {len(pairs)} mapped classes have obfuscated names'); assert pairs and changed"
+          grep -E -q 'deleteAccountDataWithPassword\(.*\).* -> deleteAccountDataWithPassword$' "$MAP"
+          grep -E -q 'diagnosticsSummary\(.*\).* -> diagnosticsSummary$' "$MAP"
+          grep -E -q 'diagnosticsCloudBackup\(.*\).* -> diagnosticsCloudBackup$' "$MAP"
+          grep -E -q 'clearDiagnosticsCache\(.*\).* -> clearDiagnosticsCache$' "$MAP"
+          python3 -c "from pathlib import Path; p=Path('app/build/outputs/mapping/release/mapping.txt'); lines=p.read_text(errors='replace').splitlines(); pairs=[line[:-1].split(' -> ',1) for line in lines if line and not line.startswith(' ') and ' -> ' in line and line.endswith(':')]; changed=sum(1 for a,b in pairs if a!=b); print(f'R8 verified: {changed} of {len(pairs)} mapped classes have obfuscated names'); assert pairs and changed"
           sha256sum "$MAP" > app/build/outputs/mapping/release/mapping.txt.sha256
           echo "R8 mapping verified internally. Mapping file is intentionally not uploaded because this repository is public."
 
