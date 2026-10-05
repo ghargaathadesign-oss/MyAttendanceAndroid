@@ -24,8 +24,16 @@ assert.strictEqual(openState.incompletePunches,1);
 const healthyOpen=d.health({ok:true,duplicateDates:0,incompletePunches:0,openShiftToday:1},{secureStorage:true,webViewFileAccess:false,safeBrowsing:true,signedIn:true,emailVerified:true},{ok:true,count:0},{ok:true,exists:true});
 assert.strictEqual(healthyOpen.level,'good');
 
+const appCheckWarning=d.health(
+ {ok:true,duplicateDates:0,incompletePunches:0,openShiftToday:0},
+ {secureStorage:true,webViewFileAccess:false,safeBrowsing:true,signedIn:true,emailVerified:true,appCheckEnabled:false},
+ {ok:true,count:0},
+ {ok:true,exists:true}
+);
+assert(appCheckWarning.warnings.includes('Firebase App Check client is disabled'));
+
 const report=d.buildSupportReport({
- native:{versionName:'3.6',versionCode:22,sdk:35,androidRelease:'15',signedIn:true,emailVerified:true,authProvider:'password',secureStorage:true,deviceSecure:true,backupKeyPresent:true,webViewFileAccess:false,safeBrowsing:true,appCheckEnabled:false,uid:'SECRET_UID',email:'secret@example.com'},
+ native:{versionName:'3.8',versionCode:24,sdk:35,androidRelease:'15',signedIn:true,emailVerified:true,authProvider:'password',secureStorage:true,deviceSecure:true,backupKeyPresent:true,webViewFileAccess:false,safeBrowsing:true,appCheckEnabled:false,uid:'SECRET_UID',email:'secret@example.com'},
  local,
  documents:{ok:true,count:2,contents:'PRIVATE_DOCUMENT'},
  cloud:{ok:true,exists:true,version:7,hasDevice:true,hasTransfer:true,hasLegacy:false,bytes:1234,payload:'SECRET_BACKUP'},
