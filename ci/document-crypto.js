@@ -132,6 +132,18 @@ window.attendanceDocDecryptRecord=function(item){
   }catch(e){reject(e)}
  });
 };
+window.attendanceDocumentCount=function(){
+ return openDb().then(function(db){
+  return new Promise(function(resolve,reject){
+   try{
+    var r=db.transaction([STORE],'readonly').objectStore(STORE).count();
+    r.onsuccess=function(){var n=Number(r.result)||0;try{db.close()}catch(e){}resolve(n)};
+    r.onerror=function(){var err=r.error||new Error('Could not count documents');try{db.close()}catch(e){}reject(err)};
+   }catch(e){try{db.close()}catch(x){}reject(e)}
+  });
+ });
+};
+
 window.attendanceDocumentsReady=Promise.resolve(window.attendanceStorageReady).then(migrateAll).catch(function(e){
  window.attendanceDocumentCryptoMigration={migrated:0,failed:-1,error:String(e&&e.message||e)};
 });
