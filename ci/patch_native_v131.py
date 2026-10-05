@@ -3,6 +3,26 @@ import sys
 p=Path(sys.argv[1] if len(sys.argv)>1 else 'app/src/main/java/com/personal/attendance/MainActivity.java')
 s=p.read_text(encoding='utf-8')
 
+field_anchor='  private String firebaseInitError="";\n'
+fields='''  private volatile boolean diagnosticsWebViewFileAccess=false;
+  private volatile boolean diagnosticsSafeBrowsing=true;
+'''
+if fields.strip() not in s:
+    if field_anchor not in s: raise SystemExit('diagnostics field anchor missing')
+    s=s.replace(field_anchor,field_anchor+fields,1)
+
+settings_anchor='''    s.setSafeBrowsingEnabled(true);
+    s.setTextZoom(100);
+'''
+settings_new='''    s.setSafeBrowsingEnabled(true);
+    diagnosticsWebViewFileAccess=s.getAllowFileAccess();
+    diagnosticsSafeBrowsing=s.getSafeBrowsingEnabled();
+    s.setTextZoom(100);
+'''
+if settings_new.strip() not in s:
+    if settings_anchor not in s: raise SystemExit('diagnostics WebView state anchor missing')
+    s=s.replace(settings_anchor,settings_new,1)
+
 anchor='''  public class AndroidBridge{
 '''
 methods='''  private long diagnosticsDirectoryBytes(File f){
@@ -39,8 +59,8 @@ methods='''  private long diagnosticsDirectoryBytes(File f){
       o.put("deviceSecure",deviceSecurityReady());
       o.put("backupKeyPresent",signed&&diagnosticsBackupKeyPresent(u.getUid()));
       o.put("appCheckEnabled",BuildConfig.FIREBASE_APP_CHECK_ENABLED);
-      o.put("webViewFileAccess",webView!=null&&webView.getSettings().getAllowFileAccess());
-      o.put("safeBrowsing",webView!=null&&webView.getSettings().getSafeBrowsingEnabled());
+      o.put("webViewFileAccess",diagnosticsWebViewFileAccess);
+      o.put("safeBrowsing",diagnosticsSafeBrowsing);
       int secureCount=0;
       if(signed){
         String safe=u.getUid().replaceAll("[^A-Za-z0-9_-]","_");
