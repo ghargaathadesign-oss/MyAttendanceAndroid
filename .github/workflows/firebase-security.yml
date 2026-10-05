@@ -83,7 +83,7 @@ jobs:
           PY
 
   deploy-storage-rules:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_storage_rules))
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_storage_rules
     needs: [test-storage-rules, backend-preflight]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -142,7 +142,7 @@ jobs:
           echo "✅ Tested rules deployed to **$FIREBASE_PROJECT_ID**." >> "$GITHUB_STEP_SUMMARY"
 
   configure-app-check:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.configure_app_check))
+    if: github.event_name == 'workflow_dispatch' && inputs.configure_app_check
     needs: [test-storage-rules, backend-preflight]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -226,8 +226,8 @@ jobs:
           echo "Enforcement is intentionally separate so legitimate v13.2 users are not locked out." >> "$GITHUB_STEP_SUMMARY"
 
   enforce-storage-app-check:
-    if: github.event_name == 'workflow_dispatch' && inputs.enforce_app_check
-    needs: [configure-app-check]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test-storage-rules, backend-preflight]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
