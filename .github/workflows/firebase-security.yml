@@ -104,8 +104,40 @@ jobs:
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$CREDS"
           chmod 600 "$CREDS"
           export GOOGLE_APPLICATION_CREDENTIALS="$CREDS"
-          firebase deploy --only storage --project "$FIREBASE_PROJECT_ID" --non-interactive
-          rm -f "$CREDS"
+
+          # Pin the known Firebase Storage bucket explicitly. This avoids
+          # relying on default-bucket auto-discovery while still using the
+          # documented Firebase Storage deploy-target mechanism.
+          cat > firebase.deploy.json <<'JSON'
+          {
+            "storage": [
+              {
+                "target": "main",
+                "rules": "storage.rules"
+              }
+            ]
+          }
+          JSON
+          cat > .firebaserc <<JSON
+          {
+            "projects": {
+              "default": "$FIREBASE_PROJECT_ID"
+            },
+            "targets": {
+              "$FIREBASE_PROJECT_ID": {
+                "storage": {
+                  "main": [
+                    "$FIREBASE_PROJECT_ID.firebasestorage.app"
+                  ]
+                }
+              }
+            }
+          }
+          JSON
+
+          firebase deploy             --config firebase.deploy.json             --only storage:main             --project "$FIREBASE_PROJECT_ID"             --non-interactive
+
+          rm -f "$CREDS" firebase.deploy.json .firebaserc
           echo "### Firebase Storage Rules" >> "$GITHUB_STEP_SUMMARY"
           echo "✅ Tested rules deployed to **$FIREBASE_PROJECT_ID**." >> "$GITHUB_STEP_SUMMARY"
 
