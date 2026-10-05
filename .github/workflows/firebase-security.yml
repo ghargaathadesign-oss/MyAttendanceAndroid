@@ -1,17 +1,39 @@
-name: Firebase Security Rules
+name: Firebase Production Security
 
 on:
   workflow_dispatch:
+    inputs:
+      deploy_storage_rules:
+        description: Deploy tested Cloud Storage Security Rules
+        required: true
+        type: boolean
+        default: true
+      configure_app_check:
+        description: Configure Play Integrity for sideloaded APKs and enable monitoring
+        required: true
+        type: boolean
+        default: true
+      enforce_app_check:
+        description: Enforce App Check for Cloud Storage (ONLY after valid-token monitoring)
+        required: true
+        type: boolean
+        default: false
   push:
-    branches: [main, v12.6-hardening]
+    branches: [main, firebase-production-security]
     paths:
       - 'storage.rules'
       - 'firebase.json'
       - 'ci/test-storage-rules.mjs'
       - '.github/workflows/firebase-security.yml'
+      - 'docs/FIREBASE_PRODUCTION_SECURITY.md'
 
 permissions:
   contents: read
+
+env:
+  FIREBASE_PROJECT_ID: my-attendance-c5c23
+  FIREBASE_PROJECT_NUMBER: '312314814209'
+  FIREBASE_ANDROID_APP_ID: '1:312314814209:android:764780f6a72c65b9a38500'
 
 jobs:
   test-storage-rules:
@@ -31,9 +53,38 @@ jobs:
       - name: Run Storage Rules emulator tests
         run: npx firebase-tools emulators:exec --only storage --project demo-my-attendance "node ci/test-storage-rules.mjs"
 
-  deploy-storage-rules:
-    if: github.ref == 'refs/heads/main'
+  backend-preflight:
+    if: github.event_name == 'workflow_dispatch'
     needs: test-storage-rules
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - name: Require Firebase deployment credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${FIREBASE_SERVICE_ACCOUNT_JSON:-}" ]; then
+            echo "::error::Missing GitHub Actions secret FIREBASE_SERVICE_ACCOUNT_JSON."
+            echo "::error::Create the least-privilege Firebase deployer described in docs/FIREBASE_PRODUCTION_SECURITY.md, then add its full JSON key as that repository secret."
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json, os
+          data=json.loads(os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"])
+          required={"type","project_id","private_key","client_email"}
+          missing=sorted(required-set(data))
+          if missing:
+              raise SystemExit("Service account JSON is missing: "+", ".join(missing))
+          if data.get("project_id")!="my-attendance-c5c23":
+              raise SystemExit("Service account belongs to the wrong Google Cloud project")
+          print("Firebase credential preflight passed")
+          PY
+
+  deploy-storage-rules:
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_storage_rules
+    needs: [test-storage-rules, backend-preflight]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
@@ -45,57 +96,40 @@ jobs:
           node-version: '22'
       - name: Install Firebase CLI
         run: npm install --global firebase-tools@latest
-      - name: Deploy Storage Rules when deployment credentials are configured
+      - name: Deploy tested Cloud Storage rules
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${FIREBASE_SERVICE_ACCOUNT_JSON:-}" ]; then
-            echo "FIREBASE_SERVICE_ACCOUNT_JSON is not configured; rules were tested but deployment is skipped."
-            exit 0
-          fi
           CREDS="$RUNNER_TEMP/firebase-service-account.json"
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$CREDS"
           chmod 600 "$CREDS"
           export GOOGLE_APPLICATION_CREDENTIALS="$CREDS"
-          firebase deploy --only storage --project my-attendance-c5c23 --non-interactive
+          firebase deploy --only storage --project "$FIREBASE_PROJECT_ID" --non-interactive
           rm -f "$CREDS"
-
+          echo "### Firebase Storage Rules" >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ Tested rules deployed to **$FIREBASE_PROJECT_ID**." >> "$GITHUB_STEP_SUMMARY"
 
   configure-app-check:
-    if: github.ref == 'refs/heads/main'
-    needs: test-storage-rules
+    if: github.event_name == 'workflow_dispatch' && inputs.configure_app_check
+    needs: [test-storage-rules, backend-preflight]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
     steps:
-      - name: Check Firebase deployment credentials
-        id: creds
-        shell: bash
-        run: |
-          if [ -n "${FIREBASE_SERVICE_ACCOUNT_JSON:-}" ]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "Firebase deployment credentials are not configured; App Check server configuration is skipped."
-          fi
       - name: Authenticate to Google Cloud
-        if: steps.creds.outputs.available == 'true'
         id: auth
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           token_format: access_token
-      - name: Configure App Check Play Integrity for sideloaded APKs
-        if: steps.creds.outputs.available == 'true'
+      - name: Configure Play Integrity for APKs distributed outside Google Play
         shell: bash
         env:
           ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
         run: |
           set -euo pipefail
-          APP_ID='1:312314814209:android:764780f6a72c65b9a38500'
-          PROJECT_NUMBER='312314814209'
-          NAME="projects/$PROJECT_NUMBER/apps/$APP_ID/playIntegrityConfig"
+          NAME="projects/$FIREBASE_PROJECT_NUMBER/apps/$FIREBASE_ANDROID_APP_ID/playIntegrityConfig"
           URL="https://firebaseappcheck.googleapis.com/v1/$NAME?updateMask=appIntegrity.allowUnrecognizedVersion,deviceIntegrity.minDeviceRecognitionLevel,accountDetails.requireLicensed"
           cat > "$RUNNER_TEMP/app-check.json" <<JSON
           {
@@ -105,12 +139,68 @@ jobs:
             "accountDetails": {"requireLicensed": false}
           }
           JSON
-          curl --fail-with-body --silent --show-error \
-            -X PATCH "$URL" \
-            -H "Authorization: Bearer $ACCESS_TOKEN" \
-            -H "Content-Type: application/json" \
-            --data-binary @"$RUNNER_TEMP/app-check.json" \
-            | tee "$RUNNER_TEMP/app-check-response.json"
-          grep -q '"allowUnrecognizedVersion": true' "$RUNNER_TEMP/app-check-response.json"
-          grep -q '"minDeviceRecognitionLevel": "MEETS_DEVICE_INTEGRITY"' "$RUNNER_TEMP/app-check-response.json"
+          curl --fail-with-body --silent --show-error             -X PATCH "$URL"             -H "Authorization: Bearer $ACCESS_TOKEN"             -H "Content-Type: application/json"             --data-binary @"$RUNNER_TEMP/app-check.json"             > "$RUNNER_TEMP/app-check-response.json"
+          python3 - <<'PY'
+          import json, os
+          p=os.path.join(os.environ["RUNNER_TEMP"],"app-check-response.json")
+          data=json.load(open(p))
+          assert data["appIntegrity"]["allowUnrecognizedVersion"] is True
+          assert data["deviceIntegrity"]["minDeviceRecognitionLevel"]=="MEETS_DEVICE_INTEGRITY"
+          assert data["accountDetails"]["requireLicensed"] is False
+          print("Play Integrity configuration verified")
+          PY
           rm -f "$RUNNER_TEMP/app-check.json" "$RUNNER_TEMP/app-check-response.json"
+
+      - name: Put Cloud Storage App Check in monitoring-only mode
+        shell: bash
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: |
+          set -euo pipefail
+          SERVICE="projects/$FIREBASE_PROJECT_NUMBER/services/firebasestorage.googleapis.com"
+          URL="https://firebaseappcheck.googleapis.com/v1/$SERVICE?updateMask=enforcementMode"
+          curl --fail-with-body --silent --show-error             -X PATCH "$URL"             -H "Authorization: Bearer $ACCESS_TOKEN"             -H "Content-Type: application/json"             --data '{"name":"'"$SERVICE"'","enforcementMode":"UNENFORCED"}'             > "$RUNNER_TEMP/storage-app-check.json"
+          python3 - <<'PY'
+          import json, os
+          p=os.path.join(os.environ["RUNNER_TEMP"],"storage-app-check.json")
+          data=json.load(open(p))
+          assert data["enforcementMode"]=="UNENFORCED"
+          print("Cloud Storage App Check monitoring mode verified")
+          PY
+          rm -f "$RUNNER_TEMP/storage-app-check.json"
+          echo "### Firebase App Check" >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ Play Integrity configured for sideloaded APKs." >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ Cloud Storage is in **UNENFORCED / monitoring-only** mode." >> "$GITHUB_STEP_SUMMARY"
+          echo "Enforcement is intentionally separate so legitimate v13.2 users are not locked out." >> "$GITHUB_STEP_SUMMARY"
+
+  enforce-storage-app-check:
+    if: github.event_name == 'workflow_dispatch' && inputs.enforce_app_check
+    needs: [configure-app-check]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          token_format: access_token
+      - name: Enforce App Check for Cloud Storage
+        shell: bash
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: |
+          set -euo pipefail
+          SERVICE="projects/$FIREBASE_PROJECT_NUMBER/services/firebasestorage.googleapis.com"
+          URL="https://firebaseappcheck.googleapis.com/v1/$SERVICE?updateMask=enforcementMode"
+          curl --fail-with-body --silent --show-error             -X PATCH "$URL"             -H "Authorization: Bearer $ACCESS_TOKEN"             -H "Content-Type: application/json"             --data '{"name":"'"$SERVICE"'","enforcementMode":"ENFORCED"}'             > "$RUNNER_TEMP/storage-app-check-enforced.json"
+          python3 - <<'PY'
+          import json, os
+          p=os.path.join(os.environ["RUNNER_TEMP"],"storage-app-check-enforced.json")
+          data=json.load(open(p))
+          assert data["enforcementMode"]=="ENFORCED"
+          print("Cloud Storage App Check enforcement verified")
+          PY
+          rm -f "$RUNNER_TEMP/storage-app-check-enforced.json"
+          echo "### Firebase App Check Enforcement" >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ Cloud Storage App Check is now **ENFORCED**." >> "$GITHUB_STEP_SUMMARY"
