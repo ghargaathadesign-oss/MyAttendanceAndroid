@@ -1,5 +1,6 @@
 (function(){
 'use strict';
+try{document.documentElement.classList.add('v152BootSync')}catch(e){}
 var resolved=false,resolveAuth;
 window.attendanceAuthReadyPromise=new Promise(function(resolve){
   resolveAuth=resolve;
