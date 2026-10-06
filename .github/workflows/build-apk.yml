@@ -331,7 +331,486 @@ jobs:
           grep -E -q 'deleteAccountDataWithPassword\(.*\).* -> deleteAccountDataWithPassword$' "$MAP"
           grep -E -q 'diagnosticsSummary\(.*\).* -> diagnosticsSummary$' "$MAP"
           grep -E -q 'diagnosticsCloudBackup\(.*\).* -> diagnosticsCloudBackup$' "$MAP"
-          grep -E -q 'clearDiagnosticsCache\(.*\).* -> clearDiagnosticsCache$' "$MAP"
+          grep -E -q 'clearDiagnosticsCache\(.*\).* -> clearDiagnosticsCache          python3 -c "from pathlib import Path; p=Path('app/build/outputs/mapping/release/mapping.txt'); lines=p.read_text(errors='replace').splitlines(); pairs=[line[:-1].split(' -> ',1) for line in lines if line and not line.startswith(' ') and ' -> ' in line and line.endswith(':')]; changed=sum(1 for a,b in pairs if a!=b); print(f'R8 verified: {changed} of {len(pairs)} mapped classes have obfuscated names'); assert pairs and changed"
+          sha256sum "$MAP" > app/build/outputs/mapping/release/mapping.txt.sha256
+          echo "R8 mapping verified internally. Mapping file is intentionally not uploaded because this repository is public."
+
+      - name: Prepare APK and official build tools
+        shell: bash
+        run: |
+          mkdir -p output
+          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v14.0-unsigned.apk
+          tar -czf output/android-build-tools-35.tar.gz -C "$ANDROID_HOME/build-tools" 35.0.0
+
+      - name: Sign APK with permanent release key
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ] || [ -z "${ANDROID_KEYSTORE_PASSWORD:-}" ] || [ -z "${ANDROID_KEY_ALIAS:-}" ] || [ -z "${ANDROID_KEY_PASSWORD:-}" ]; then
+            echo "Permanent Android signing secrets are not configured yet."
+            echo "SIGNED_APK_AVAILABLE=0" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          KEYSTORE="$RUNNER_TEMP/my-attendance-release.jks"
+          ALIGNED="$RUNNER_TEMP/My-Attendance-v14.0-aligned.apk"
+          SIGNED="output/My-Attendance-v14.0-signed.apk"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+          chmod 600 "$KEYSTORE"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -P 16 4 output/My-Attendance-v14.0-unsigned.apk "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign             --ks "$KEYSTORE"             --ks-key-alias "$ANDROID_KEY_ALIAS"             --ks-pass env:ANDROID_KEYSTORE_PASSWORD             --key-pass env:ANDROID_KEY_PASSWORD             --out "$SIGNED"             "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$SIGNED" | tee output/apksigner-report.txt
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$SIGNED"
+          grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" output/apksigner-report.txt
+          grep -q "Verified using v3 scheme (APK Signature Scheme v3): true" output/apksigner-report.txt
+          grep -q "65cf75b838c0cc6b2bcf13c7b6fb7641be5a0336ff84fd18e1fe2c1a6ed5ce2f" output/apksigner-report.txt
+          rm -f "$KEYSTORE" "$ALIGNED"
+          echo "SIGNED_APK_AVAILABLE=1" >> "$GITHUB_ENV"
+
+      - name: Verify release package metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          SIGNED="output/My-Attendance-v14.0-signed.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$SIGNED" | tee output/package-badging.txt
+          grep -q "package: name='com.personal.attendance'" output/package-badging.txt
+          grep -q "versionCode='28'" output/package-badging.txt
+          grep -q "versionName='4.2'" output/package-badging.txt
+          sha256sum "$SIGNED" | tee output/My-Attendance-v14.0-signed.apk.sha256
+
+      - name: Upload signed APK artifact
+        if: env.SIGNED_APK_AVAILABLE == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-Attendance-v14.0-Signed-APK
+          path: |
+            output/My-Attendance-v14.0-signed.apk
+            output/My-Attendance-v14.0-signed.apk.sha256
+            output/apksigner-report.txt
+            output/package-badging.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload unsigned APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-Attendance-v14.0-Unsigned-APK
+          path: output/My-Attendance-v14.0-unsigned.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Android build tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-Build-Tools-35
+          path: output/android-build-tools-35.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+ "$MAP"
+          grep -E -q 'reminderSettings\(.*\).* -> reminderSettings          python3 -c "from pathlib import Path; p=Path('app/build/outputs/mapping/release/mapping.txt'); lines=p.read_text(errors='replace').splitlines(); pairs=[line[:-1].split(' -> ',1) for line in lines if line and not line.startswith(' ') and ' -> ' in line and line.endswith(':')]; changed=sum(1 for a,b in pairs if a!=b); print(f'R8 verified: {changed} of {len(pairs)} mapped classes have obfuscated names'); assert pairs and changed"
+          sha256sum "$MAP" > app/build/outputs/mapping/release/mapping.txt.sha256
+          echo "R8 mapping verified internally. Mapping file is intentionally not uploaded because this repository is public."
+
+      - name: Prepare APK and official build tools
+        shell: bash
+        run: |
+          mkdir -p output
+          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v14.0-unsigned.apk
+          tar -czf output/android-build-tools-35.tar.gz -C "$ANDROID_HOME/build-tools" 35.0.0
+
+      - name: Sign APK with permanent release key
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ] || [ -z "${ANDROID_KEYSTORE_PASSWORD:-}" ] || [ -z "${ANDROID_KEY_ALIAS:-}" ] || [ -z "${ANDROID_KEY_PASSWORD:-}" ]; then
+            echo "Permanent Android signing secrets are not configured yet."
+            echo "SIGNED_APK_AVAILABLE=0" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          KEYSTORE="$RUNNER_TEMP/my-attendance-release.jks"
+          ALIGNED="$RUNNER_TEMP/My-Attendance-v14.0-aligned.apk"
+          SIGNED="output/My-Attendance-v14.0-signed.apk"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+          chmod 600 "$KEYSTORE"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -P 16 4 output/My-Attendance-v14.0-unsigned.apk "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign             --ks "$KEYSTORE"             --ks-key-alias "$ANDROID_KEY_ALIAS"             --ks-pass env:ANDROID_KEYSTORE_PASSWORD             --key-pass env:ANDROID_KEY_PASSWORD             --out "$SIGNED"             "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$SIGNED" | tee output/apksigner-report.txt
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$SIGNED"
+          grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" output/apksigner-report.txt
+          grep -q "Verified using v3 scheme (APK Signature Scheme v3): true" output/apksigner-report.txt
+          grep -q "65cf75b838c0cc6b2bcf13c7b6fb7641be5a0336ff84fd18e1fe2c1a6ed5ce2f" output/apksigner-report.txt
+          rm -f "$KEYSTORE" "$ALIGNED"
+          echo "SIGNED_APK_AVAILABLE=1" >> "$GITHUB_ENV"
+
+      - name: Verify release package metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          SIGNED="output/My-Attendance-v14.0-signed.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$SIGNED" | tee output/package-badging.txt
+          grep -q "package: name='com.personal.attendance'" output/package-badging.txt
+          grep -q "versionCode='28'" output/package-badging.txt
+          grep -q "versionName='4.2'" output/package-badging.txt
+          sha256sum "$SIGNED" | tee output/My-Attendance-v14.0-signed.apk.sha256
+
+      - name: Upload signed APK artifact
+        if: env.SIGNED_APK_AVAILABLE == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-Attendance-v14.0-Signed-APK
+          path: |
+            output/My-Attendance-v14.0-signed.apk
+            output/My-Attendance-v14.0-signed.apk.sha256
+            output/apksigner-report.txt
+            output/package-badging.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload unsigned APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-Attendance-v14.0-Unsigned-APK
+          path: output/My-Attendance-v14.0-unsigned.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Android build tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-Build-Tools-35
+          path: output/android-build-tools-35.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+ "$MAP"
+          grep -E -q 'saveReminderSettings\(.*\).* -> saveReminderSettings          python3 -c "from pathlib import Path; p=Path('app/build/outputs/mapping/release/mapping.txt'); lines=p.read_text(errors='replace').splitlines(); pairs=[line[:-1].split(' -> ',1) for line in lines if line and not line.startswith(' ') and ' -> ' in line and line.endswith(':')]; changed=sum(1 for a,b in pairs if a!=b); print(f'R8 verified: {changed} of {len(pairs)} mapped classes have obfuscated names'); assert pairs and changed"
+          sha256sum "$MAP" > app/build/outputs/mapping/release/mapping.txt.sha256
+          echo "R8 mapping verified internally. Mapping file is intentionally not uploaded because this repository is public."
+
+      - name: Prepare APK and official build tools
+        shell: bash
+        run: |
+          mkdir -p output
+          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v14.0-unsigned.apk
+          tar -czf output/android-build-tools-35.tar.gz -C "$ANDROID_HOME/build-tools" 35.0.0
+
+      - name: Sign APK with permanent release key
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ] || [ -z "${ANDROID_KEYSTORE_PASSWORD:-}" ] || [ -z "${ANDROID_KEY_ALIAS:-}" ] || [ -z "${ANDROID_KEY_PASSWORD:-}" ]; then
+            echo "Permanent Android signing secrets are not configured yet."
+            echo "SIGNED_APK_AVAILABLE=0" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          KEYSTORE="$RUNNER_TEMP/my-attendance-release.jks"
+          ALIGNED="$RUNNER_TEMP/My-Attendance-v14.0-aligned.apk"
+          SIGNED="output/My-Attendance-v14.0-signed.apk"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+          chmod 600 "$KEYSTORE"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -P 16 4 output/My-Attendance-v14.0-unsigned.apk "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign             --ks "$KEYSTORE"             --ks-key-alias "$ANDROID_KEY_ALIAS"             --ks-pass env:ANDROID_KEYSTORE_PASSWORD             --key-pass env:ANDROID_KEY_PASSWORD             --out "$SIGNED"             "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$SIGNED" | tee output/apksigner-report.txt
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$SIGNED"
+          grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" output/apksigner-report.txt
+          grep -q "Verified using v3 scheme (APK Signature Scheme v3): true" output/apksigner-report.txt
+          grep -q "65cf75b838c0cc6b2bcf13c7b6fb7641be5a0336ff84fd18e1fe2c1a6ed5ce2f" output/apksigner-report.txt
+          rm -f "$KEYSTORE" "$ALIGNED"
+          echo "SIGNED_APK_AVAILABLE=1" >> "$GITHUB_ENV"
+
+      - name: Verify release package metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          SIGNED="output/My-Attendance-v14.0-signed.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$SIGNED" | tee output/package-badging.txt
+          grep -q "package: name='com.personal.attendance'" output/package-badging.txt
+          grep -q "versionCode='28'" output/package-badging.txt
+          grep -q "versionName='4.2'" output/package-badging.txt
+          sha256sum "$SIGNED" | tee output/My-Attendance-v14.0-signed.apk.sha256
+
+      - name: Upload signed APK artifact
+        if: env.SIGNED_APK_AVAILABLE == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-Attendance-v14.0-Signed-APK
+          path: |
+            output/My-Attendance-v14.0-signed.apk
+            output/My-Attendance-v14.0-signed.apk.sha256
+            output/apksigner-report.txt
+            output/package-badging.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload unsigned APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-Attendance-v14.0-Unsigned-APK
+          path: output/My-Attendance-v14.0-unsigned.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Android build tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-Build-Tools-35
+          path: output/android-build-tools-35.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+ "$MAP"
+          grep -E -q 'setAppLockConfig\(.*\).* -> setAppLockConfig          python3 -c "from pathlib import Path; p=Path('app/build/outputs/mapping/release/mapping.txt'); lines=p.read_text(errors='replace').splitlines(); pairs=[line[:-1].split(' -> ',1) for line in lines if line and not line.startswith(' ') and ' -> ' in line and line.endswith(':')]; changed=sum(1 for a,b in pairs if a!=b); print(f'R8 verified: {changed} of {len(pairs)} mapped classes have obfuscated names'); assert pairs and changed"
+          sha256sum "$MAP" > app/build/outputs/mapping/release/mapping.txt.sha256
+          echo "R8 mapping verified internally. Mapping file is intentionally not uploaded because this repository is public."
+
+      - name: Prepare APK and official build tools
+        shell: bash
+        run: |
+          mkdir -p output
+          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v14.0-unsigned.apk
+          tar -czf output/android-build-tools-35.tar.gz -C "$ANDROID_HOME/build-tools" 35.0.0
+
+      - name: Sign APK with permanent release key
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ] || [ -z "${ANDROID_KEYSTORE_PASSWORD:-}" ] || [ -z "${ANDROID_KEY_ALIAS:-}" ] || [ -z "${ANDROID_KEY_PASSWORD:-}" ]; then
+            echo "Permanent Android signing secrets are not configured yet."
+            echo "SIGNED_APK_AVAILABLE=0" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          KEYSTORE="$RUNNER_TEMP/my-attendance-release.jks"
+          ALIGNED="$RUNNER_TEMP/My-Attendance-v14.0-aligned.apk"
+          SIGNED="output/My-Attendance-v14.0-signed.apk"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+          chmod 600 "$KEYSTORE"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -P 16 4 output/My-Attendance-v14.0-unsigned.apk "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign             --ks "$KEYSTORE"             --ks-key-alias "$ANDROID_KEY_ALIAS"             --ks-pass env:ANDROID_KEYSTORE_PASSWORD             --key-pass env:ANDROID_KEY_PASSWORD             --out "$SIGNED"             "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$SIGNED" | tee output/apksigner-report.txt
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$SIGNED"
+          grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" output/apksigner-report.txt
+          grep -q "Verified using v3 scheme (APK Signature Scheme v3): true" output/apksigner-report.txt
+          grep -q "65cf75b838c0cc6b2bcf13c7b6fb7641be5a0336ff84fd18e1fe2c1a6ed5ce2f" output/apksigner-report.txt
+          rm -f "$KEYSTORE" "$ALIGNED"
+          echo "SIGNED_APK_AVAILABLE=1" >> "$GITHUB_ENV"
+
+      - name: Verify release package metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          SIGNED="output/My-Attendance-v14.0-signed.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$SIGNED" | tee output/package-badging.txt
+          grep -q "package: name='com.personal.attendance'" output/package-badging.txt
+          grep -q "versionCode='28'" output/package-badging.txt
+          grep -q "versionName='4.2'" output/package-badging.txt
+          sha256sum "$SIGNED" | tee output/My-Attendance-v14.0-signed.apk.sha256
+
+      - name: Upload signed APK artifact
+        if: env.SIGNED_APK_AVAILABLE == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-Attendance-v14.0-Signed-APK
+          path: |
+            output/My-Attendance-v14.0-signed.apk
+            output/My-Attendance-v14.0-signed.apk.sha256
+            output/apksigner-report.txt
+            output/package-badging.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload unsigned APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-Attendance-v14.0-Unsigned-APK
+          path: output/My-Attendance-v14.0-unsigned.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Android build tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-Build-Tools-35
+          path: output/android-build-tools-35.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+ "$MAP"
+          grep -E -q 'cloudBackupHistoryList\(.*\).* -> cloudBackupHistoryList          python3 -c "from pathlib import Path; p=Path('app/build/outputs/mapping/release/mapping.txt'); lines=p.read_text(errors='replace').splitlines(); pairs=[line[:-1].split(' -> ',1) for line in lines if line and not line.startswith(' ') and ' -> ' in line and line.endswith(':')]; changed=sum(1 for a,b in pairs if a!=b); print(f'R8 verified: {changed} of {len(pairs)} mapped classes have obfuscated names'); assert pairs and changed"
+          sha256sum "$MAP" > app/build/outputs/mapping/release/mapping.txt.sha256
+          echo "R8 mapping verified internally. Mapping file is intentionally not uploaded because this repository is public."
+
+      - name: Prepare APK and official build tools
+        shell: bash
+        run: |
+          mkdir -p output
+          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v14.0-unsigned.apk
+          tar -czf output/android-build-tools-35.tar.gz -C "$ANDROID_HOME/build-tools" 35.0.0
+
+      - name: Sign APK with permanent release key
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ] || [ -z "${ANDROID_KEYSTORE_PASSWORD:-}" ] || [ -z "${ANDROID_KEY_ALIAS:-}" ] || [ -z "${ANDROID_KEY_PASSWORD:-}" ]; then
+            echo "Permanent Android signing secrets are not configured yet."
+            echo "SIGNED_APK_AVAILABLE=0" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          KEYSTORE="$RUNNER_TEMP/my-attendance-release.jks"
+          ALIGNED="$RUNNER_TEMP/My-Attendance-v14.0-aligned.apk"
+          SIGNED="output/My-Attendance-v14.0-signed.apk"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+          chmod 600 "$KEYSTORE"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -P 16 4 output/My-Attendance-v14.0-unsigned.apk "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign             --ks "$KEYSTORE"             --ks-key-alias "$ANDROID_KEY_ALIAS"             --ks-pass env:ANDROID_KEYSTORE_PASSWORD             --key-pass env:ANDROID_KEY_PASSWORD             --out "$SIGNED"             "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$SIGNED" | tee output/apksigner-report.txt
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$SIGNED"
+          grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" output/apksigner-report.txt
+          grep -q "Verified using v3 scheme (APK Signature Scheme v3): true" output/apksigner-report.txt
+          grep -q "65cf75b838c0cc6b2bcf13c7b6fb7641be5a0336ff84fd18e1fe2c1a6ed5ce2f" output/apksigner-report.txt
+          rm -f "$KEYSTORE" "$ALIGNED"
+          echo "SIGNED_APK_AVAILABLE=1" >> "$GITHUB_ENV"
+
+      - name: Verify release package metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          SIGNED="output/My-Attendance-v14.0-signed.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$SIGNED" | tee output/package-badging.txt
+          grep -q "package: name='com.personal.attendance'" output/package-badging.txt
+          grep -q "versionCode='28'" output/package-badging.txt
+          grep -q "versionName='4.2'" output/package-badging.txt
+          sha256sum "$SIGNED" | tee output/My-Attendance-v14.0-signed.apk.sha256
+
+      - name: Upload signed APK artifact
+        if: env.SIGNED_APK_AVAILABLE == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-Attendance-v14.0-Signed-APK
+          path: |
+            output/My-Attendance-v14.0-signed.apk
+            output/My-Attendance-v14.0-signed.apk.sha256
+            output/apksigner-report.txt
+            output/package-badging.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload unsigned APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-Attendance-v14.0-Unsigned-APK
+          path: output/My-Attendance-v14.0-unsigned.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Android build tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-Build-Tools-35
+          path: output/android-build-tools-35.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+ "$MAP"
+          grep -E -q 'secureCloudRestoreHistory\(.*\).* -> secureCloudRestoreHistory          python3 -c "from pathlib import Path; p=Path('app/build/outputs/mapping/release/mapping.txt'); lines=p.read_text(errors='replace').splitlines(); pairs=[line[:-1].split(' -> ',1) for line in lines if line and not line.startswith(' ') and ' -> ' in line and line.endswith(':')]; changed=sum(1 for a,b in pairs if a!=b); print(f'R8 verified: {changed} of {len(pairs)} mapped classes have obfuscated names'); assert pairs and changed"
+          sha256sum "$MAP" > app/build/outputs/mapping/release/mapping.txt.sha256
+          echo "R8 mapping verified internally. Mapping file is intentionally not uploaded because this repository is public."
+
+      - name: Prepare APK and official build tools
+        shell: bash
+        run: |
+          mkdir -p output
+          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v14.0-unsigned.apk
+          tar -czf output/android-build-tools-35.tar.gz -C "$ANDROID_HOME/build-tools" 35.0.0
+
+      - name: Sign APK with permanent release key
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ] || [ -z "${ANDROID_KEYSTORE_PASSWORD:-}" ] || [ -z "${ANDROID_KEY_ALIAS:-}" ] || [ -z "${ANDROID_KEY_PASSWORD:-}" ]; then
+            echo "Permanent Android signing secrets are not configured yet."
+            echo "SIGNED_APK_AVAILABLE=0" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          KEYSTORE="$RUNNER_TEMP/my-attendance-release.jks"
+          ALIGNED="$RUNNER_TEMP/My-Attendance-v14.0-aligned.apk"
+          SIGNED="output/My-Attendance-v14.0-signed.apk"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+          chmod 600 "$KEYSTORE"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -P 16 4 output/My-Attendance-v14.0-unsigned.apk "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign             --ks "$KEYSTORE"             --ks-key-alias "$ANDROID_KEY_ALIAS"             --ks-pass env:ANDROID_KEYSTORE_PASSWORD             --key-pass env:ANDROID_KEY_PASSWORD             --out "$SIGNED"             "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$SIGNED" | tee output/apksigner-report.txt
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$SIGNED"
+          grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" output/apksigner-report.txt
+          grep -q "Verified using v3 scheme (APK Signature Scheme v3): true" output/apksigner-report.txt
+          grep -q "65cf75b838c0cc6b2bcf13c7b6fb7641be5a0336ff84fd18e1fe2c1a6ed5ce2f" output/apksigner-report.txt
+          rm -f "$KEYSTORE" "$ALIGNED"
+          echo "SIGNED_APK_AVAILABLE=1" >> "$GITHUB_ENV"
+
+      - name: Verify release package metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          SIGNED="output/My-Attendance-v14.0-signed.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$SIGNED" | tee output/package-badging.txt
+          grep -q "package: name='com.personal.attendance'" output/package-badging.txt
+          grep -q "versionCode='28'" output/package-badging.txt
+          grep -q "versionName='4.2'" output/package-badging.txt
+          sha256sum "$SIGNED" | tee output/My-Attendance-v14.0-signed.apk.sha256
+
+      - name: Upload signed APK artifact
+        if: env.SIGNED_APK_AVAILABLE == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-Attendance-v14.0-Signed-APK
+          path: |
+            output/My-Attendance-v14.0-signed.apk
+            output/My-Attendance-v14.0-signed.apk.sha256
+            output/apksigner-report.txt
+            output/package-badging.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload unsigned APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-Attendance-v14.0-Unsigned-APK
+          path: output/My-Attendance-v14.0-unsigned.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Android build tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-Build-Tools-35
+          path: output/android-build-tools-35.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+ "$MAP"
           python3 -c "from pathlib import Path; p=Path('app/build/outputs/mapping/release/mapping.txt'); lines=p.read_text(errors='replace').splitlines(); pairs=[line[:-1].split(' -> ',1) for line in lines if line and not line.startswith(' ') and ' -> ' in line and line.endswith(':')]; changed=sum(1 for a,b in pairs if a!=b); print(f'R8 verified: {changed} of {len(pairs)} mapped classes have obfuscated names'); assert pairs and changed"
           sha256sum "$MAP" > app/build/outputs/mapping/release/mapping.txt.sha256
           echo "R8 mapping verified internally. Mapping file is intentionally not uploaded because this repository is public."
