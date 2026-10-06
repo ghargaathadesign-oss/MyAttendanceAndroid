@@ -26,6 +26,10 @@ import java.util.Map;
 public class AppMessagingService extends FirebaseMessagingService {
   private static final String PREFS="attendance_push_v15";
   private static final String KEY_INBOX="inbox";
+  private static final String KEY_TOKEN="fcm_token";
+  private static final String KEY_TOPIC_UPDATES="topic_updates";
+  private static final String KEY_TOPIC_ALL="topic_all";
+  private static final String KEY_TOPIC_ERROR="topic_error";
   private static final String CHANNEL_ID="attendance_updates";
   private static final int MAX_ITEMS=60;
   private static final String FIREBASE_APP_ID="1:312314814209:android:764780f6a72c65b9a38500";
@@ -41,6 +45,7 @@ public class AppMessagingService extends FirebaseMessagingService {
 
   @Override public void onNewToken(String token){
     super.onNewToken(token);
+    prefs(this).edit().putString(KEY_TOKEN,token==null?"":token).apply();
     ensureFirebase(this);
     ensureSubscribed(this);
   }
@@ -74,9 +79,32 @@ public class AppMessagingService extends FirebaseMessagingService {
     try{
       ensureFirebase(context);
       FirebaseMessaging fm=FirebaseMessaging.getInstance();
-      fm.subscribeToTopic("attendance_all");
-      fm.subscribeToTopic("attendance_updates");
-    }catch(Exception ignored){}
+      fm.getToken().addOnCompleteListener(task->{
+        try{
+          if(task.isSuccessful()&&task.getResult()!=null){
+            prefs(context).edit().putString(KEY_TOKEN,task.getResult()).putString(KEY_TOPIC_ERROR,"").apply();
+          }else if(task.getException()!=null){
+            prefs(context).edit().putString(KEY_TOPIC_ERROR,String.valueOf(task.getException().getMessage())).apply();
+          }
+        }catch(Exception ignored){}
+      });
+      fm.subscribeToTopic("attendance_all").addOnCompleteListener(task->{
+        try{
+          SharedPreferences.Editor e=prefs(context).edit().putBoolean(KEY_TOPIC_ALL,task.isSuccessful());
+          if(!task.isSuccessful()&&task.getException()!=null)e.putString(KEY_TOPIC_ERROR,String.valueOf(task.getException().getMessage()));
+          e.apply();
+        }catch(Exception ignored){}
+      });
+      fm.subscribeToTopic("attendance_updates").addOnCompleteListener(task->{
+        try{
+          SharedPreferences.Editor e=prefs(context).edit().putBoolean(KEY_TOPIC_UPDATES,task.isSuccessful());
+          if(!task.isSuccessful()&&task.getException()!=null)e.putString(KEY_TOPIC_ERROR,String.valueOf(task.getException().getMessage()));
+          e.apply();
+        }catch(Exception ignored){}
+      });
+    }catch(Exception e){
+      try{prefs(context).edit().putString(KEY_TOPIC_ERROR,String.valueOf(e.getMessage())).apply();}catch(Exception ignored){}
+    }
   }
 
   private static SharedPreferences prefs(Context context){return context.getSharedPreferences(PREFS,Context.MODE_PRIVATE);}
@@ -156,6 +184,11 @@ public class AppMessagingService extends FirebaseMessagingService {
       JSONArray a=inbox(context);int unread=0;
       for(int i=0;i<a.length();i++){JSONObject x=a.optJSONObject(i);if(x!=null&&!x.optBoolean("read",false))unread++;}
       out.put("items",a);out.put("unread",unread);out.put("permission",permissionState(context));
+      SharedPreferences p=prefs(context);
+      out.put("pushTokenAvailable",!p.getString(KEY_TOKEN,"").isEmpty());
+      out.put("topicUpdates",p.getBoolean(KEY_TOPIC_UPDATES,false));
+      out.put("topicAll",p.getBoolean(KEY_TOPIC_ALL,false));
+      out.put("topicError",p.getString(KEY_TOPIC_ERROR,""));
       out.put("versionName",BuildConfig.VERSION_NAME);out.put("versionCode",BuildConfig.VERSION_CODE);
     }catch(Exception ignored){}
     return out;
@@ -177,6 +210,12 @@ public class AppMessagingService extends FirebaseMessagingService {
   }
 
   public static synchronized void clear(Context context){prefs(context).edit().remove(KEY_INBOX).apply();}
+
+  public static void publishItem(Context context,JSONObject item){
+    if(item==null)return;
+    saveItem(context,item);
+    showSystemNotification(context,item);
+  }
 
   public static String permissionState(Context context){
     if(Build.VERSION.SDK_INT<33)return "not_required";
