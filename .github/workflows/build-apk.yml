@@ -3,7 +3,7 @@ name: Build My Attendance APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, v12.6-hardening, v12.7-device-auth, v12.8-restore-compat, v12.9-step7-delete, v13.0-step9-r8, v13.1-step12-diagnostics, v13.2-diagnostics-polish, v13.3-app-check-monitoring, v13.4-diagnostics-appcheck, v13.5-performance, v13.6-attendance-speed, v13.7-attendance-upgrade, v14-all-steps, v15-notification-attendance, v15.1-ui-polish, v15.2-update-push-polish]
+    branches: [main, v12.6-hardening, v12.7-device-auth, v12.8-restore-compat, v12.9-step7-delete, v13.0-step9-r8, v13.1-step12-diagnostics, v13.2-diagnostics-polish, v13.3-app-check-monitoring, v13.4-diagnostics-appcheck, v13.5-performance, v13.6-attendance-speed, v13.7-attendance-upgrade, v14-all-steps, v15-notification-attendance, v15.1-ui-polish, v15.2-update-push-polish, v15.2-delivery-hardening]
 
 permissions:
   contents: write
@@ -97,6 +97,8 @@ jobs:
           python3 ci/patch_native_v150.py app/src/main/java/com/personal/attendance/MainActivity.java
           python3 ci/patch_v151.py app/src/main/assets
           python3 ci/patch_v152.py app/src/main/assets
+          python3 ci/patch_native_v152.py app/src/main/java/com/personal/attendance/MainActivity.java
+          python3 ci/patch_v152_delivery.py app/src/main/assets
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js -o app/src/main/assets/lottie.min.js
           curl -L --fail --retry 3 https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js -o app/src/main/assets/xlsx.full.min.js
           curl -L --fail --retry 3 https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js -o app/src/main/assets/exceljs.min.js
@@ -132,6 +134,8 @@ jobs:
           test -s app/src/main/assets/v151-ui.js
           test -s app/src/main/assets/v152-ui.css
           test -s app/src/main/assets/v152-fixes.js
+          test -s app/src/main/assets/v152-delivery.js
+          test -s app/src/main/assets/v152-delivery.css
           test -s app/src/main/assets/xlsx.full.min.js
           test -s app/src/main/assets/exceljs.min.js
           test -s app/src/main/assets/lottie-dark/attendance.json
@@ -155,6 +159,7 @@ jobs:
           node --check app/src/main/assets/v15-features.js
           node --check app/src/main/assets/v151-ui.js
           node --check app/src/main/assets/v152-fixes.js
+          node --check app/src/main/assets/v152-delivery.js
           node ci/test-policy.js
           node ci/test-backup-crypto.js
           node ci/test-transfer-crypto.js
@@ -277,6 +282,15 @@ jobs:
           grep -q 'Promise.all' app/src/main/assets/app.js
           grep -q "salaryPaidDays').textContent=paidText" app/src/main/assets/app.js
           grep -q 'switchDeviceCard' app/src/main/assets/index.html
+          grep -q 'notificationCheckUpdates' app/src/main/assets/index.html
+          grep -q 'notificationPushDiag' app/src/main/assets/index.html
+          grep -q 'v152-delivery.js' app/src/main/assets/index.html
+          grep -q 'checkForUpdatesNative' app/src/main/java/com/personal/attendance/MainActivity.java
+          grep -q '@JavascriptInterface public void checkForUpdates' app/src/main/java/com/personal/attendance/MainActivity.java
+          grep -q '@JavascriptInterface public void refreshPushRegistration' app/src/main/java/com/personal/attendance/MainActivity.java
+          grep -q 'pushTokenAvailable' app/src/main/java/com/personal/attendance/AppMessagingService.java
+          grep -q 'topicUpdates' app/src/main/java/com/personal/attendance/AppMessagingService.java
+          test -s update-manifest.json
           grep -q 'appLockStateNative' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q 'pushCurrentDeviceIntoHistory' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q '@JavascriptInterface public String reminderSettings' app/src/main/java/com/personal/attendance/MainActivity.java
