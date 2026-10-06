@@ -1,6 +1,5 @@
 (function(){
 'use strict';
-try{document.documentElement.classList.add('v152BootSync')}catch(e){}
 var resolved=false,resolveAuth;
 window.attendanceAuthReadyPromise=new Promise(function(resolve){
   resolveAuth=resolve;
@@ -19,13 +18,15 @@ function refreshHome(){
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',function(){
     try{if(window.Android&&Android.authState)Android.authState()}catch(e){}
-    setTimeout(refreshHome,350);
-    setTimeout(refreshHome,900);
+    setTimeout(refreshHome,120);
+    setTimeout(refreshHome,450);
+    setTimeout(refreshHome,1000);
   });
 }else{
   try{if(window.Android&&Android.authState)Android.authState()}catch(e){}
-  setTimeout(refreshHome,350);
-  setTimeout(refreshHome,900);
+  setTimeout(refreshHome,120);
+  setTimeout(refreshHome,450);
+  setTimeout(refreshHome,1000);
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden)setTimeout(refreshHome,60)});
 window.addEventListener('pageshow',function(){setTimeout(refreshHome,60)});
