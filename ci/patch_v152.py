@@ -24,7 +24,7 @@ s=s.replace(salary_old,salary_new,1)
 
 start_old="""function startUserScopedApp(){var go=function(){init()},ready=window.attendanceDocumentsReady||window.attendanceStorageReady;if(ready&&typeof ready.then==='function')ready.then(go).catch(go);else go()}"""
 start_new="""function startUserScopedApp(){
- var started=false,go=function(){if(started)return;started=true;init()},ready=window.attendanceDocumentsReady||window.attendanceStorageReady,authReady=window.attendanceAuthReadyPromise;
+ var started=false,go=function(){if(started)return;started=true;init();try{document.documentElement.classList.remove('v152BootSync')}catch(e){}},ready=window.attendanceDocumentsReady||window.attendanceStorageReady,authReady=window.attendanceAuthReadyPromise;
  if(window.Android&&Android.authState){try{Android.authState()}catch(e){}}
  if(window.Promise){
    Promise.all([ready&&typeof ready.then==='function'?ready:Promise.resolve(),authReady&&typeof authReady.then==='function'?authReady:Promise.resolve()]).then(go).catch(go);
