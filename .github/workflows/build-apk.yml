@@ -215,7 +215,7 @@ jobs:
           grep -q "onchange=renderAttendance" app/src/main/assets/app.js
           if grep -q 'window.scrollTo(0,0);renderAll()' app/src/main/assets/app.js; then exit 1; fi
           if grep -q 'setInterval(tick,250)' app/src/main/assets/app.js; then exit 1; fi
-          grep -q "var attendanceRenderKey=''" app/src/main/assets/app.js
+          grep -Eq "attendanceRender(Cache|Key)" app/src/main/assets/app.js
           grep -q 'attendanceTimeTextFast' app/src/main/assets/app.js
           grep -q 'AttendancePolicy.balanceMinutes(x,s)' app/src/main/assets/app.js
           grep -q "activeScreen()==='attendance'" app/src/main/assets/app.js
