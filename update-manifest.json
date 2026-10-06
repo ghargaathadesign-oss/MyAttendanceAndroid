@@ -1,8 +1,8 @@
 {
-  "versionName": "15.2",
-  "versionCode": 31,
-  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.2/My-Attendance-v15.2-signed.apk",
-  "sha256": "ae1e23df681c805bc3ee577043d1a7ce78c78e795ea80c8ee3a5202502f87764",
-  "changelog": "First-launch Clock In/Out and profile sync fixed; Attendance calendar spacing improved; Paid Days rounded; Switch to New Phone moved into its own Backup section.",
-  "publishedAt": "2026-10-06T18:00:00Z"
+  "versionName": "15.3",
+  "versionCode": 32,
+  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.3/My-Attendance-v15.3-signed.apk",
+  "sha256": "",
+  "changelog": "Fixes blank Home screen after v15.2 startup sync, restores comfortable Attendance calendar spacing, keeps Salary Paid Days rounded, separates New Phone backup, and adds push/update diagnostics with Check for Updates fallback.",
+  "publishedAt": "2026-10-07T00:00:00Z"
 }
