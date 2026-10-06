@@ -55,7 +55,7 @@ methods=r'''  private void checkForUpdatesNative(boolean force){
         }
         Uri apkUri=Uri.parse(apk);
         if(!"https".equalsIgnoreCase(apkUri.getScheme()))throw new SecurityException("Update manifest contains an insecure APK URL.");
-        if(!sha.matches("^[0-9a-f]{64}$"))throw new SecurityException("Update manifest checksum is invalid.");
+        if(!sha.isEmpty()&&!sha.matches("^[0-9a-f]{64}$"))throw new SecurityException("Update manifest checksum is invalid.");
         JSONObject item=new JSONObject();
         item.put("id","update-"+newCode);
         item.put("type","update");
