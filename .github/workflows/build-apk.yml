@@ -277,7 +277,6 @@ jobs:
           grep -q 'Promise.all' app/src/main/assets/app.js
           grep -q "salaryPaidDays').textContent=paidText" app/src/main/assets/app.js
           grep -q 'switchDeviceCard' app/src/main/assets/index.html
-          grep -q 'v15.2 startup, salary, calendar spacing and backup-section patch applied' <(python3 ci/patch_v152.py --help 2>&1 || true) || true
           grep -q 'appLockStateNative' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q 'pushCurrentDeviceIntoHistory' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q '@JavascriptInterface public String reminderSettings' app/src/main/java/com/personal/attendance/MainActivity.java
