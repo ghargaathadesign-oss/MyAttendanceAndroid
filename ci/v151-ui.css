@@ -1,0 +1,69 @@
+/* My Attendance v15.1 — unified non-home UI */
+:root{--v151-blue:#4c8fe9;--v151-card-shadow:0 10px 30px rgba(39,55,86,.075);--v151-soft-blue:rgba(76,143,233,.09)}
+#screen-add,#screen-leaves,#screen-notifications,#screen-settings,.settingScreen{padding-left:16px;padding-right:16px;padding-bottom:28px}
+#screen-add .sectionHeader,#screen-leaves .sectionHeader,#screen-notifications .sectionHeader,#screen-settings .sectionHeader,.settingScreen .sectionHeader,#screen-attendance .sectionHeader{
+  min-height:58px;margin:4px 0 12px;padding:9px 11px;border:1px solid var(--line);border-radius:20px;
+  background:linear-gradient(145deg,var(--surface),var(--surface2));box-shadow:var(--v151-card-shadow);gap:9px
+}
+#screen-add .sectionHeader h1,#screen-leaves .sectionHeader h1,#screen-notifications .sectionHeader h1,#screen-settings .sectionHeader h1,.settingScreen .sectionHeader h1,#screen-attendance .sectionHeader h1{font-size:18px;letter-spacing:-.02em}
+#screen-add .sectionHeader .back,.settingScreen .sectionHeader .back,#screen-notifications .notificationBack{
+  width:38px;height:38px;min-width:38px;border-radius:12px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);display:grid;place-items:center;font-size:24px;box-shadow:0 4px 14px rgba(39,55,86,.05)
+}
+#screen-add .pageLottie,#screen-leaves .pageLottie,#screen-settings .pageLottie,.settingScreen .pageLottie,#screen-attendance .pageLottie{
+  width:38px;height:38px;border-radius:12px;background:var(--surface);border:1px solid var(--line);padding:3px
+}
+#screen-notifications .sectionHeader .navIcon{width:38px;height:38px;border-radius:12px;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;font-size:17px}
+.formCard,.leaveCard,.settingsCard,.profileReferenceCard,.notificationSummary,.diagSummary,.diagCard{
+  border:1px solid var(--line)!important;border-radius:20px!important;background:var(--surface)!important;
+  box-shadow:var(--v151-card-shadow)!important;margin-bottom:11px
+}
+.formCard,.leaveCard,.settingsCard{padding:14px!important}
+.field,.timeBox{border-radius:14px!important;background:var(--surface2)!important;border-color:var(--line)!important;transition:border-color .15s ease,box-shadow .15s ease}
+.field:focus-within,.timeBox:focus-within{border-color:rgba(76,143,233,.55)!important;box-shadow:0 0 0 3px rgba(76,143,233,.08)}
+.field input,.field select,.field textarea{color:var(--ink);font-weight:600}
+.label{font-size:9px!important;letter-spacing:.08em!important;margin-top:10px!important}
+.btn{border-radius:13px!important;min-height:43px!important;transition:transform .12s ease,opacity .12s ease}
+.btn:active{transform:scale(.985)}.primary{background:linear-gradient(135deg,#4c8fe9,#6479e5)!important;box-shadow:0 7px 18px rgba(76,143,233,.20)}
+.ghost{background:var(--surface2)!important;border-color:var(--line)!important;color:var(--ink)!important}
+.actions{gap:8px!important}
+.overviewHead{margin:13px 2px 8px!important;padding:0 2px}.overviewHead b{font-size:13px}.overviewHead span{font-size:9px;color:var(--muted)}
+.records{gap:8px!important}.record,.v15Record,.historyRow{border-color:var(--line)!important;box-shadow:0 7px 22px rgba(39,55,86,.045)!important}
+.settingsMenu{background:transparent!important;border:0!important;box-shadow:none!important;display:grid;gap:8px;overflow:visible!important}
+.settingsMenuRow,.settingsLogoutRow{
+  border:1px solid var(--line)!important;border-radius:17px!important;background:var(--surface)!important;
+  box-shadow:0 7px 22px rgba(39,55,86,.045);padding:11px 12px!important;color:var(--ink)!important
+}
+.settingsMenuRow>span:nth-child(2) b,.settingsLogoutRow>span:nth-child(2) b{font-size:12.5px!important}.settingsMenuRow>span:nth-child(2) small,.settingsLogoutRow>span:nth-child(2) small{font-size:9px!important;line-height:1.35}
+.menuLottie{width:40px!important;height:40px!important;border-radius:12px;background:var(--surface2);padding:2px}
+.settingsMenuRow i,.settingsLogoutRow i{font-size:21px!important}
+.leaveCard{background:linear-gradient(145deg,var(--surface),var(--surface2))!important}.leaveStats,.leaveTypes{gap:8px!important}.leaveStat,.leaveType{border-radius:14px!important;background:var(--surface2)!important;border:1px solid var(--line);padding:10px!important}
+.profileReferenceCard{padding:16px!important}.profileReferenceEdit{border-radius:13px!important}.profileInlineFields{padding-top:10px!important}
+.salarySummary,.reportGrid{gap:8px!important}.salaryBox,.reportCard{border:1px solid var(--line)!important;border-radius:16px!important;background:var(--surface)!important;box-shadow:0 7px 22px rgba(39,55,86,.04)!important}
+.themeVisualToggle{border-radius:16px!important;padding:4px!important;background:var(--surface2)!important}.themeVisualToggle button{border-radius:12px!important}
+.typographyPreview,.themePreview,.preview{border-radius:15px!important;background:var(--surface2)!important;border:1px solid var(--line)!important}
+.settingsCard .switchLine{margin:7px 0;padding:11px!important;border:1px solid var(--line)!important;border-radius:15px;background:var(--surface2)!important}
+.reminderTimeGrid{border-bottom:0!important;margin-bottom:8px}.cloudActions,.backupGrid,.diagActions{gap:8px!important}.historyRow{padding:11px!important;margin:7px 0;border:1px solid var(--line)!important;border-radius:15px;background:var(--surface2)!important}
+.diagSectionTitle{margin:13px 4px 6px!important;font-size:9px!important;letter-spacing:.08em!important}.diagCard{overflow:hidden!important}
+.notificationSummary{background:linear-gradient(145deg,var(--surface),var(--surface2))!important}.notificationCard{border-radius:17px!important;background:var(--surface)!important;box-shadow:0 7px 22px rgba(39,55,86,.045)!important}.notificationIcon{background:var(--surface2)!important;border:1px solid var(--line)}
+.notificationVersionLine{padding:0 2px!important}.notificationHeaderActions{display:none!important}
+#screen-attendance .attendanceHeroV15{padding:0!important;margin:0 0 10px!important;background:transparent!important;border:0!important}
+#screen-attendance .attendanceStatsV15{margin:0!important}.attendanceStatsV15 .v15Stat{background:var(--surface)!important;border-color:var(--line)!important;box-shadow:0 7px 22px rgba(39,55,86,.04)}
+.attendanceCalendarCard{background:var(--surface)!important;border-color:var(--line)!important;border-radius:20px!important;padding:11px!important;box-shadow:var(--v151-card-shadow)}
+.attendanceCalendarTitleRow{display:grid;grid-template-columns:40px minmax(0,1fr) 40px;align-items:center;gap:8px;margin-bottom:10px}
+.attendanceCalendarTitleRow .monthArrow{height:40px;border-radius:12px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);font-size:22px}
+.attendanceCalendarTitle{text-align:center;min-width:0}.attendanceCalendarTitle small{display:block;color:var(--muted);font-size:8px;letter-spacing:.12em;font-weight:800}.attendanceCalendarTitle b{display:block;margin-top:2px;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.attendanceMonthInputV151{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+.v15CalendarWeek,.v15CalendarGrid{gap:4px!important}.v15Day{background:var(--surface2)!important;border-radius:12px!important}.v15Day.hasRecord{background:var(--surface)!important}
+.attendanceSwipeHint{margin-top:9px!important}.attendanceLegendV15{margin-top:9px!important}
+.attendanceRecordsHead{margin-top:12px!important}.attendanceFiltersPanel{border-radius:17px!important;background:var(--surface)!important;box-shadow:0 7px 22px rgba(39,55,86,.04)}
+#screen-add .formCard{background:linear-gradient(145deg,var(--surface),var(--surface2))!important}
+#screen-add .timeRow select{border:1px solid var(--line)!important;background:var(--surface)!important;border-radius:11px!important}
+#screen-notifications #notificationList{display:grid;gap:8px}
+@media(max-width:430px){
+  #screen-add,#screen-leaves,#screen-notifications,#screen-settings,.settingScreen{padding-left:14px;padding-right:14px}
+  #screen-add .sectionHeader,#screen-leaves .sectionHeader,#screen-notifications .sectionHeader,#screen-settings .sectionHeader,.settingScreen .sectionHeader,#screen-attendance .sectionHeader{border-radius:18px;min-height:54px}
+  .attendanceCalendarTitleRow{grid-template-columns:38px minmax(0,1fr) 38px}
+  .attendanceCalendarTitleRow .monthArrow{height:38px}
+}
+@media(prefers-reduced-motion:reduce){.field,.timeBox,.btn{transition:none}}
