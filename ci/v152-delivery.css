@@ -1,0 +1,1 @@
+.notificationPushDiag{margin-top:10px;padding:9px 10px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);font-size:8.5px;line-height:1.45;color:var(--muted)}.notificationPushDiag.ok{color:#2f8b59}.notificationPushDiag.warn{color:#a46a24}.notificationSummaryActions #notificationCheckUpdates{flex-basis:100%}
