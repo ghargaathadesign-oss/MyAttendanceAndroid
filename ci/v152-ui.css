@@ -1,0 +1,10 @@
+/* My Attendance v15.2 — spacing polish */
+#screen-attendance .attendanceCalendarTitleRow{margin-bottom:4px!important}
+#screen-attendance .v15CalendarWeek{margin-bottom:2px!important}
+#screen-attendance .v15CalendarGrid{row-gap:3px!important}
+#screen-attendance .attendanceLegendV15{margin-top:5px!important;padding-top:7px!important}
+#screen-attendance .attendanceSwipeHint{margin-top:3px!important;line-height:1.35!important}
+#screen-attendance .attendanceCalendarCard{padding-bottom:9px!important}
+.switchDeviceCard .label{margin-top:0!important}
+.switchDeviceCard .helpText{margin-top:6px!important;margin-bottom:12px!important}
+.switchDeviceCard .cloudActions{margin-top:0!important}
