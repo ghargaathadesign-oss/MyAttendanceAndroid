@@ -1,0 +1,62 @@
+name: Send My Attendance Update Notification
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: App version name
+        required: true
+        default: '15.2'
+      version_code:
+        description: Android versionCode
+        required: true
+        default: '31'
+      apk_url:
+        description: HTTPS URL of the signed APK
+        required: true
+        default: 'https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.2/My-Attendance-v15.2-signed.apk'
+      sha256:
+        description: SHA-256 of the signed APK
+        required: true
+        default: 'ae1e23df681c805bc3ee577043d1a7ce78c78e795ea80c8ee3a5202502f87764'
+      changelog:
+        description: Update message shown inside My Attendance
+        required: true
+        default: 'First-launch Clock In/Out and profile sync fixed; Attendance calendar spacing improved; Paid Days rounded; Switch to New Phone moved into its own Backup section.'
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Validate Firebase sender secret
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "${FIREBASE_SERVICE_ACCOUNT_JSON:-}" ]; then
+            echo "FIREBASE_SERVICE_ACCOUNT_JSON repository secret is missing."
+            exit 1
+          fi
+
+      - name: Send update push to installed apps
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          FIREBASE_PROJECT_ID: my-attendance-c5c23
+          FCM_TOPIC: attendance_updates
+          UPDATE_VERSION: ${{ inputs.version }}
+          UPDATE_VERSION_CODE: ${{ inputs.version_code }}
+          UPDATE_APK_URL: ${{ inputs.apk_url }}
+          UPDATE_APK_SHA256: ${{ inputs.sha256 }}
+          UPDATE_CHANGELOG: ${{ inputs.changelog }}
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check --quiet google-auth requests
+          python3 ci/send_update_fcm.py
