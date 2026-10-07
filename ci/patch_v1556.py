@@ -77,6 +77,17 @@ new="function setTheme(theme){if(verifiedStorageSet(THEME_KEY,String(theme),'the
 if old not in s: raise SystemExit('setTheme anchor missing')
 s=s.replace(old,new,1)
 
+# The v15 Attendance redesign removed two legacy controls. Guard those lookups so
+# the core bind() function continues and Settings/Profile/Leave/Documents/Edit handlers bind.
+old="E('attendanceResetFilters').onclick=attendanceResetFilters;"
+new="if(E('attendanceResetFilters'))E('attendanceResetFilters').onclick=attendanceResetFilters;"
+if old not in s: raise SystemExit('legacy attendanceResetFilters binding anchor missing')
+s=s.replace(old,new,1)
+old="E('attendanceClearSearch').onclick=function(){if(E('attendanceSearch').value){E('attendanceSearch').value='';renderAttendance()}else E('attendanceSearch').focus()};"
+new="if(E('attendanceClearSearch'))E('attendanceClearSearch').onclick=function(){if(E('attendanceSearch').value){E('attendanceSearch').value='';renderAttendance()}else E('attendanceSearch').focus()};"
+if old not in s: raise SystemExit('legacy attendanceClearSearch binding anchor missing')
+s=s.replace(old,new,1)
+
 # Export the verifier for newer feature scripts and audit coverage.
 api_pat=re.compile(r'window\.AttendanceAppApi=\{([^}]*)\};')
 m=api_pat.search(s)
