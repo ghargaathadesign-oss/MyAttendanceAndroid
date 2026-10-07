@@ -76,6 +76,7 @@ public class MainActivity extends Activity {
     s.setJavaScriptEnabled(true);
     s.setDomStorageEnabled(true);
     s.setDatabaseEnabled(true);
+    s.setCacheMode(WebSettings.LOAD_NO_CACHE);
     s.setAllowFileAccess(true);
     s.setAllowContentAccess(true);
     s.setAllowFileAccessFromFileURLs(true);
