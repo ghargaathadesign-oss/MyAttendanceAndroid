@@ -34,7 +34,7 @@ const dom=new JSDOM(html,{
 const w=dom.window;
 const nativeState={
   secure:new Map(), calls:[], reminders:null, appLock:null, signedOut:false,
-  savedFiles:[], sharedFiles:[], updateChecks:0, pushRefresh:0, tests:0
+  savedFiles:[], sharedFiles:[], csvFiles:[], updateChecks:0, pushRefresh:0, tests:0, markAll:0, clears:0, installs:[], diagRuns:0, cacheClears:0, historyChecks:0
 };
 w.indexedDB=indexedDB;w.IDBKeyRange=IDBKeyRange;
 Object.defineProperty(w,'crypto',{value:webcrypto,configurable:true});
@@ -86,20 +86,23 @@ w.Android={
   secureCloudRestore:()=>nativeState.calls.push(['secureCloudRestore']),
   cloudTransferBackup:()=>nativeState.calls.push(['cloudTransferBackup']),
   cloudTransferRestore:()=>nativeState.calls.push(['cloudTransferRestore']),
-  cloudBackupHistoryList:()=>setTimeout(()=>w.onCloudBackupHistory&&w.onCloudBackupHistory('[]'),0),
+  cloudBackupHistoryList:()=>{nativeState.historyChecks++;nativeState.calls.push(['cloudBackupHistoryList']);setTimeout(()=>w.onCloudBackupHistory&&w.onCloudBackupHistory('[]'),0)},
   secureCloudRestoreHistory:id=>nativeState.calls.push(['secureCloudRestoreHistory',id]),
   saveBase64File:(n,m,d)=>{nativeState.savedFiles.push([n,m,String(d).length]);return true},
+  saveCsv:(n,d)=>{nativeState.csvFiles.push([n,String(d)]);return true},
   shareBase64File:(n,m,d)=>{nativeState.sharedFiles.push([n,m,String(d).length]);return true},
   saveTextFile:(n,m,d)=>{nativeState.savedFiles.push([n,m,String(d).length]);return true},
   shareTextFile:(n,m,d)=>{nativeState.sharedFiles.push([n,m,String(d).length]);return true},
   toast:m=>nativeState.calls.push(['toast',String(m)]),
   checkForUpdates:()=>{nativeState.updateChecks++;nativeState.calls.push(['checkForUpdates'])},
   refreshPushRegistration:()=>{nativeState.pushRefresh++;nativeState.calls.push(['refreshPushRegistration'])},
-  notificationState:()=>JSON.stringify({items:[],unread:0,pushTokenAvailable:true,topicUpdates:true,topicAll:true,topicError:''}),
-  installUpdate:()=>nativeState.calls.push(['installUpdate']),
-  diagnosticsSummary:()=>JSON.stringify({}),
-  diagnosticsCloudBackup:()=>JSON.stringify({}),
-  clearDiagnosticsCache:()=>true,
+  notificationState:()=>JSON.stringify({items:[],unread:0,pushTokenAvailable:true,topicUpdates:true,topicAll:true,topicError:'',versionName:'15.5.6',versionCode:40,permission:'granted'}),
+  markAllNotificationsRead:()=>{nativeState.markAll++;nativeState.calls.push(['markAllNotificationsRead'])},
+  clearNotifications:()=>{nativeState.clears++;nativeState.calls.push(['clearNotifications'])},
+  installUpdate:(url,sha,ver)=>{nativeState.installs.push([url,sha,ver]);nativeState.calls.push(['installUpdate',url,sha,ver])},
+  diagnosticsSummary:()=>{nativeState.diagRuns++;return JSON.stringify({versionName:'15.5.6',versionCode:40,sdk:35,androidRelease:'15',secureStorage:true,deviceSecure:true,backupKeyPresent:true,webViewFileAccess:false,safeBrowsing:true,appCheckEnabled:true,signedIn:true,emailVerified:true})},
+  diagnosticsCloudBackup:()=>{setTimeout(()=>w.onDiagnosticsCloudStatus&&w.onDiagnosticsCloudStatus({ok:true,exists:false,bytes:0}),0)},
+  clearDiagnosticsCache:()=>{nativeState.cacheClears++;nativeState.calls.push(['clearDiagnosticsCache']);setTimeout(()=>w.onDiagnosticsCacheCleared&&w.onDiagnosticsCacheCleared(true),0);return true},
   deleteAccountData:()=>nativeState.calls.push(['deleteAccountData']),
   deleteAccountDataWithPassword:p=>nativeState.calls.push(['deleteAccountDataWithPassword',p]),
   syncTodayPunchState:()=>{},
@@ -184,6 +187,13 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert.strictEqual(+s.h,8);assert.strictEqual(+s.m,30);assert.strictEqual(+s.otDelay,15);
   });
 
+  await test('12/24 hour format controls persist',async()=>{
+    click(w,'fmt24');await wait(10);
+    let s=parseJSON(w.localStorage.getItem('attendance_settings_v8'));assert.strictEqual(s.fmt,'24h');
+    click(w,'fmt12');await wait(10);
+    s=parseJSON(w.localStorage.getItem('attendance_settings_v8'));assert.strictEqual(s.fmt,'12h');
+  });
+
   await test('Profile fields persist including DOB, joining, department and employee ID',async()=>{
     setValue(w,'profileName','Audit Person','input');setValue(w,'profileJob','Designer','input');
     setValue(w,'profileCompany','Audit Co','input');setValue(w,'profileDepartment','Design','input');
@@ -201,6 +211,12 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert.strictEqual(t.family,'arial');assert(Math.abs(+t.small-1.1)<0.001);assert(Math.abs(+t.body-1.1)<0.001);
   });
 
+  await test('Typography reset restores defaults',async()=>{
+    click(w,'resetTypographyBtn');await wait(15);
+    assert.strictEqual(w.document.getElementById('fontFamilySelect').value,'default');
+    assert.strictEqual(+w.document.getElementById('fontSmallScale').value,1);
+  });
+
   await test('Salary Save persists and immediately recalculates summary',async()=>{
     setValue(w,'salaryAmount','40000','input');setValue(w,'salaryOtMultiplier','1.5');
     click(w,'saveSalary');await wait(30);
@@ -209,6 +225,13 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert.notStrictEqual(w.document.getElementById('salaryDaily').textContent,'₹0');
     assert.notStrictEqual(w.document.getElementById('salaryEstimated').textContent,'₹0');
     assert(/saved/i.test(w.document.getElementById('salarySaveStatus').textContent));
+  });
+
+  await test('Reports & Analytics reflects saved salary',async()=>{
+    w.AttendanceAppApi.showScreen('setting-reports');await wait(25);
+    const rs=w.document.getElementById('reportSalary');assert(rs,'reportSalary missing');
+    assert.notStrictEqual(rs.textContent,'₹0');
+    assert(/40,000|40000/.test(rs.textContent),'Reports salary did not reflect ₹40,000: '+rs.textContent);
   });
 
   await test('Leave setup add/save/delete paths persist',async()=>{
@@ -223,6 +246,16 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert(target);target.querySelector('.leaveSetupDelete').click();click(w,'saveLeaves');await wait(10);
     l=parseJSON(w.localStorage.getItem('attendance_leave_setup_v81'));
     assert(!l.categories.some(x=>x.name==='Audit Leave'));
+  });
+
+  await test('Add Attendance Reset clears user-entered fields',async()=>{
+    w.AttendanceAppApi.showScreen('add');await wait(5);
+    setValue(w,'notesInput','Temporary note','input');setValue(w,'reasonInput','Temporary reason','input');setValue(w,'statusInput','Absent');
+    click(w,'resetBtn');await wait(10);
+    assert.strictEqual(w.document.getElementById('notesInput').value,'');
+    assert.strictEqual(w.document.getElementById('reasonInput').value,'');
+    assert.strictEqual(w.document.getElementById('statusInput').value,'Present');
+    assert(/^\d{4}-\d{2}-\d{2}$/.test(w.document.getElementById('dateInput').value));
   });
 
   await test('Add Attendance saves all core inputs',async()=>{
@@ -269,6 +302,16 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert(!a.some(r=>r.id===x.id),'Attendance record remained after confirming deletion');
   });
 
+  await test('Empty Attendance calendar date opens Add with date prefilled',async()=>{
+    w.AttendanceAppApi.showScreen('attendance');await wait(30);
+    const cells=[...w.document.querySelectorAll('#attendanceCalendar .v15Day[data-date]')];
+    assert(cells.length>0,'No calendar day cells rendered');
+    const cell=cells.find(el=>!el.querySelector('.present,.absent,.leave,.special'))||cells[0];
+    const date=cell.getAttribute('data-date');cell.click();await wait(20);
+    assert(w.document.getElementById('screen-add').classList.contains('active'),'Add screen did not open');
+    assert.strictEqual(w.document.getElementById('dateInput').value,date);
+  });
+
   await test('Theme Light/Dark buttons and JSON toggle persist correctly',async()=>{
     click(w,'themeDark');await wait(15);assert.strictEqual(w.localStorage.getItem('attendance_theme_v9'),'dark');assert(w.document.body.classList.contains('dark-mode'));
     click(w,'themeLight');await wait(15);assert.strictEqual(w.localStorage.getItem('attendance_theme_v9'),'light');assert(!w.document.body.classList.contains('dark-mode'));
@@ -295,11 +338,32 @@ for(const s of [...w.document.querySelectorAll('script')]){
     const snap=parseJSON(call[1]);assert.strictEqual(snap.userUid,'audit-user');assert(snap.storage&&typeof snap.storage==='object');
   });
 
+  await test('Cloud Restore and backup history controls invoke native layer',async()=>{
+    click(w,'cloudRestoreBtn');await wait(10);
+    let cont=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/^Continue$/i.test(String(b.textContent||'').trim()));
+    assert(cont,'Cloud Restore confirmation missing');cont.click();await wait(10);
+    assert(nativeState.calls.some(x=>x[0]==='secureCloudRestore'),'secureCloudRestore not invoked');
+    const refresh=w.document.getElementById('refreshBackupHistoryBtn');if(refresh){refresh.click();await wait(15);assert(nativeState.historyChecks>0,'Backup history not requested')}
+  });
+
+  await test('Switch-device Restore accepts Transfer PIN and invokes native layer',async()=>{
+    click(w,'cloudTransferRestoreBtn');await wait(10);
+    const input=w.document.getElementById('appDialogInput');assert(input,'Transfer PIN input missing');input.value='123456';
+    const cont=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/^Continue$/i.test(String(b.textContent||'').trim()));
+    assert(cont,'Transfer restore Continue missing');cont.click();await wait(15);
+    assert(nativeState.calls.some(x=>x[0]==='cloudTransferRestore'),'cloudTransferRestore not invoked');
+  });
+
   await test('Document save and delete persist in encrypted IndexedDB',async()=>{
     setValue(w,'docType','Other');setValue(w,'docName','Audit Document','input');setValue(w,'docIssue','2026-01-02');setValue(w,'docExpiry','2027-01-02');setValue(w,'docNotes','Audit doc note','input');
     const inp=w.document.getElementById('docFile');const file=new w.File(['hello audit'],'audit.txt',{type:'text/plain'});
     Object.defineProperty(inp,'files',{configurable:true,value:[file]});fire(w,inp,'change');click(w,'saveDocument');await wait(500);
     assert.strictEqual(await w.attendanceDocumentCount(),1);
+    const exportBtn=w.document.querySelector('#documentList .docExport'),shareBtn=w.document.querySelector('#documentList .docShare');
+    assert(exportBtn&&shareBtn,'Document Export/Share buttons missing');
+    exportBtn.click();await wait(120);shareBtn.click();await wait(120);
+    assert(nativeState.savedFiles.some(x=>x[0]==='audit.txt'),'Document export did not reach native save');
+    assert(nativeState.sharedFiles.some(x=>x[0]==='audit.txt'),'Document share did not reach native share');
     const del=w.document.querySelector('#documentList .docDelete');assert(del,'Document delete button missing');
     assert(typeof w.document.getElementById('documentList').onclick==='function','Document list delegated click handler missing');
     del.click();await wait(30);
@@ -311,6 +375,22 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert.strictEqual(await w.attendanceDocumentCount(),0,'Document remained after confirming deletion');
   });
 
+  await test('CSV export button produces a native CSV file',async()=>{
+    // Seed one exportable record through the same verified storage layer.
+    const rec=[{id:'export-audit',date:'2026-10-20',status:'Present',checkIn:'09:00',checkOut:'18:00',reason:'',notes:''}];
+    assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',rec,'attendance'));
+    click(w,'exportBtn');await wait(20);
+    assert(nativeState.csvFiles.length>0,'CSV export did not invoke native saveCsv');
+    assert(/Date,Status,Check In/.test(nativeState.csvFiles[nativeState.csvFiles.length-1][1]));
+  });
+
+  await test('Excel export picker opens and Cancel closes it',async()=>{
+    click(w,'exportExcelBtn');await wait(15);
+    assert(w.document.getElementById('excelExportOverlay'),'Excel export picker did not open');
+    click(w,'excelExportCancel');await wait(10);
+    assert(!w.document.getElementById('excelExportOverlay'),'Excel export picker did not close');
+  });
+
   await test('Attendance search/filter/month navigation controls respond',async()=>{
     w.AttendanceAppApi.showScreen('attendance');await wait(15);
     const before=w.document.getElementById('monthFilter').value;click(w,'attendancePrevMonth');await wait(5);assert.notStrictEqual(w.document.getElementById('monthFilter').value,before);
@@ -318,9 +398,28 @@ for(const s of [...w.document.querySelectorAll('script')]){
     setValue(w,'attendanceSearch','audit','input');await wait(120);click(w,'attendanceClearFilters');await wait(5);assert.strictEqual(w.document.getElementById('attendanceSearch').value,'');
   });
 
-  await test('Notification Center action buttons call native update/push APIs',async()=>{
-    const check=w.document.getElementById('notificationCheckUpdates');if(check){check.click();await wait(5);assert(nativeState.updateChecks>0)}
-    const refresh=w.document.getElementById('notificationRefreshPush');if(refresh){refresh.click();await wait(5);assert(nativeState.pushRefresh>0)}
+  await test('Notification Center update, push, mark-read, clear and install actions work',async()=>{
+    const check=w.document.getElementById('notificationCheckUpdates');assert(check,'Check for Updates missing');check.click();await wait(5);assert(nativeState.updateChecks>0);
+    const refresh=w.document.getElementById('notificationPushRefresh');assert(refresh,'Refresh Push missing');refresh.click();await wait(5);assert(nativeState.pushRefresh>0);
+    click(w,'notificationMarkAll');await wait(5);assert(nativeState.markAll>0,'Mark All Read did not invoke native layer');
+    click(w,'notificationClear');await wait(5);
+    let clearBtn=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/^Clear$/i.test(String(b.textContent||'').trim()));
+    assert(clearBtn,'Clear Notifications confirmation missing');clearBtn.click();await wait(10);assert(nativeState.clears>0,'Clear Notifications did not invoke native layer');
+    const state={items:[{type:'update',title:'Audit update',body:'Test',version:'99.0',versionCode:999,apkUrl:'https://example.com/a.apk',sha256:'abc',receivedAt:Date.now(),read:false}],unread:1,permission:'granted',versionName:'15.5.6',versionCode:40,pushTokenAvailable:true,topicUpdates:true,topicAll:true,topicError:''};
+    w.onNativeNotificationState(state);await wait(10);
+    const install=w.document.querySelector('.installUpdateBtn');assert(install&&!install.disabled,'Install Update button missing/disabled');install.click();await wait(5);
+    assert(nativeState.installs.length>0,'Install Update did not invoke native installer');
+  });
+
+  await test('Diagnostics health check, cache clear, support report and Backup navigation work',async()=>{
+    w.AttendanceAppApi.showScreen('setting-diagnostics');await wait(20);
+    click(w,'diagRunBtn');await wait(30);assert(nativeState.diagRuns>0,'Diagnostics native summary not requested');
+    assert(w.document.getElementById('diagnosticsSummary').textContent.trim().length>0);
+    const beforeFiles=nativeState.savedFiles.length;click(w,'diagReportBtn');await wait(20);assert(nativeState.savedFiles.length>beforeFiles,'Support report was not saved');
+    click(w,'diagClearCacheBtn');await wait(15);assert(nativeState.cacheClears>0,'Clear cache not invoked');
+    // Close any informational dialog before testing navigation.
+    const okBtn=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/^OK$/i.test(String(b.textContent||'').trim()));if(okBtn)okBtn.click();
+    click(w,'diagBackupBtn');await wait(10);assert(w.document.getElementById('screen-setting-backup').classList.contains('active'),'Backup & Restore navigation failed');
   });
 
   await test('Logout button opens confirmation and invokes sign-out',async()=>{
