@@ -37,6 +37,7 @@ const nativeState={
   savedFiles:[], sharedFiles:[], csvFiles:[], updateChecks:0, pushRefresh:0, tests:0, markAll:0, clears:0, installs:[], diagRuns:0, cacheClears:0, historyChecks:0
 };
 w.indexedDB=indexedDB;w.IDBKeyRange=IDBKeyRange;
+w.TextEncoder=global.TextEncoder;w.TextDecoder=global.TextDecoder;
 Object.defineProperty(w,'crypto',{value:webcrypto,configurable:true});
 Object.defineProperty(w,'confirm',{value:()=>true,writable:true,configurable:true});
 Object.defineProperty(w,'alert',{value:()=>{},writable:true,configurable:true});
@@ -124,9 +125,7 @@ w.lottie={
   }
 };
 w.XLSX={utils:{book_new:()=>({}),aoa_to_sheet:()=>({}),book_append_sheet:()=>{}},write:()=>''};
-w.ExcelJS={Workbook:class{constructor(){this.xlsx={writeBuffer:()=>Promise.resolve(new ArrayBuffer(4))}}addWorksheet(){return{
-  views:[],columns:[],mergeCells(){},getCell(){return{font:{},fill:{},value:null}},addRow(){return{eachCell(){}}}
-}}}};
+w.ExcelJS=require('exceljs');
 
 const errors=[];
 w.addEventListener('error',e=>errors.push(String(e.error&&e.error.stack||e.message||e.error||'error')));
@@ -354,6 +353,16 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert(nativeState.calls.some(x=>x[0]==='cloudTransferRestore'),'cloudTransferRestore not invoked');
   });
 
+  await test('Switch-device Backup validates PIN twice and uploads encrypted backup',async()=>{
+    click(w,'cloudTransferBackupBtn');await wait(10);
+    let input=w.document.getElementById('appDialogInput');assert(input,'Create Transfer PIN input missing');input.value='654321';
+    let cont=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/^Continue$/i.test(String(b.textContent||'').trim()));assert(cont);cont.click();await wait(10);
+    input=w.document.getElementById('appDialogInput');assert(input,'Confirm Transfer PIN input missing');input.value='654321';
+    cont=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/^Continue$/i.test(String(b.textContent||'').trim()));assert(cont);cont.click();
+    for(let i=0;i<30&&!nativeState.calls.some(x=>x[0]==='cloudTransferBackup');i++)await wait(100);
+    assert(nativeState.calls.some(x=>x[0]==='cloudTransferBackup'),'Encrypted switch-device backup was not uploaded');
+  });
+
   await test('Document save and delete persist in encrypted IndexedDB',async()=>{
     setValue(w,'docType','Other');setValue(w,'docName','Audit Document','input');setValue(w,'docIssue','2026-01-02');setValue(w,'docExpiry','2027-01-02');setValue(w,'docNotes','Audit doc note','input');
     const inp=w.document.getElementById('docFile');const file=new w.File(['hello audit'],'audit.txt',{type:'text/plain'});
@@ -375,6 +384,23 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert.strictEqual(await w.attendanceDocumentCount(),0,'Document remained after confirming deletion');
   });
 
+  await test('Home Clock In and Clock Out buttons save punch state',async()=>{
+    const today=new Date().toISOString().slice(0,10);
+    let records=parseJSON(w.localStorage.getItem('attendance_v8')||'[]');
+    records=records.filter(r=>r.date!==today);
+    assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',records,'attendance'));
+    w.AttendanceAppApi.showScreen('home');w.AttendanceAppApi.renderAll();await wait(10);
+    click(w,'punchBtn');await wait(25);
+    records=parseJSON(w.localStorage.getItem('attendance_v8'));let cur=records.find(r=>r.date===today);
+    assert(cur&&cur.checkIn&&!cur.checkOut,'Clock In did not create an open shift');
+    click(w,'punchBtn');await wait(15);
+    const yes=w.document.getElementById('clockOutYes');assert(yes,'Clock Out confirmation did not open');yes.click();await wait(30);
+    records=parseJSON(w.localStorage.getItem('attendance_v8'));cur=records.find(r=>r.date===today);
+    assert(cur&&cur.checkOut,'Clock Out did not save checkout time');
+    records=records.filter(r=>r.date!==today);
+    assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',records,'attendance'));
+  });
+
   await test('CSV export button produces a native CSV file',async()=>{
     // Seed one exportable record through the same verified storage layer.
     const rec=[{id:'export-audit',date:'2026-10-20',status:'Present',checkIn:'09:00',checkOut:'18:00',reason:'',notes:''}];
@@ -384,11 +410,16 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert(/Date,Status,Check In/.test(nativeState.csvFiles[nativeState.csvFiles.length-1][1]));
   });
 
-  await test('Excel export picker opens and Cancel closes it',async()=>{
+  await test('Excel export picker, Cancel and actual export work',async()=>{
     click(w,'exportExcelBtn');await wait(15);
     assert(w.document.getElementById('excelExportOverlay'),'Excel export picker did not open');
     click(w,'excelExportCancel');await wait(10);
     assert(!w.document.getElementById('excelExportOverlay'),'Excel export picker did not close');
+    const before=nativeState.savedFiles.length;
+    click(w,'exportExcelBtn');await wait(15);assert(w.document.getElementById('excelExportOverlay'));
+    click(w,'excelExportGo');await wait(500);
+    assert(nativeState.savedFiles.length>before,'Excel export did not save a file');
+    assert(nativeState.savedFiles.some(x=>/\.xlsx$/i.test(x[0])),'No XLSX file was produced');
   });
 
   await test('Attendance search/filter/month navigation controls respond',async()=>{
@@ -420,6 +451,17 @@ for(const s of [...w.document.querySelectorAll('script')]){
     // Close any informational dialog before testing navigation.
     const okBtn=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/^OK$/i.test(String(b.textContent||'').trim()));if(okBtn)okBtn.click();
     click(w,'diagBackupBtn');await wait(10);assert(w.document.getElementById('screen-setting-backup').classList.contains('active'),'Backup & Restore navigation failed');
+  });
+
+  await test('Delete Profile multi-step verification reaches native delete only after confirmations',async()=>{
+    nativeState.calls=nativeState.calls.filter(x=>x[0]!=='deleteAccountData');
+    click(w,'deleteProfileBtn');await wait(10);
+    let btn=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/^Continue$/i.test(String(b.textContent||'').trim()));assert(btn,'Delete Profile Continue missing');btn.click();await wait(10);
+    let input=w.document.getElementById('appDialogInput');assert(input,'Delete Profile email verification input missing');input.value='audit@example.com';
+    btn=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/^Verify$/i.test(String(b.textContent||'').trim()));assert(btn,'Verify button missing');btn.click();await wait(10);
+    input=w.document.getElementById('appDialogInput');assert(input,'DELETE confirmation input missing');input.value='DELETE';
+    btn=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/Delete permanently/i.test(String(b.textContent||'').trim()));assert(btn,'Delete permanently button missing');btn.click();await wait(15);
+    assert(nativeState.calls.some(x=>x[0]==='deleteAccountData'),'Native account deletion was not invoked after full verification');
   });
 
   await test('Logout button opens confirmation and invokes sign-out',async()=>{
