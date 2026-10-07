@@ -66,7 +66,7 @@ function loadSettings(){
 }"""
 s=s[:m.start()]+load_new+s[m.end():]
 
-savework_pat=re.compile(r"function saveWork\(\)\{.*?\}",re.S)
+savework_pat=re.compile(r"function saveWork\(\)\{[^\n]*\}")
 m=savework_pat.search(s)
 if not m: raise SystemExit('saveWork missing')
 savework_new=r"""function saveWork(){
@@ -80,7 +80,7 @@ savework_new=r"""function saveWork(){
 }"""
 s=s[:m.start()]+savework_new+s[m.end():]
 
-setfmt_pat=re.compile(r"function setFormat\(fmt\)\{.*?\}",re.S)
+setfmt_pat=re.compile(r"function setFormat\(fmt\)\{[^\n]*\}")
 m=setfmt_pat.search(s)
 if not m: raise SystemExit('setFormat missing')
 setfmt_new=r"""function setFormat(fmt){workDraftFmt=fmt==='24h'?'24h':'12h';previewWorkDraft()}"""
@@ -92,7 +92,7 @@ if old_bind not in s: raise SystemExit('Work binding anchor missing')
 s=s.replace(old_bind,new_bind,1)
 
 # ---- Leave Setup: validated save/read-back and reliable refresh ----
-leave_pat=re.compile(r"function saveLeaves\(\)\{.*?\n\}",re.S)
+leave_pat=re.compile(r"function saveLeaves\(\)\{[^\n]*\}")
 m=leave_pat.search(s)
 if not m: raise SystemExit('saveLeaves block missing')
 leave_new=r"""function saveLeaves(){
@@ -120,7 +120,7 @@ if old_leave_bind not in s: raise SystemExit('Leave binding anchor missing')
 s=s.replace(old_leave_bind,new_leave_bind,1)
 
 # ---- Attendance edit: safe duplicate-date handling and forced canonical refresh ----
-edit_pat=re.compile(r"function saveEdit\(\)\{.*?\n\}",re.S)
+edit_pat=re.compile(r"function saveEdit\(\)\{[^\n]*\}")
 m=edit_pat.search(s)
 if not m: raise SystemExit('saveEdit block missing')
 edit_new=r"""function saveEdit(){
