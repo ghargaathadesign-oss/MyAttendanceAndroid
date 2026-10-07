@@ -1,8 +1,8 @@
 {
-  "versionName": "15.5",
-  "versionCode": 34,
-  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.5/My-Attendance-v15.5-signed.apk",
+  "versionName": "15.5.1",
+  "versionCode": 35,
+  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.5.1/My-Attendance-v15.5.1-signed.apk",
   "sha256": "",
-  "changelog": "Refreshes the requested Lottie icons across Settings, Notifications, Home, Attendance and every date selector. Theme now uses the supplied toggle animation, Smart Reminders show three clock animations on the time boxes, and reminder time/detail boxes are aligned.",
+  "changelog": "Equalizes Settings menu heights, removes duplicate Smart Reminder clock icons, makes the supplied Theme JSON the actual persistent Light/Dark toggle, fixes Edit Attendance close/save/cancel, normalizes Hours and Present icon sizes, and enlarges the startup loading animation.",
   "publishedAt": "2026-10-07T00:00:00Z"
 }
