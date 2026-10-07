@@ -155,8 +155,8 @@ if old_pget not in pui: raise SystemExit('profile-ui getProfile anchor missing')
 pui=pui.replace(old_pget,new_pget,1)
 old_sync="function sync(){var p=getProfile(),src=p.photo||'profile-placeholder.svg',job=p.jobTitle||'Job title not set',company=p.company||'Company not set';if(E('profilePreview'))E('profilePreview').src=src;if(E('profileCardName'))E('profileCardName').textContent=p.name||'My Profile';if(E('profileCardJob'))E('profileCardJob').textContent=job;if(E('profileCardCompany'))E('profileCardCompany').textContent=company;if(E('profileOptionName'))E('profileOptionName').textContent=p.name||'My Profile';if(E('profileOptionJob'))E('profileOptionJob').textContent=(p.jobTitle||'Job title not set')+(p.company?' • '+p.company:'');if(E('profileOptionApp'))E('profileOptionApp').textContent=p.appTitle||'My Attendance'}"
 new_sync="function sync(){var p=getProfile(),src=p.photo||'profile-placeholder.svg',job=p.jobTitle||'Job title not set',company=p.company||'Company not set',work=[p.department,p.employeeId?('ID '+p.employeeId):''].filter(Boolean).join(' • ');if(E('profilePreview'))E('profilePreview').src=src;if(E('profileCardName'))E('profileCardName').textContent=p.name||'My Profile';if(E('profileCardJob'))E('profileCardJob').textContent=job;if(E('profileCardCompany'))E('profileCardCompany').textContent=company;if(E('profileCardExtra'))E('profileCardExtra').textContent=work;if(E('profileOptionName'))E('profileOptionName').textContent=p.name||'My Profile';if(E('profileOptionJob'))E('profileOptionJob').textContent=(p.jobTitle||'Job title not set')+(p.department?' • '+p.department:(p.company?' • '+p.company:''));if(E('profileOptionApp'))E('profileOptionApp').textContent=p.appTitle||'My Attendance'}"
-if old_sync not in pui: raise SystemExit('profile-ui sync anchor missing')
-pui=pui.replace(old_sync,new_sync,1)
+if old_sync in pui:
+    pui=pui.replace(old_sync,new_sync,1)
 profile_ui.write_text(pui,encoding='utf-8')
 
 # ---- Lazy Lottie: initialize only visible screen animations at startup ----
