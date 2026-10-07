@@ -491,4 +491,5 @@ for(const s of [...w.document.querySelectorAll('script')]){
   for(const r of results)console.log((r.ok?'PASS ':'FAIL ')+r.name+(r.detail?'\n  '+r.detail.replace(/\n/g,'\n  '):''));
   console.log(`\nSummary: ${passed} passed, ${failed} failed`);
   if(failed)process.exit(1);
+  process.exit(0);
 })().catch(e=>{console.error(e);process.exit(1)});
