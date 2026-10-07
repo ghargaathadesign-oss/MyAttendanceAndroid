@@ -65,7 +65,7 @@ function workedMinutes(record){return record?minutesBetween(record.checkIn,recor
 function isSunday(date){var x=normalizeDate(date);if(!x)return false;var d=new Date(x+'T00:00:00');return d.getDay()===0}
 function isSpecial(record){return !!(record&&(record.specialOT===true||normalizeStatus(record.status)==='Holiday'||normalizeStatus(record.status)==='Week Off'||isSunday(record.date)))}
 function standardMinutes(settings){var s=normalizeSettings(settings);return s.h*60+s.m}
-function requiredMinutes(record,settings){if(!record)return 0;var std=standardMinutes(settings),st=normalizeStatus(record.status)||'Present';if(st==='Paid Leave'||st==='Holiday'||st==='Week Off')return 0;if(st==='Half Day')return Math.round(std/2);return std}
+function requiredMinutes(record,settings){if(!record)return 0;var std=standardMinutes(settings),st=normalizeStatus(record.status)||'Present';if(isSunday(record.date)||st==='Paid Leave'||st==='Holiday'||st==='Week Off')return 0;if(st==='Half Day')return Math.round(std/2);return std}
 function daily(record,settings){
   var s=normalizeSettings(settings),worked=workedMinutes(record),required=requiredMinutes(record,s),special=isSpecial(record),balance=0,st=normalizeStatus(record&&record.status)||'Present';
   if(special)balance=worked;
@@ -111,6 +111,7 @@ function normalizeRecord(r){
   out.reason=String(r.reason==null?'':r.reason).slice(0,1000);
   out.notes=String(r.notes==null?'':r.notes).slice(0,5000);
   if(r.specialOT===true||r.specialOT===false)out.specialOT=!!r.specialOT;
+  if(isSunday(date)){out.status='Week Off';out.specialOT=true}
   return{ok:true,record:out};
 }
 function validateRecord(r){return normalizeRecord(r).ok}
