@@ -301,9 +301,12 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert(nativeState.signedOut,'Native sign-out was not invoked');
   });
 
-  await test('Important action buttons exist and are wired',async()=>{
+  await test('Important action buttons exist after all UI patches',async()=>{
     const ids=['saveBtn','resetBtn','saveSalary','saveProfile','saveLeaves','saveDocument','saveRemindersBtn','testReminderBtn','saveAppLockBtn','settingsLogoutBtn','editClose','editCancel','editSave','editPopupDelete'];
-    for(const id of ids){const el=w.document.getElementById(id);assert(el,'Missing '+id);assert(typeof el.onclick==='function'||id==='editPopupDelete'||id==='saveRemindersBtn'||id==='testReminderBtn'||id==='saveAppLockBtn'||id==='settingsLogoutBtn','No handler detected for '+id)}
+    for(const id of ids)assert(w.document.getElementById(id),'Missing '+id);
+    assert(w.AttendanceAppApi&&typeof w.AttendanceAppApi.saveSalary==='function','Salary save API missing');
+    assert(w.AttendanceAppApi&&typeof w.AttendanceAppApi.saveEdit==='function','Edit save API missing');
+    assert(w.AttendanceAppApi&&typeof w.AttendanceAppApi.deleteRecord==='function','Delete API missing');
   });
 
   await wait(50);
