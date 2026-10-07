@@ -38,7 +38,9 @@ const nativeState={
 };
 w.indexedDB=indexedDB;w.IDBKeyRange=IDBKeyRange;
 Object.defineProperty(w,'crypto',{value:webcrypto,configurable:true});
-w.confirm=()=>true;w.alert=()=>{};w.scrollTo=()=>{};
+Object.defineProperty(w,'confirm',{value:()=>true,writable:true,configurable:true});
+Object.defineProperty(w,'alert',{value:()=>{},writable:true,configurable:true});
+w.scrollTo=()=>{};
 w.matchMedia=()=>({matches:false,addListener(){},removeListener(){},addEventListener(){},removeEventListener(){}});
 w.requestAnimationFrame=cb=>setTimeout(()=>cb(Date.now()),0);
 w.cancelAnimationFrame=id=>clearTimeout(id);
@@ -145,6 +147,8 @@ for(const s of [...w.document.querySelectorAll('script')]){
 
 (async()=>{
   await wait(2300);
+
+  await test('Audit confirm override returns true',async()=>{assert.strictEqual(w.confirm('audit'),true)});
 
   await test('Core app initialized without JavaScript errors',async()=>{
     assert(w.AttendanceAppApi,'AttendanceAppApi missing');
