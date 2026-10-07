@@ -257,12 +257,18 @@ for(const s of [...w.document.querySelectorAll('script')]){
       deleteSnapshots[deleteSnapshots.length-1].after=w.localStorage.getItem('attendance_v8');
       return out
     };
-    click(w,'editPopupDelete');await wait(30);
+    click(w,'editPopupDelete');await wait(20);
+    a=parseJSON(w.localStorage.getItem('attendance_v8'));
+    if(a.some(r=>r.id===x.id)){
+      const confirmBtn=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/^Confirm$/i.test(String(b.textContent||'').trim()));
+      assert(confirmBtn,'Attendance delete confirmation dialog did not appear');
+      confirmBtn.click();await wait(40);
+    }
     assert(deleteCalls>0,'Delete Attendance button did not invoke deleteRecord');
     assert(deleteArgs.includes(String(x.id)),'Delete button passed wrong record id: '+JSON.stringify(deleteArgs)+' hidden='+w.document.getElementById('editPopupId').value);
     a=parseJSON(w.localStorage.getItem('attendance_v8'));
     if(a.some(r=>r.id===x.id))console.log('ATTENDANCE DELETE DEBUG',JSON.stringify(deleteSnapshots),'SOURCE',sourceSnippet('function deleteRecord'));
-    assert(!a.some(r=>r.id===x.id),'deleteRecord ran with correct id but attendance data was not removed');
+    assert(!a.some(r=>r.id===x.id),'Attendance record remained after confirming deletion');
   });
 
   await test('Theme Light/Dark buttons and JSON toggle persist correctly',async()=>{
@@ -298,14 +304,13 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert.strictEqual(await w.attendanceDocumentCount(),1);
     const del=w.document.querySelector('#documentList .docDelete');assert(del,'Document delete button missing');
     assert(typeof w.document.getElementById('documentList').onclick==='function','Document list delegated click handler missing');
-    del.click();await wait(60);
+    del.click();await wait(30);
     if((await w.attendanceDocumentCount())!==0){
-      const buttons=[...w.document.querySelectorAll('button')].filter(b=>/delete/i.test(String(b.textContent||'')));
-      const confirmBtn=buttons.find(b=>/^Delete$/i.test(String(b.textContent||'').trim())||/Delete document/i.test(String(b.textContent||'')));
-      console.log('DOCUMENT DELETE DEBUG',JSON.stringify({buttons:buttons.map(b=>({id:b.id,text:String(b.textContent||'').trim(),cls:b.className})),list:w.document.getElementById('documentList').innerHTML.slice(0,1200)}),'SOURCE',sourceSnippet('function deleteDoc'));
-      if(confirmBtn){confirmBtn.click();await wait(350)}
+      const confirmBtn=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/^Confirm$/i.test(String(b.textContent||'').trim()));
+      assert(confirmBtn,'Document delete confirmation dialog did not appear');
+      confirmBtn.click();await wait(350);
     }
-    assert.strictEqual(await w.attendanceDocumentCount(),0,'Document delete confirmation completed but record remains');
+    assert.strictEqual(await w.attendanceDocumentCount(),0,'Document remained after confirming deletion');
   });
 
   await test('Attendance search/filter/month navigation controls respond',async()=>{
