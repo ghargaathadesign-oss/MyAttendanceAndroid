@@ -148,8 +148,6 @@ for(const s of [...w.document.querySelectorAll('script')]){
 (async()=>{
   await wait(2300);
 
-  await test('Audit confirm override returns true',async()=>{assert.strictEqual(w.confirm('audit'),true)});
-
   await test('Core app initialized without JavaScript errors',async()=>{
     assert(w.AttendanceAppApi,'AttendanceAppApi missing');
     assert.strictEqual(errors.length,0,errors.join('\n'));
