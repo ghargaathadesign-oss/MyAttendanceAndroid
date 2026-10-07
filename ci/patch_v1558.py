@@ -4,8 +4,10 @@ import re,sys
 assets=Path(sys.argv[1] if len(sys.argv)>1 else 'app/src/main/assets')
 index=assets/'index.html'
 app=assets/'app.js'
+v15=assets/'v15-features.js'
 h=index.read_text(encoding='utf-8')
 s=app.read_text(encoding='utf-8')
+v=v15.read_text(encoding='utf-8')
 
 # Leave Setup is now the authoritative annual balance; do not replace it with monthly accrual.
 old_help='Paid leave accrues automatically at 1.5 days per month, up to this annual cap.'
@@ -84,6 +86,44 @@ body=m.group(1)
 for item in ['canonicalSundayRecord:canonicalSundayRecord','applySundayFormRule:applySundayFormRule']:
     if item not in body: body+=','+item
 s=s[:m.start()]+'window.AttendanceAppApi={'+body+'};'+s[m.end():]
+
+# Attendance calendar: every Sunday is visibly Week Off; worked Sundays show WO/OT.
+calendar_pat=re.compile(r"function renderCalendar\(month\)\{.*?\nfunction renderRecords",re.S)
+m=calendar_pat.search(v)
+if not m:
+    raise SystemExit('v15 renderCalendar block missing')
+calendar=r"""function renderCalendar(month){
+ var root=E('attendanceCalendar');if(!root)return;
+ var a=String(month).split('-'),y=+a[0],m=(+a[1]||1)-1,first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),map=calendarMap(month),now=today(),out='<div class="v15CalendarWeek"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div><div class="v15CalendarGrid">',i,date,r,sun,st,label,w;
+ for(i=0;i<first;i++)out+='<span class="v15CalendarBlank"></span>';
+ for(i=1;i<=days;i++){
+  date=month+'-'+P(i);r=map[date];sun=new Date(y,m,i).getDay()===0;st=sun?'Week Off':(r?r.status:'');w=r?worked(r):0;label=sun?(w>0?'WO/OT':'WO'):(r?statusShort(r.status):'+');
+  out+='<button type="button" class="v15Day '+((r||sun)?'hasRecord ':'')+(st?statusClass(st):'')+(sun&&w>0?' sundayWorked':'')+(date===now?' isToday':'')+'" data-date="'+date+'"'+(sun?' aria-label="Sunday Week Off'+(w>0?' with overtime':'')+'"':'')+'><span class="v15DayNum">'+i+'</span><span class="v15DayStatus'+((!r&&!sun)?' empty':'')+'">'+esc(label)+'</span></button>'
+ }
+ out+='</div>';root.innerHTML=out
+}
+function renderRecords"""
+v=v[:m.start()]+calendar+v[m.end():]
+
+# Monthly Records: Sunday status is Week Off and all worked Sunday time is displayed as OT.
+records_pat=re.compile(r"function renderRecords\(month\)\{.*?\nfunction renderAttendance",re.S)
+m=records_pat.search(v)
+if not m:
+    raise SystemExit('v15 renderRecords final block missing')
+records=r"""function renderRecords(month){
+ var a=filteredMonthRecords(month),s=settings(),box=E('records'),count=E('attendanceResultCount'),out='',i,x,w,b,parts,st,sun;
+ if(count)count.textContent=a.length+' record'+(a.length===1?'':'s');
+ if(!box)return;
+ if(!a.length){box.innerHTML='<div class="v15Empty"><span>◎</span><b>No matching records</b><small>Tap any day in the calendar to add attendance.</small></div>';return}
+ for(i=0;i<a.length;i++){
+  x=a[i];w=worked(x);b=balance(x,s);sun=window.AttendancePolicy&&AttendancePolicy.isSunday?AttendancePolicy.isSunday(x.date):(new Date(x.date+'T00:00:00').getDay()===0);st=sun?'Week Off':x.status;parts=String(x.date||'').split('-');
+  out+='<article class="v15Record v154Record" data-id="'+esc(x.id)+'"><button type="button" class="v154RecordEdit" data-id="'+esc(x.id)+'" aria-label="Edit attendance for '+esc(x.date)+'" title="Edit attendance"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16.5V20h3.5L18.1 9.4l-3.5-3.5L4 16.5Zm16.7-9.7a1 1 0 0 0 0-1.4l-2.1-2.1a1 1 0 0 0-1.4 0l-1.6 1.6 3.5 3.5 1.6-1.6Z"/></svg></button><div class="v154RecordInner"><span class="v15RecordDate"><b>'+esc(parts[2]||'')+'</b><small>'+(A&&A.dayShort?esc(A.dayShort(x.date)):'')+'</small></span><span class="v154RecordBody"><span class="v154RecordTimes">'+formatTime(x.checkIn,s.fmt)+' → '+formatTime(x.checkOut,s.fmt)+' <i>•</i> '+esc(duration(w).replace(/^\+/,''))+'</span><span class="v154RecordStatus"><em class="v15StatusDot '+statusClass(st)+'"></em><b>'+esc(st)+'</b></span><span class="v154RecordMeta">'+(b>=0?'OT '+esc(duration(b)):'Short '+esc(duration(-b).replace(/^\+/,'')))+(sun&&w>0?' • Sunday Work':'')+(x.reason?' • '+esc(x.reason):'')+(x.notes?' • '+esc(x.notes):'')+'</span></span></div></article>'
+ }
+ box.innerHTML=out
+}
+function renderAttendance"""
+v=v[:m.start()]+records+v[m.end():]
+v15.write_text(v,encoding='utf-8')
 
 app.write_text(s,encoding='utf-8')
 print('v15.5.8 Sunday, Reset and Leave Balance fixes applied')
