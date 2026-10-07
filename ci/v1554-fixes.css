@@ -1,0 +1,94 @@
+/* My Attendance v15.5.4 — revert Theme UI, align loader, supplied logout */
+
+/* Revert Theme UI to the compact Light / JSON / Dark toggle from v15.5.1. */
+.v1551ThemeToggleShell{
+  display:block!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  overflow:visible!important;
+}
+.v1551ThemeProxy{display:none!important}
+#v1551ThemeToggle{
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-height:86px!important;
+  border:1px solid var(--line)!important;
+  border-radius:999px!important;
+  background:var(--surface2)!important;
+  color:var(--ink)!important;
+  display:grid!important;
+  grid-template-columns:1fr 68px 1fr!important;
+  align-items:center!important;
+  gap:5px!important;
+  padding:5px!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)!important;
+  overflow:hidden!important;
+}
+#v1551ThemeToggle .v1551ThemeSide{
+  font-size:12px!important;
+  font-weight:800!important;
+  color:var(--muted)!important;
+  text-align:center!important;
+}
+#v1551ThemeToggle .v155ThemeLottie{
+  width:62px!important;
+  height:58px!important;
+  display:block!important;
+  pointer-events:auto!important;
+  cursor:pointer!important;
+  touch-action:manipulation!important;
+}
+body:not(.dark-mode) #v1551ThemeToggle .v1551ThemeSide.light,
+body.dark-mode #v1551ThemeToggle .v1551ThemeSide.dark{
+  color:var(--ink)!important;
+}
+body:not(.dark-mode) #v1551ThemeToggle .v1551ThemeSide.dark,
+body.dark-mode #v1551ThemeToggle .v1551ThemeSide.light{
+  opacity:.55!important;
+}
+#v1551ThemeToggle:active{transform:scale(.994)!important}
+
+/* Startup loader: smaller, centered, and responsive on different phones/tablets. */
+.v154BootLottie{
+  box-sizing:border-box!important;
+  width:min(76vw,310px)!important;
+  max-width:310px!important;
+  height:auto!important;
+  aspect-ratio:16/9!important;
+  margin-top:26px!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+  margin-bottom:-2px!important;
+  overflow:visible!important;
+  flex:0 0 auto!important;
+}
+.v154BootLottie svg{
+  width:100%!important;
+  height:100%!important;
+  overflow:visible!important;
+  transform:scale(1.08)!important;
+  transform-origin:50% 50%!important;
+}
+@media(max-width:380px){
+  .v154BootLottie{width:min(78vw,286px)!important;max-width:286px!important;margin-top:22px!important}
+}
+@media(min-width:700px){
+  .v154BootLottie{width:min(52vw,330px)!important;max-width:330px!important}
+}
+
+/* Supplied logout animation already contains red artwork, so keep it natural. */
+#settingsLogoutBtn,
+#settingsLogoutBtn>span:nth-child(2) b,
+#settingsLogoutBtn>span:nth-child(2) small{
+  color:#d84a5a!important;
+}
+#settingsLogoutBtn .v1554LogoutLottie{
+  width:32px!important;
+  height:32px!important;
+  filter:none!important;
+  background:transparent!important;
+}
+#settingsLogoutBtn .v1554LogoutLottie svg{
+  filter:none!important;
+}
