@@ -3,7 +3,7 @@ name: Build My Attendance APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, v12.6-hardening, v12.7-device-auth, v12.8-restore-compat, v12.9-step7-delete, v13.0-step9-r8, v13.1-step12-diagnostics, v13.2-diagnostics-polish, v13.3-app-check-monitoring, v13.4-diagnostics-appcheck, v13.5-performance, v13.6-attendance-speed, v13.7-attendance-upgrade, v14-all-steps, v15-notification-attendance, v15.1-ui-polish, v15.2-update-push-polish, v15.2-delivery-hardening, v15.4-batch-updates, v15.5-icon-updates, v15.5.1-ui-fixes, v15.5.2-ui-polish, v15.5.3-ui-tweaks, v15.5.4-theme-loader-logout, v15.5.5-salary-fix]
+    branches: [main, v12.6-hardening, v12.7-device-auth, v12.8-restore-compat, v12.9-step7-delete, v13.0-step9-r8, v13.1-step12-diagnostics, v13.2-diagnostics-polish, v13.3-app-check-monitoring, v13.4-diagnostics-appcheck, v13.5-performance, v13.6-attendance-speed, v13.7-attendance-upgrade, v14-all-steps, v15-notification-attendance, v15.1-ui-polish, v15.2-update-push-polish, v15.2-delivery-hardening, v15.4-batch-updates, v15.5-icon-updates, v15.5.1-ui-fixes, v15.5.2-ui-polish, v15.5.3-ui-tweaks, v15.5.4-theme-loader-logout, v15.5.5-salary-fix, v15.5.6-functional-audit]
 
 permissions:
   contents: write
@@ -433,6 +433,15 @@ jobs:
 
 
 
+
+
+      - name: Deep functional audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/my-attendance-audit
+          npm install --prefix /tmp/my-attendance-audit --no-save --ignore-scripts jsdom@26.1.0 fake-indexeddb@6.2.2 >/dev/null
+          NODE_PATH=/tmp/my-attendance-audit/node_modules node ci/test-functional-audit.js app/src/main/assets
 
 
       - name: Set up Java 17
