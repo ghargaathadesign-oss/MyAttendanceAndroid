@@ -3,7 +3,7 @@ name: Build My Attendance APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, v12.6-hardening, v12.7-device-auth, v12.8-restore-compat, v12.9-step7-delete, v13.0-step9-r8, v13.1-step12-diagnostics, v13.2-diagnostics-polish, v13.3-app-check-monitoring, v13.4-diagnostics-appcheck, v13.5-performance, v13.6-attendance-speed, v13.7-attendance-upgrade, v14-all-steps, v15-notification-attendance, v15.1-ui-polish, v15.2-update-push-polish, v15.2-delivery-hardening, v15.4-batch-updates, v15.5-icon-updates, v15.5.1-ui-fixes, v15.5.2-ui-polish, v15.5.3-ui-tweaks, v15.5.4-theme-loader-logout, v15.5.5-salary-fix, v15.5.6-functional-audit]
+    branches: [main, v12.6-hardening, v12.7-device-auth, v12.8-restore-compat, v12.9-step7-delete, v13.0-step9-r8, v13.1-step12-diagnostics, v13.2-diagnostics-polish, v13.3-app-check-monitoring, v13.4-diagnostics-appcheck, v13.5-performance, v13.6-attendance-speed, v13.7-attendance-upgrade, v14-all-steps, v15-notification-attendance, v15.1-ui-polish, v15.2-update-push-polish, v15.2-delivery-hardening, v15.4-batch-updates, v15.5-icon-updates, v15.5.1-ui-fixes, v15.5.2-ui-polish, v15.5.3-ui-tweaks, v15.5.4-theme-loader-logout, v15.5.5-salary-fix, v15.5.6-functional-audit, v15.5.7-bug-batch]
 
 permissions:
   contents: write
@@ -444,6 +444,22 @@ jobs:
 
 
 
+
+      - name: Inspect v15.5.7 bug targets
+        shell: bash
+        run: |
+          grep -n -A 120 -B 30 'function renderSettings' app/src/main/assets/app.js || true
+          grep -n -A 120 -B 30 'stdHours' app/src/main/assets/app.js || true
+          grep -n -A 100 -B 30 'function renderLeaves' app/src/main/assets/app.js || true
+          grep -n -A 120 -B 30 'function saveLeaves' app/src/main/assets/app.js || true
+          grep -n -A 140 -B 30 'function renderDocuments' app/src/main/assets/app.js || true
+          grep -n -A 140 -B 30 'function saveDocument' app/src/main/assets/app.js || true
+          grep -n -A 120 -B 30 'function renderSalary' app/src/main/assets/app.js || true
+          grep -n -A 90 -B 30 'function salaryCalc' app/src/main/assets/app.js || true
+          grep -n -A 90 -B 30 'function bind()' app/src/main/assets/app.js || true
+          grep -n -A 100 -B 20 'id="screen-setting-work"' app/src/main/assets/index.html || true
+          grep -n -A 120 -B 20 'id="screen-setting-leave"' app/src/main/assets/index.html || true
+          grep -n -A 180 -B 20 'id="screen-setting-documents"' app/src/main/assets/index.html || true
 
       - name: Deep functional audit
         shell: bash
