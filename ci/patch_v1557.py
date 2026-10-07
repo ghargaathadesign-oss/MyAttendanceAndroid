@@ -110,7 +110,7 @@ function renderLeaves"""
 s=s[:m.start()]+canonical+s[m.end():]
 
 # Remove legacy Attendance event handlers that could overwrite v15 handlers.
-legacy_bind=re.compile(r"E\('monthFilter'\)\.onchange=.*?E\('attendanceSearch'\)\.oninput=.*?;",re.S)
+legacy_bind=re.compile(r"E\('monthFilter'\)\.onchange=.*?(?=E\('fmt12'\)\.onclick=)",re.S)
 s,n=legacy_bind.subn("",s,count=1)
 if n!=1: raise SystemExit('legacy Attendance bind block missing')
 
