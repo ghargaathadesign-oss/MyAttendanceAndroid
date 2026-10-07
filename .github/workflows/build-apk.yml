@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: my-attendance-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-apk:
     runs-on: ubuntu-24.04
@@ -445,8 +449,8 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf /tmp/my-attendance-audit
-          npm install --prefix /tmp/my-attendance-audit --no-save --ignore-scripts jsdom@26.1.0 fake-indexeddb@6.2.2 exceljs@4.4.0 >/dev/null
-          NODE_PATH=/tmp/my-attendance-audit/node_modules node ci/test-functional-audit.js app/src/main/assets
+          timeout 90s npm install --prefix /tmp/my-attendance-audit --no-save --ignore-scripts jsdom@26.1.0 fake-indexeddb@6.2.2 exceljs@4.4.0 >/dev/null
+          timeout 90s env NODE_PATH=/tmp/my-attendance-audit/node_modules node ci/test-functional-audit.js app/src/main/assets
 
 
       - name: Set up Java 17
