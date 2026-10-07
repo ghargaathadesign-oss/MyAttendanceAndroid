@@ -211,6 +211,7 @@ jobs:
           node ci/test-transfer-crypto.js
           node ci/test-diagnostics.js
           node --check ci/test-functional-audit.js
+          set -x
           grep -q 'window.initLottie' app/src/main/assets/lottie-runtime.js
           grep -q 'exceljs.min.js' app/src/main/assets/index.html
           grep -q 'deleteProfileBtn' app/src/main/assets/index.html
