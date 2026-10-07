@@ -109,10 +109,7 @@ canonical="""function renderAttendance(){
 function renderLeaves"""
 s=s[:m.start()]+canonical+s[m.end():]
 
-# Remove legacy Attendance event handlers that could overwrite v15 handlers.
-legacy_bind=re.compile(r"E\('monthFilter'\)\.onchange=.*?(?=E\('fmt12'\)\.onclick=)",re.S)
-s,n=legacy_bind.subn("",s,count=1)
-if n!=1: raise SystemExit('legacy Attendance bind block missing')
+# Keep core bindings intact; the canonical Attendance renderer and records handler removal below prevent legacy UI conflicts.
 
 # Replace Work & Time auto-save bindings with draft + explicit Save.
 old_bind="E('fmt12').onclick=function(){setFormat('12h')};E('fmt24').onclick=function(){setFormat('24h')};E('stdHours').onchange=saveWork;E('stdMinutes').onchange=saveWork;E('otDelay').onchange=saveWork;"
