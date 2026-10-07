@@ -1,0 +1,51 @@
+/* My Attendance v15.5.3 — logout, theme touch and responsive startup loader */
+
+/* Logout should read as a destructive action. */
+#settingsLogoutBtn,
+#settingsLogoutBtn>span:nth-child(2) b,
+#settingsLogoutBtn>span:nth-child(2) small{
+  color:#d84a5a!important;
+}
+#settingsLogoutBtn .v155LogoutLottie,
+#settingsLogoutBtn .v155LogoutLottie svg{
+  filter:brightness(0) saturate(100%) invert(39%) sepia(64%) saturate(1146%) hue-rotate(314deg) brightness(94%) contrast(92%)!important;
+}
+#settingsLogoutBtn .v155LogoutLottie{
+  background:rgba(216,74,90,.08)!important;
+}
+
+/* Theme JSON itself is tappable. */
+#v1551ThemeToggle .v155ThemeLottie{
+  pointer-events:auto!important;
+  cursor:pointer!important;
+  touch-action:manipulation!important;
+}
+
+/* Startup Loading JSON: responsive to the actual device width. */
+.v154BootLottie{
+  box-sizing:border-box!important;
+  width:calc(100vw - 16px)!important;
+  max-width:560px!important;
+  height:auto!important;
+  aspect-ratio:16/9!important;
+  margin-top:38px!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+  margin-bottom:-16px!important;
+  overflow:visible!important;
+  flex:0 0 auto!important;
+}
+.v154BootLottie svg{
+  width:100%!important;
+  height:100%!important;
+  overflow:visible!important;
+  transform:scale(1.58)!important;
+  transform-origin:50% 50%!important;
+}
+@media(max-width:380px){
+  .v154BootLottie{width:calc(100vw - 10px)!important;margin-top:34px!important}
+  .v154BootLottie svg{transform:scale(1.54)!important}
+}
+@media(min-width:700px){
+  .v154BootLottie{max-width:620px!important}
+}
