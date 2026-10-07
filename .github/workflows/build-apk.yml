@@ -117,6 +117,7 @@ jobs:
           python3 ci/patch_v1554.py app/src/main/assets
           python3 ci/patch_v1555.py app/src/main/assets
           python3 ci/patch_v1556.py app/src/main/assets
+          python3 ci/patch_v1557.py app/src/main/assets
 
           test -s app/src/main/assets/index.html
           test -s app/src/main/assets/app.css
@@ -160,6 +161,8 @@ jobs:
           test -s app/src/main/assets/v1553-fixes.css
           test -s app/src/main/assets/v1553-fixes.js
           test -s app/src/main/assets/v1554-fixes.css
+          test -s app/src/main/assets/v1557-fixes.css
+          test -s app/src/main/assets/v1557-fixes.js
           test -s app/src/main/assets/v1555-salary.css
           test -s app/src/main/assets/v1555-salary.js
           test -s app/src/main/assets/lottie/logout-red-v1554.json
@@ -401,6 +404,18 @@ jobs:
           grep -q 'saveSalary:saveSalary' app/src/main/assets/app.js
           grep -q "renderSalary();renderHome()" app/src/main/assets/app.js
           grep -q 'verifiedStorageSet' app/src/main/assets/app.js
+          grep -q 'saveWorkSettings' app/src/main/assets/index.html
+          grep -q 'workSaveStatus' app/src/main/assets/index.html
+          grep -q 'leaveSaveStatus' app/src/main/assets/index.html
+          grep -q 'saveWork:saveWork' app/src/main/assets/app.js
+          grep -q 'saveLeaves:saveLeaves' app/src/main/assets/app.js
+          grep -q "return AttendanceV15.renderScreen('attendance')" app/src/main/assets/app.js
+          if grep -q "E('records').onclick=function" app/src/main/assets/app.js; then exit 1; fi
+          if grep -q 'v155ThemeLottie' <(sed -n '/id="screen-setting-appearance"/,/typographySettingsCard/p' app/src/main/assets/index.html); then exit 1; fi
+          grep -q 'themeVisualToggle' app/src/main/assets/index.html
+          grep -q 'v1557-fixes.css?v=1557' app/src/main/assets/index.html
+          grep -q 'v1557-fixes.js?v=1557' app/src/main/assets/index.html
+          grep -q 'LOAD_NO_CACHE' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q "AttendanceV15&&AttendanceV15.renderScreen" app/src/main/assets/app.js
           grep -q 'verifiedStorageSet:verifiedStorageSet' app/src/main/assets/app.js
           grep -q "attendance_theme_v9" app/src/main/assets/v1553-fixes.js
@@ -445,21 +460,6 @@ jobs:
 
 
 
-      - name: Inspect v15.5.7 bug targets
-        shell: bash
-        run: |
-          grep -n -A 120 -B 30 'function renderSettings' app/src/main/assets/app.js || true
-          grep -n -A 120 -B 30 'stdHours' app/src/main/assets/app.js || true
-          grep -n -A 100 -B 30 'function renderLeaves' app/src/main/assets/app.js || true
-          grep -n -A 120 -B 30 'function saveLeaves' app/src/main/assets/app.js || true
-          grep -n -A 140 -B 30 'function renderDocuments' app/src/main/assets/app.js || true
-          grep -n -A 140 -B 30 'function saveDocument' app/src/main/assets/app.js || true
-          grep -n -A 120 -B 30 'function renderSalary' app/src/main/assets/app.js || true
-          grep -n -A 90 -B 30 'function salaryCalc' app/src/main/assets/app.js || true
-          grep -n -A 90 -B 30 'function bind()' app/src/main/assets/app.js || true
-          grep -n -A 100 -B 20 'id="screen-setting-work"' app/src/main/assets/index.html || true
-          grep -n -A 120 -B 20 'id="screen-setting-leave"' app/src/main/assets/index.html || true
-          grep -n -A 180 -B 20 'id="screen-setting-documents"' app/src/main/assets/index.html || true
 
       - name: Deep functional audit
         shell: bash
