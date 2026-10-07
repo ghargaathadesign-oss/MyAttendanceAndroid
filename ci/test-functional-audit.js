@@ -182,16 +182,16 @@ for(const s of [...w.document.querySelectorAll('script')]){
     }
   });
 
-  await test('Work & Time inputs persist',async()=>{
-    setValue(w,'stdHours',8);setValue(w,'stdMinutes',30);setValue(w,'otDelay',15);
-    const s=parseJSON(w.localStorage.getItem('attendance_settings_v8'));
-    assert.strictEqual(+s.h,8);assert.strictEqual(+s.m,30);assert.strictEqual(+s.otDelay,15);
-  });
-
-  await test('12/24 hour format controls persist',async()=>{
-    click(w,'fmt24');await wait(10);
-    let s=parseJSON(w.localStorage.getItem('attendance_settings_v8'));assert.strictEqual(s.fmt,'24h');
-    click(w,'fmt12');await wait(10);
+  await test('Work & Time changes persist only after explicit Save',async()=>{
+    const before=parseJSON(w.localStorage.getItem('attendance_settings_v8'));
+    setValue(w,'stdHours',8);setValue(w,'stdMinutes',30);setValue(w,'otDelay',15);click(w,'fmt24');await wait(10);
+    let s=parseJSON(w.localStorage.getItem('attendance_settings_v8'));
+    assert.strictEqual(+s.h,+before.h);assert.strictEqual(s.fmt,before.fmt,'Work settings changed before Save');
+    click(w,'saveWorkSettings');await wait(20);
+    s=parseJSON(w.localStorage.getItem('attendance_settings_v8'));
+    assert.strictEqual(+s.h,8);assert.strictEqual(+s.m,30);assert.strictEqual(+s.otDelay,15);assert.strictEqual(s.fmt,'24h');
+    assert(/saved/i.test(w.document.getElementById('workSaveStatus').textContent));
+    click(w,'fmt12');click(w,'saveWorkSettings');await wait(15);
     s=parseJSON(w.localStorage.getItem('attendance_settings_v8'));assert.strictEqual(s.fmt,'12h');
   });
 
@@ -218,21 +218,36 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert.strictEqual(+w.document.getElementById('fontSmallScale').value,1);
   });
 
-  await test('Salary Save persists and immediately recalculates summary',async()=>{
-    setValue(w,'salaryAmount','40000','input');setValue(w,'salaryOtMultiplier','1.5');
-    click(w,'saveSalary');await wait(30);
+  await test('Salary uses recorded paid days instead of starting from full monthly salary',async()=>{
+    const recs=[
+      {id:'sal1',date:'2026-10-01',status:'Present',checkIn:'09:00',checkOut:'18:00',reason:'',notes:''},
+      {id:'sal2',date:'2026-10-02',status:'Present',checkIn:'09:00',checkOut:'18:00',reason:'',notes:''},
+      {id:'sal3',date:'2026-10-03',status:'Present',checkIn:'09:00',checkOut:'18:00',reason:'',notes:''},
+      {id:'sal4',date:'2026-10-04',status:'Present',checkIn:'09:00',checkOut:'18:00',reason:'',notes:''},
+      {id:'sal5',date:'2026-10-05',status:'Present',checkIn:'09:00',checkOut:'18:00',reason:'',notes:''},
+      {id:'sal6',date:'2026-10-06',status:'Present',checkIn:'09:00',checkOut:'18:00',reason:'',notes:''},
+      {id:'sal7',date:'2026-10-07',status:'Present',checkIn:'09:00',checkOut:'18:43',reason:'',notes:''}
+    ];
+    assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',recs,'attendance'));
+    setValue(w,'salaryAmount','40000','input');setValue(w,'salaryOtMultiplier','1');
+    click(w,'saveSalary');await wait(40);
     const s=parseJSON(w.localStorage.getItem('attendance_salary_v9'));
-    assert.strictEqual(+s.monthly,40000);assert.strictEqual(+s.otMultiplier,1.5);
-    assert.notStrictEqual(w.document.getElementById('salaryDaily').textContent,'₹0');
-    assert.notStrictEqual(w.document.getElementById('salaryEstimated').textContent,'₹0');
+    assert.strictEqual(+s.monthly,40000);assert.strictEqual(+s.otMultiplier,1);
+    const paid=parseFloat(w.document.getElementById('salaryPaidDays').textContent);assert.strictEqual(paid,7);
+    const earned=parseInt(w.document.getElementById('salaryEstimated').textContent.replace(/[^0-9]/g,''),10);
+    assert(earned>0&&earned<15000,'Earned salary incorrectly starts near full monthly salary: '+earned);
     assert(/saved/i.test(w.document.getElementById('salarySaveStatus').textContent));
+    w.AttendanceAppApi.showScreen('home');w.AttendanceAppApi.renderAll();await wait(20);
+    const homeEarned=parseInt(w.document.getElementById('qSalary').textContent.replace(/[^0-9]/g,''),10);
+    assert.strictEqual(homeEarned,earned,'Home salary and Salary page use different engines');
   });
 
-  await test('Reports & Analytics reflects saved salary',async()=>{
+  await test('Reports & Analytics uses the same recorded-day salary engine',async()=>{
+    const expected=w.AttendanceAppApi.salaryCalc('2026-10').earned;
     w.AttendanceAppApi.showScreen('setting-reports');await wait(25);
     const rs=w.document.getElementById('reportSalary');assert(rs,'reportSalary missing');
-    assert.notStrictEqual(rs.textContent,'₹0');
-    assert(/40,000|40000/.test(rs.textContent),'Reports salary did not reflect ₹40,000: '+rs.textContent);
+    const shown=parseInt(rs.textContent.replace(/[^0-9]/g,''),10);
+    assert(Math.abs(shown-Math.round(expected))<=1,'Reports salary differs from core salary calculation');
   });
 
   await test('Leave setup add/save/delete paths persist',async()=>{
@@ -313,11 +328,10 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert.strictEqual(w.document.getElementById('dateInput').value,date);
   });
 
-  await test('Theme Light/Dark buttons and JSON toggle persist correctly',async()=>{
+  await test('Older non-animated Theme selector persists Light/Dark correctly',async()=>{
+    assert(!w.document.querySelector('#screen-setting-appearance .v155ThemeLottie'),'Animated Theme JSON still present');
     click(w,'themeDark');await wait(15);assert.strictEqual(w.localStorage.getItem('attendance_theme_v9'),'dark');assert(w.document.body.classList.contains('dark-mode'));
     click(w,'themeLight');await wait(15);assert.strictEqual(w.localStorage.getItem('attendance_theme_v9'),'light');assert(!w.document.body.classList.contains('dark-mode'));
-    const json=w.document.querySelector('#v1551ThemeToggle .v155ThemeLottie');assert(json);json.click();await wait(30);
-    assert.strictEqual(w.localStorage.getItem('attendance_theme_v9'),'dark');assert(w.document.body.classList.contains('dark-mode'));
   });
 
   await test('Smart Reminder inputs save to native layer and test button works',async()=>{
@@ -370,6 +384,9 @@ for(const s of [...w.document.querySelectorAll('script')]){
     const inp=w.document.getElementById('docFile');const file=new w.File(['hello audit'],'audit.txt',{type:'text/plain'});
     Object.defineProperty(inp,'files',{configurable:true,value:[file]});fire(w,inp,'change');click(w,'saveDocument');await wait(500);
     assert.strictEqual(await w.attendanceDocumentCount(),1);
+    const card=w.document.querySelector('#documentList .docCard');assert(card,'Saved document card did not appear');
+    assert(/Audit Document/.test(card.textContent)&&/audit\.txt/.test(card.textContent),'Saved document card is missing title or filename');
+    assert(/Issued:\s*2026-01-02/.test(card.textContent)&&/Expires:\s*2027-01-02/.test(card.textContent),'Saved document dates are missing');
     const exportBtn=w.document.querySelector('#documentList .docExport'),shareBtn=w.document.querySelector('#documentList .docShare');
     assert(exportBtn&&shareBtn,'Document Export/Share buttons missing');
     exportBtn.click();await wait(120);shareBtn.click();await wait(120);
