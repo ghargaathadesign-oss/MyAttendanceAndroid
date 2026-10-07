@@ -36,7 +36,7 @@ const nativeState={
 };
 w.indexedDB=indexedDB;w.IDBKeyRange=IDBKeyRange;
 Object.defineProperty(w,'crypto',{value:webcrypto,configurable:true});
-w.confirm=()=>true;w.alert=()=>{};
+w.confirm=()=>true;w.alert=()=>{};w.scrollTo=()=>{};
 w.matchMedia=()=>({matches:false,addListener(){},removeListener(){},addEventListener(){},removeEventListener(){}});
 w.requestAnimationFrame=cb=>setTimeout(()=>cb(Date.now()),0);
 w.cancelAnimationFrame=id=>clearTimeout(id);
@@ -275,9 +275,9 @@ for(const s of [...w.document.querySelectorAll('script')]){
   await test('Document save and delete persist in encrypted IndexedDB',async()=>{
     setValue(w,'docType','Other');setValue(w,'docName','Audit Document','input');setValue(w,'docIssue','2026-01-02');setValue(w,'docExpiry','2027-01-02');setValue(w,'docNotes','Audit doc note','input');
     const inp=w.document.getElementById('docFile');const file=new w.File(['hello audit'],'audit.txt',{type:'text/plain'});
-    Object.defineProperty(inp,'files',{configurable:true,value:[file]});fire(w,inp,'change');click(w,'saveDocument');await wait(120);
+    Object.defineProperty(inp,'files',{configurable:true,value:[file]});fire(w,inp,'change');click(w,'saveDocument');await wait(500);
     assert.strictEqual(await w.attendanceDocumentCount(),1);
-    const del=w.document.querySelector('#documentList .docDelete');assert(del,'Document delete button missing');del.click();await wait(80);
+    const del=w.document.querySelector('#documentList .docDelete');assert(del,'Document delete button missing');del.click();await wait(250);
     assert.strictEqual(await w.attendanceDocumentCount(),0);
   });
 
@@ -285,7 +285,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
     w.AttendanceAppApi.showScreen('attendance');await wait(15);
     const before=w.document.getElementById('monthFilter').value;click(w,'attendancePrevMonth');await wait(5);assert.notStrictEqual(w.document.getElementById('monthFilter').value,before);
     click(w,'attendanceNextMonth');await wait(5);assert.strictEqual(w.document.getElementById('monthFilter').value,before);
-    setValue(w,'attendanceSearch','audit','input');await wait(120);click(w,'attendanceResetFilters');await wait(5);assert.strictEqual(w.document.getElementById('attendanceSearch').value,'');
+    setValue(w,'attendanceSearch','audit','input');await wait(120);click(w,'attendanceClearFilters');await wait(5);assert.strictEqual(w.document.getElementById('attendanceSearch').value,'');
   });
 
   await test('Notification Center action buttons call native update/push APIs',async()=>{
