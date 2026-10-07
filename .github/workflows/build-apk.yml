@@ -321,6 +321,20 @@ jobs:
           if grep -q 'RE-PUNCH' app/src/main/assets/app.js; then exit 1; fi
           echo "v15.3 Home hotfix, calendar spacing and delivery hardening prepared successfully"
 
+      - name: Inspect generated v15.3 UI
+        shell: bash
+        run: |
+          grep -n -A 25 'function profileGet' app/src/main/assets/app.js || true
+          grep -n -A 40 'function renderProfile' app/src/main/assets/app.js || true
+          grep -n -A 40 'function saveProfile' app/src/main/assets/app.js || true
+          grep -n -A 45 'function resetForm' app/src/main/assets/app.js || true
+          grep -n -A 55 'function saveForm' app/src/main/assets/app.js || true
+          grep -n -A 45 'function openEdit' app/src/main/assets/app.js || true
+          grep -n -A 35 'function deleteRecord' app/src/main/assets/app.js || true
+          grep -n -A 8 'AttendanceAppApi' app/src/main/assets/app.js || true
+          grep -n -A 80 'id="screen-profile"' app/src/main/assets/index.html || true
+          grep -n -A 80 'id="screen-add"' app/src/main/assets/index.html || true
+
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
