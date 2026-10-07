@@ -30,19 +30,19 @@ window.attendanceVerifiedSet=verifiedStorageSet"""
 if anchor not in s: raise SystemExit('E helper anchor missing')
 s=s.replace(anchor,helper,1)
 
-patterns=[
- (r"function dataPut\(a\)\{.*?\}",
+replacements=[
+ ("function dataPut(a){try{localStorage.setItem(DATA_KEY,JSON.stringify(a));if(window.AttendanceV15&&AttendanceV15.onDataChanged)AttendanceV15.onDataChanged();if(window.AttendanceV14&&AttendanceV14.onDataChanged)AttendanceV14.onDataChanged();return true}catch(e){toast('Could not save attendance');return false}}",
   "function dataPut(a){if(!verifiedStorageSet(DATA_KEY,a,'attendance'))return false;if(window.AttendanceV15&&AttendanceV15.onDataChanged)AttendanceV15.onDataChanged();if(window.AttendanceV14&&AttendanceV14.onDataChanged)AttendanceV14.onDataChanged();return true}"),
- (r"function setPut\(s\)\{.*?\}",
+ ("function setPut(s){try{localStorage.setItem(SET_KEY,JSON.stringify(s));return true}catch(e){toast('Could not save settings');return false}}",
   "function setPut(s){return verifiedStorageSet(SET_KEY,s,'work settings')}"),
- (r"function profilePut\(p\)\{.*?\}",
+ ("function profilePut(p){try{localStorage.setItem(PROFILE_KEY,JSON.stringify(p));return true}catch(e){toast('Profile image may be too large');return false}}",
   "function profilePut(p){return verifiedStorageSet(PROFILE_KEY,p,'profile')}"),
- (r"function leavePut\(o\)\{.*?\}",
+ ("function leavePut(o){try{localStorage.setItem(LEAVE_KEY,JSON.stringify(o));return true}catch(e){return false}}",
   "function leavePut(o){return verifiedStorageSet(LEAVE_KEY,o,'leave setup')}")
 ]
-for pat,repl in patterns:
-    s,n=re.subn(pat,repl,s,count=1)
-    if n!=1: raise SystemExit('persistence function anchor missing: '+pat)
+for old,repl in replacements:
+    if old not in s: raise SystemExit('persistence function anchor missing: '+old[:50])
+    s=s.replace(old,repl,1)
 
 # v15.5.5 salaryPut was already hardened; route it through the shared verifier.
 pat=re.compile(r"function salaryPut\(s\)\{.*?\n\}",re.S)
