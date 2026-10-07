@@ -255,9 +255,13 @@ for(const s of [...w.document.querySelectorAll('script')]){
     click(w,'addLeaveCategory');await wait(5);
     const rows=[...w.document.querySelectorAll('#leaveSetupRows .leaveSetupRow')];assert(rows.length>=1);
     const last=rows[rows.length-1];last.querySelector('.catName').value='Audit Leave';last.querySelector('.catAllowed').value='3';
-    click(w,'saveLeaves');await wait(10);
+    click(w,'saveLeaves');await wait(15);
     let l=parseJSON(w.localStorage.getItem('attendance_leave_setup_v81'));
-    assert(l.categories.some(x=>x.name==='Audit Leave'&&+x.allowed===3));
+    assert.strictEqual(+l.total,20);assert(l.categories.some(x=>x.name==='Audit Leave'&&+x.allowed===3));
+    assert(/saved/i.test(w.document.getElementById('leaveSaveStatus').textContent));
+    w.AttendanceAppApi.showScreen('settings');w.AttendanceAppApi.showScreen('setting-leaves');await wait(10);
+    assert.strictEqual(+w.document.getElementById('totalLeaves').value,20);
+    assert([...w.document.querySelectorAll('#leaveSetupRows .catName')].some(el=>el.value==='Audit Leave'),'Saved leave category did not reload');
     const target=[...w.document.querySelectorAll('#leaveSetupRows .leaveSetupRow')].find(r=>r.querySelector('.catName').value==='Audit Leave');
     assert(target);target.querySelector('.leaveSetupDelete').click();click(w,'saveLeaves');await wait(10);
     l=parseJSON(w.localStorage.getItem('attendance_leave_setup_v81'));
@@ -285,6 +289,26 @@ for(const s of [...w.document.querySelectorAll('script')]){
     const x=a.find(r=>r.date==='2026-10-19');assert(x,'Attendance not saved');
     assert.strictEqual(x.status,'Present');assert.strictEqual(x.checkIn,'09:00');assert.strictEqual(x.checkOut,'18:30');
     assert.strictEqual(x.notes,'Audit note');
+  });
+
+  await test('Monthly Records edit icon opens the exact saved record',async()=>{
+    w.AttendanceAppApi.showScreen('attendance');await wait(30);
+    const a=parseJSON(w.localStorage.getItem('attendance_v8'));const x=a.find(r=>r.date==='2026-10-19');assert(x,'Audit record missing');
+    const edit=w.document.querySelector('#records .v154RecordEdit[data-id="'+x.id+'"],#records .v15RecordOpen[data-id="'+x.id+'"]');
+    assert(edit,'Monthly Records edit control missing');
+    edit.click();await wait(20);
+    assert(w.document.getElementById('editModal').classList.contains('show'),'Monthly Records edit did not open');
+    assert.strictEqual(w.document.getElementById('editPopupId').value,x.id);
+    assert.strictEqual(w.document.getElementById('editPopupDate').value,'2026-10-19');
+    click(w,'editCancel');await wait(5);
+  });
+
+  await test('Attendance never falls back to legacy record-card UI',async()=>{
+    for(let i=0;i<5;i++){
+      w.AttendanceAppApi.showScreen('home');await wait(3);w.AttendanceAppApi.showScreen('attendance');await wait(8);
+      assert(w.document.querySelector('#attendanceCalendar .v15CalendarGrid'),'Current Attendance calendar missing on pass '+i);
+      assert(!w.document.querySelector('#records .recordCard,#records .editRecord,#records .deleteRecord'),'Legacy Attendance UI appeared on pass '+i);
+    }
   });
 
   await test('Edit Attendance Save, Cancel, Close and Delete all work',async()=>{
