@@ -1,8 +1,8 @@
 {
-  "versionName": "15.5.1",
-  "versionCode": 35,
-  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.5.1/My-Attendance-v15.5.1-signed.apk",
+  "versionName": "15.5.2",
+  "versionCode": 36,
+  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.5.2/My-Attendance-v15.5.2-signed.apk",
   "sha256": "",
-  "changelog": "Equalizes Settings menu heights, removes duplicate Smart Reminder clock icons, makes the supplied Theme JSON the actual persistent Light/Dark toggle, fixes Edit Attendance close/save/cancel, normalizes Hours and Present icon sizes, and enlarges the startup loading animation.",
+  "changelog": "Makes the startup Loading JSON span the device width and sit slightly lower, rebuilds Appearance to match the supplied Light/Dark reference card with the JSON as the one-tap toggle, and redesigns Smart Reminders into cleaner same-theme adaptive cards.",
   "publishedAt": "2026-10-07T00:00:00Z"
 }
