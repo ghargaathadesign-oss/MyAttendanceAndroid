@@ -73,6 +73,7 @@ w.Android={
   emailSignIn:(e,p)=>nativeState.calls.push(['emailSignIn',e,p]),
   emailSignUp:(e,p)=>nativeState.calls.push(['emailSignUp',e,p]),
   googleSignIn:()=>nativeState.calls.push(['googleSignIn']),
+  authProvider:()=> 'google.com',
   googleSignOut:()=>{nativeState.signedOut=true;nativeState.calls.push(['googleSignOut'])},
   resetPassword:e=>nativeState.calls.push(['resetPassword',e]),
   checkEmailVerified:()=>nativeState.calls.push(['checkEmailVerified']),
@@ -460,7 +461,8 @@ for(const s of [...w.document.querySelectorAll('script')]){
     let input=w.document.getElementById('appDialogInput');assert(input,'Delete Profile email verification input missing');input.value='audit@example.com';
     btn=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/^Verify$/i.test(String(b.textContent||'').trim()));assert(btn,'Verify button missing');btn.click();await wait(10);
     input=w.document.getElementById('appDialogInput');assert(input,'DELETE confirmation input missing');input.value='DELETE';
-    btn=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/Delete permanently/i.test(String(b.textContent||'').trim()));assert(btn,'Delete permanently button missing');btn.click();await wait(15);
+    btn=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/Delete permanently/i.test(String(b.textContent||'').trim()));assert(btn,'Delete permanently button missing');btn.click();await wait(10);
+    btn=[...w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')].find(b=>/^Continue$/i.test(String(b.textContent||'').trim()));assert(btn,'Google re-auth Continue missing');btn.click();await wait(15);
     assert(nativeState.calls.some(x=>x[0]==='deleteAccountData'),'Native account deletion was not invoked after full verification');
   });
 
