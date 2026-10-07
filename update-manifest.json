@@ -1,8 +1,8 @@
 {
-  "versionName": "15.5.7",
-  "versionCode": 41,
-  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.5.7/My-Attendance-v15.5.7-signed.apk",
+  "versionName": "15.5.8",
+  "versionCode": 42,
+  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.5.8/My-Attendance-v15.5.8-signed.apk",
   "sha256": "",
-  "changelog": "Fixes Monthly Records editing and old Attendance UI fallback, corrects Salary Earned to accrue only from recorded paid days, adds explicit Work & Time Save, hardens Leave Setup, stabilizes Job Document cards, restores the older non-animated Theme control, and restores Logout text/subtext colours.",
-  "publishedAt": "2026-10-07T00:00:00Z"
+  "changelog": "Every Sunday is now Week Off; any Sunday work is fully OT and appears consistently in Attendance and Excel export. Add Attendance Reset now refreshes visible controls, and My Leaves uses the exact total saved in Leave Setup.",
+  "publishedAt": "2026-10-08T00:00:00Z"
 }
