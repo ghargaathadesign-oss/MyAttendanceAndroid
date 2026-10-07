@@ -400,6 +400,7 @@ jobs:
           grep -q 'saveSalary:saveSalary' app/src/main/assets/app.js
           grep -q "renderSalary();renderHome()" app/src/main/assets/app.js
           grep -q 'verifiedStorageSet' app/src/main/assets/app.js
+          set -x
           grep -q 'saveWorkSettings' app/src/main/assets/index.html
           grep -q 'workSaveStatus' app/src/main/assets/index.html
           grep -q 'leaveSaveStatus' app/src/main/assets/index.html
