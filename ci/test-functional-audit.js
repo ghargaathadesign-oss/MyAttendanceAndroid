@@ -26,6 +26,8 @@ function click(w,id){
   const el=typeof id==='string'?w.document.getElementById(id):id;assert(el,'Missing '+id);el.click();return el;
 }
 function parseJSON(v){return JSON.parse(String(v||'{}'))}
+function moneyNumber(v){return Number(String(v||'').replace(/[^0-9.-]/g,''))||0}
+let salaryAuditOriginalAttendance=null,salaryAuditEstimatedText='';
 
 const dom=new JSDOM(html,{
   url:'https://appassets.androidplatform.net/assets/index.html',
@@ -182,16 +184,21 @@ for(const s of [...w.document.querySelectorAll('script')]){
     }
   });
 
-  await test('Work & Time inputs persist',async()=>{
-    setValue(w,'stdHours',8);setValue(w,'stdMinutes',30);setValue(w,'otDelay',15);
-    const s=parseJSON(w.localStorage.getItem('attendance_settings_v8'));
-    assert.strictEqual(+s.h,8);assert.strictEqual(+s.m,30);assert.strictEqual(+s.otDelay,15);
+  await test('Work & Time changes require Save and persist together',async()=>{
+    const before=parseJSON(w.localStorage.getItem('attendance_settings_v8')||'{}');
+    setValue(w,'stdHours',8);setValue(w,'stdMinutes',30);setValue(w,'otDelay',15);click(w,'fmt24');await wait(10);
+    let s=parseJSON(w.localStorage.getItem('attendance_settings_v8')||'{}');
+    assert.strictEqual(+s.h,+before.h);assert.strictEqual(+s.m,+before.m);assert.strictEqual(+s.otDelay,+before.otDelay);assert.strictEqual(s.fmt,before.fmt);
+    click(w,'saveWorkSettings');await wait(25);
+    s=parseJSON(w.localStorage.getItem('attendance_settings_v8'));
+    assert.strictEqual(+s.h,8);assert.strictEqual(+s.m,30);assert.strictEqual(+s.otDelay,15);assert.strictEqual(s.fmt,'24h');
+    assert(/saved/i.test(w.document.getElementById('workSaveStatus').textContent));
   });
 
-  await test('12/24 hour format controls persist',async()=>{
-    click(w,'fmt24');await wait(10);
-    let s=parseJSON(w.localStorage.getItem('attendance_settings_v8'));assert.strictEqual(s.fmt,'24h');
+  await test('12/24 hour format changes only after explicit Save',async()=>{
     click(w,'fmt12');await wait(10);
+    let s=parseJSON(w.localStorage.getItem('attendance_settings_v8'));assert.strictEqual(s.fmt,'24h');
+    click(w,'saveWorkSettings');await wait(20);
     s=parseJSON(w.localStorage.getItem('attendance_settings_v8'));assert.strictEqual(s.fmt,'12h');
   });
 
@@ -218,35 +225,54 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert.strictEqual(+w.document.getElementById('fontSmallScale').value,1);
   });
 
-  await test('Salary Save persists and immediately recalculates summary',async()=>{
-    setValue(w,'salaryAmount','40000','input');setValue(w,'salaryOtMultiplier','1.5');
-    click(w,'saveSalary');await wait(30);
-    const s=parseJSON(w.localStorage.getItem('attendance_salary_v9'));
-    assert.strictEqual(+s.monthly,40000);assert.strictEqual(+s.otMultiplier,1.5);
-    assert.notStrictEqual(w.document.getElementById('salaryDaily').textContent,'₹0');
-    assert.notStrictEqual(w.document.getElementById('salaryEstimated').textContent,'₹0');
+  await test('Salary accrues only from recorded paid days and saves correctly',async()=>{
+    salaryAuditOriginalAttendance=w.localStorage.getItem('attendance_v8')||'[]';
+    const mo=new Date().toISOString().slice(0,7),records=[];
+    for(let i=1;i<=7;i++)records.push({id:'salary-audit-'+i,date:mo+'-'+String(i).padStart(2,'0'),status:'Present',checkIn:'09:00',checkOut:i===7?'18:13':'18:00',reason:'',notes:''});
+    assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',records,'attendance'));
+    setValue(w,'salaryAmount','40000','input');setValue(w,'salaryOtMultiplier','1');
+    click(w,'saveSalary');await wait(35);
+    const saved=parseJSON(w.localStorage.getItem('attendance_salary_v9'));
+    assert.strictEqual(+saved.monthly,40000);assert.strictEqual(+saved.otMultiplier,1);
+    const daily=moneyNumber(w.document.getElementById('salaryDaily').textContent),paid=Number(w.document.getElementById('salaryPaidDays').textContent),earned=moneyNumber(w.document.getElementById('salaryEstimated').textContent);
+    assert(daily>1200&&daily<1400,'Unexpected daily rate: '+daily);
+    assert.strictEqual(paid,7,'Unrecorded future days were counted as paid: '+paid);
+    assert(earned>0&&earned<40000,'Earned salary should accrue from recorded days, got '+earned);
+    salaryAuditEstimatedText=w.document.getElementById('salaryEstimated').textContent;
     assert(/saved/i.test(w.document.getElementById('salarySaveStatus').textContent));
+    w.AttendanceAppApi.showScreen('home');await wait(20);
+    assert.strictEqual(w.document.getElementById('qSalary').textContent,salaryAuditEstimatedText,'Home salary differs from Salary page');
   });
 
-  await test('Reports & Analytics reflects saved salary',async()=>{
-    w.AttendanceAppApi.showScreen('setting-reports');await wait(25);
+  await test('Reports & Analytics uses the same accrued salary engine',async()=>{
+    w.AttendanceAppApi.showScreen('setting-reports');await wait(30);
     const rs=w.document.getElementById('reportSalary');assert(rs,'reportSalary missing');
-    assert.notStrictEqual(rs.textContent,'₹0');
-    assert(/40,000|40000/.test(rs.textContent),'Reports salary did not reflect ₹40,000: '+rs.textContent);
+    assert.strictEqual(rs.textContent,salaryAuditEstimatedText,'Reports salary differs from Salary page: '+rs.textContent+' vs '+salaryAuditEstimatedText);
+    assert(moneyNumber(rs.textContent)<40000,'Reports counted unrecorded future salary');
+    assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',parseJSON(salaryAuditOriginalAttendance||'[]'),'attendance'));
+    if(w.AttendanceV14&&w.AttendanceV14.onDataChanged)w.AttendanceV14.onDataChanged();
   });
 
-  await test('Leave setup add/save/delete paths persist',async()=>{
+  await test('Leave Setup add/update/save/reopen/delete paths persist',async()=>{
+    w.AttendanceAppApi.showScreen('setting-leaves');await wait(15);
     setValue(w,'totalLeaves','20');
     click(w,'addLeaveCategory');await wait(5);
-    const rows=[...w.document.querySelectorAll('#leaveSetupRows .leaveSetupRow')];assert(rows.length>=1);
-    const last=rows[rows.length-1];last.querySelector('.catName').value='Audit Leave';last.querySelector('.catAllowed').value='3';
-    click(w,'saveLeaves');await wait(10);
+    let rows=[...w.document.querySelectorAll('#leaveSetupRows .leaveSetupRow')];assert(rows.length>=1);
+    let last=rows[rows.length-1];last.querySelector('.catName').value='Audit Leave';last.querySelector('.catAllowed').value='3';fire(w,last.querySelector('.catAllowed'),'change');
+    click(w,'saveLeaves');await wait(20);
     let l=parseJSON(w.localStorage.getItem('attendance_leave_setup_v81'));
-    assert(l.categories.some(x=>x.name==='Audit Leave'&&+x.allowed===3));
-    const target=[...w.document.querySelectorAll('#leaveSetupRows .leaveSetupRow')].find(r=>r.querySelector('.catName').value==='Audit Leave');
-    assert(target);target.querySelector('.leaveSetupDelete').click();click(w,'saveLeaves');await wait(10);
-    l=parseJSON(w.localStorage.getItem('attendance_leave_setup_v81'));
-    assert(!l.categories.some(x=>x.name==='Audit Leave'));
+    assert.strictEqual(+l.total,20);assert(l.categories.some(x=>x.name==='Audit Leave'&&+x.allowed===3));
+    assert(/saved/i.test(w.document.getElementById('leaveSaveStatus').textContent));
+    w.AttendanceAppApi.showScreen('settings');w.AttendanceAppApi.showScreen('setting-leaves');await wait(15);
+    let target=[...w.document.querySelectorAll('#leaveSetupRows .leaveSetupRow')].find(r=>r.querySelector('.catName').value==='Audit Leave');
+    assert(target,'Saved leave category did not reload');
+    target.querySelector('.catAllowed').value='4';fire(w,target.querySelector('.catAllowed'),'change');click(w,'saveLeaves');await wait(20);
+    l=parseJSON(w.localStorage.getItem('attendance_leave_setup_v81'));assert(l.categories.some(x=>x.name==='Audit Leave'&&+x.allowed===4),'Updated leave allowance did not persist');
+    target=[...w.document.querySelectorAll('#leaveSetupRows .leaveSetupRow')].find(r=>r.querySelector('.catName').value==='Audit Leave');
+    assert(target);target.querySelector('.leaveSetupDelete').click();click(w,'saveLeaves');await wait(20);
+    l=parseJSON(w.localStorage.getItem('attendance_leave_setup_v81'));assert(!l.categories.some(x=>x.name==='Audit Leave'));
+    w.AttendanceAppApi.showScreen('settings');w.AttendanceAppApi.showScreen('setting-leaves');await wait(10);
+    assert(![...w.document.querySelectorAll('#leaveSetupRows .catName')].some(el=>el.value==='Audit Leave'),'Deleted leave category returned after reopening');
   });
 
   await test('Add Attendance Reset clears user-entered fields',async()=>{
@@ -274,8 +300,10 @@ for(const s of [...w.document.querySelectorAll('script')]){
 
   await test('Edit Attendance Save, Cancel, Close and Delete all work',async()=>{
     let a=parseJSON(w.localStorage.getItem('attendance_v8'));let x=a.find(r=>r.date==='2026-10-19');assert(x);
-    w.AttendanceAppApi.openEdit(x.id);await wait(5);
-    assert(w.document.getElementById('editModal').classList.contains('show'));
+    w.AttendanceAppApi.showScreen('attendance');await wait(30);
+    const editFromRecord=w.document.querySelector('#records .v154Record[data-id="'+x.id+'"] .v154RecordEdit');
+    assert(editFromRecord,'Monthly Records edit icon missing for saved record');editFromRecord.click();await wait(10);
+    assert(w.document.getElementById('editModal').classList.contains('show'),'Monthly Records edit icon did not open Edit Attendance');
     setValue(w,'editPopupNotes','Edited audit note','input');click(w,'editSave');await wait(15);
     a=parseJSON(w.localStorage.getItem('attendance_v8'));x=a.find(r=>r.id===x.id);assert.strictEqual(x.notes,'Edited audit note');
     w.AttendanceAppApi.openEdit(x.id);click(w,'editCancel');await wait(5);assert(!w.document.getElementById('editModal').classList.contains('show'));
@@ -303,6 +331,20 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert(!a.some(r=>r.id===x.id),'Attendance record remained after confirming deletion');
   });
 
+  await test('Attendance never falls back to legacy UI after repeated navigation',async()=>{
+    for(let i=0;i<4;i++){
+      w.AttendanceAppApi.showScreen('home');await wait(5);
+      w.AttendanceAppApi.showScreen('attendance');await wait(15);
+      assert(w.document.querySelector('#attendanceCalendar .v15CalendarGrid'),'Current v15 calendar missing on pass '+i);
+      assert(!w.document.querySelector('#attendanceCalendar .calendarCell'),'Legacy calendar UI appeared on pass '+i);
+      assert(!w.document.querySelector('#records .attendanceRow,#records .attendanceCard'),'Legacy Monthly Records UI appeared on pass '+i);
+      if(w.AttendanceV14&&w.AttendanceV14.renderScreen)w.AttendanceV14.renderScreen('attendance');
+      await wait(10);
+      assert(w.document.querySelector('#attendanceCalendar .v15CalendarGrid'),'v14 call replaced the current Attendance UI');
+      assert(!w.document.querySelector('#attendanceCalendar .calendarCell'),'Legacy Attendance UI returned after v14 call');
+    }
+  });
+
   await test('Empty Attendance calendar date opens Add with date prefilled',async()=>{
     w.AttendanceAppApi.showScreen('attendance');await wait(30);
     const cells=[...w.document.querySelectorAll('#attendanceCalendar .v15Day[data-date]')];
@@ -313,11 +355,11 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert.strictEqual(w.document.getElementById('dateInput').value,date);
   });
 
-  await test('Theme Light/Dark buttons and JSON toggle persist correctly',async()=>{
-    click(w,'themeDark');await wait(15);assert.strictEqual(w.localStorage.getItem('attendance_theme_v9'),'dark');assert(w.document.body.classList.contains('dark-mode'));
-    click(w,'themeLight');await wait(15);assert.strictEqual(w.localStorage.getItem('attendance_theme_v9'),'light');assert(!w.document.body.classList.contains('dark-mode'));
-    const json=w.document.querySelector('#v1551ThemeToggle .v155ThemeLottie');assert(json);json.click();await wait(30);
-    assert.strictEqual(w.localStorage.getItem('attendance_theme_v9'),'dark');assert(w.document.body.classList.contains('dark-mode'));
+  await test('Appearance uses older non-animated Light/Dark theme controls',async()=>{
+    assert(!w.document.getElementById('v1551ThemeToggle'),'Animated JSON Theme control still exists');
+    assert(!w.document.querySelector('#screen-setting-appearance .v155ThemeLottie'),'Theme JSON animation still exists');
+    click(w,'themeDark');await wait(15);assert.strictEqual(w.localStorage.getItem('attendance_theme_v9'),'dark');assert(w.document.body.classList.contains('dark-mode'));assert(w.document.getElementById('themeDark').classList.contains('on'));
+    click(w,'themeLight');await wait(15);assert.strictEqual(w.localStorage.getItem('attendance_theme_v9'),'light');assert(!w.document.body.classList.contains('dark-mode'));assert(w.document.getElementById('themeLight').classList.contains('on'));
   });
 
   await test('Smart Reminder inputs save to native layer and test button works',async()=>{
@@ -367,14 +409,15 @@ for(const s of [...w.document.querySelectorAll('script')]){
 
   await test('Document save and delete persist in encrypted IndexedDB',async()=>{
     setValue(w,'docType','Other');setValue(w,'docName','Audit Document','input');setValue(w,'docIssue','2026-01-02');setValue(w,'docExpiry','2027-01-02');setValue(w,'docNotes','Audit doc note','input');
-    const inp=w.document.getElementById('docFile');const file=new w.File(['hello audit'],'audit.txt',{type:'text/plain'});
+    const inp=w.document.getElementById('docFile');const file=new w.File(['hello audit'],'audit_appointment_letter_with_a_very_long_filename_for_card_layout.txt',{type:'text/plain'});
     Object.defineProperty(inp,'files',{configurable:true,value:[file]});fire(w,inp,'change');click(w,'saveDocument');await wait(500);
     assert.strictEqual(await w.attendanceDocumentCount(),1);
+    const card=w.document.querySelector('#documentList .docCard');assert(card,'Saved document card missing');assert(card.querySelector('.docInfo b').textContent==='Audit Document');assert(card.querySelector('.docMeta').textContent.includes('2026-01-02'));assert.strictEqual(card.querySelectorAll('.docActions .btn').length,3);
     const exportBtn=w.document.querySelector('#documentList .docExport'),shareBtn=w.document.querySelector('#documentList .docShare');
     assert(exportBtn&&shareBtn,'Document Export/Share buttons missing');
     exportBtn.click();await wait(120);shareBtn.click();await wait(120);
-    assert(nativeState.savedFiles.some(x=>x[0]==='audit.txt'),'Document export did not reach native save');
-    assert(nativeState.sharedFiles.some(x=>x[0]==='audit.txt'),'Document share did not reach native share');
+    assert(nativeState.savedFiles.some(x=>/audit_appointment_letter_with_a_very_long_filename/.test(x[0])),'Document export did not reach native save');
+    assert(nativeState.sharedFiles.some(x=>/audit_appointment_letter_with_a_very_long_filename/.test(x[0])),'Document share did not reach native share');
     const del=w.document.querySelector('#documentList .docDelete');assert(del,'Document delete button missing');
     assert(typeof w.document.getElementById('documentList').onclick==='function','Document list delegated click handler missing');
     del.click();await wait(30);
@@ -476,8 +519,10 @@ for(const s of [...w.document.querySelectorAll('script')]){
   });
 
   await test('Important action buttons exist after all UI patches',async()=>{
-    const ids=['saveBtn','resetBtn','saveSalary','saveProfile','saveLeaves','saveDocument','saveRemindersBtn','testReminderBtn','saveAppLockBtn','settingsLogoutBtn','editClose','editCancel','editSave','editPopupDelete'];
+    const ids=['saveBtn','resetBtn','saveWorkSettings','saveSalary','saveProfile','saveLeaves','saveDocument','saveRemindersBtn','testReminderBtn','saveAppLockBtn','settingsLogoutBtn','editClose','editCancel','editSave','editPopupDelete'];
     for(const id of ids)assert(w.document.getElementById(id),'Missing '+id);
+    assert(w.AttendanceAppApi&&typeof w.AttendanceAppApi.saveWork==='function','Work save API missing');
+    assert(w.AttendanceAppApi&&typeof w.AttendanceAppApi.saveLeaves==='function','Leave save API missing');
     assert(w.AttendanceAppApi&&typeof w.AttendanceAppApi.saveSalary==='function','Salary save API missing');
     assert(w.AttendanceAppApi&&typeof w.AttendanceAppApi.saveEdit==='function','Edit save API missing');
     assert(w.AttendanceAppApi&&typeof w.AttendanceAppApi.deleteRecord==='function','Delete API missing');
