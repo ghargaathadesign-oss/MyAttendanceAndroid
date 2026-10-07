@@ -138,9 +138,9 @@ for(const s of [...w.document.querySelectorAll('script')]){
   const src=s.getAttribute('src');
   try{
     if(src){
-      const base=src.split('?')[0].split('/').pop();
+      const clean=src.split('?')[0].split('#')[0],base=clean.split('/').pop();
       if(skip.has(base)||/^https?:/i.test(src))continue;
-      const p=path.join(assets,src.replace(/^\.\//,''));
+      const p=path.join(assets,clean.replace(/^\.\//,''));
       if(!fs.existsSync(p))throw new Error('Missing script '+src);
       w.eval(fs.readFileSync(p,'utf8')+'\n//# sourceURL='+src);
     }else if(String(s.textContent||'').trim()){
