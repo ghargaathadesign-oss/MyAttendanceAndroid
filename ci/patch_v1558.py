@@ -137,18 +137,6 @@ if old_get not in t:
     raise SystemExit('v112 final getRecords anchor missing')
 t=t.replace(old_get,new_get,1)
 
-old_req="function requiredMinutes(x,std){if(!x)return 0;if(x.status==='Paid Leave'||x.status==='Holiday'||x.status==='Week Off')return 0;if(x.status==='Half Day')return Math.round(std/2);return std}"
-new_req="function requiredMinutes(x,std){if(!x)return 0;if(isSundayRecord(x)||x.status==='Paid Leave'||x.status==='Holiday'||x.status==='Week Off')return 0;if(x.status==='Half Day')return Math.round(std/2);return std}"
-if old_req not in t:
-    raise SystemExit('v112 final requiredMinutes anchor missing')
-t=t.replace(old_req,new_req,1)
-
-old_bal="function balanceMinutes(x,s){var std=s.h*60+s.m,r=requiredMinutes(x,std),w=workMinutes(x),d;if(!x)return 0;if(x.status==='Paid Leave'||x.status==='Holiday'||x.status==='Week Off')return 0;if(x.status==='Absent'||x.status==='Unpaid Leave')return-r;d=w-r;return d>0?Math.max(0,d-s.otDelay):d}"
-new_bal="function balanceMinutes(x,s){if(!x)return 0;if(window.AttendancePolicy&&AttendancePolicy.balanceMinutes)return AttendancePolicy.balanceMinutes(x,s);var std=s.h*60+s.m,r=requiredMinutes(x,std),w=workMinutes(x),d;if(isSundayRecord(x)||x.status==='Holiday'||x.status==='Week Off')return w;if(x.status==='Paid Leave')return 0;if(x.status==='Absent'||x.status==='Unpaid Leave')return-r;d=w-r;return d>0?Math.max(0,d-s.otDelay):d}"
-if old_bal not in t:
-    raise SystemExit('v112 final balanceMinutes anchor missing')
-t=t.replace(old_bal,new_bal,1)
-
 old_decl="var days=new Date(year,month+1,0).getDate(),row=6,tw=0,tr=0,to=0,ts=0,net=0,date,w,req,bal,vals;for(i=1;i<=days;i++){date=year+'-'+P(month+1)+'-'+P(i);x=map[date]||null;w=workMinutes(x);req=x?requiredMinutes(x,s.h*60+s.m):0;"
 new_decl="var days=new Date(year,month+1,0).getDate(),row=6,tw=0,tr=0,to=0,ts=0,net=0,date,w,req,bal,vals,sun,displayStatus;for(i=1;i<=days;i++){date=year+'-'+P(month+1)+'-'+P(i);x=map[date]||null;sun=new Date(year,month,i).getDay()===0;displayStatus=sun?'Week Off':(x?(x.status||''):'');if(x&&sun)canonicalSunday(x);w=workMinutes(x);req=x?requiredMinutes(x,s.h*60+s.m):0;"
 if old_decl not in t:
