@@ -1,8 +1,8 @@
 {
-  "versionName": "15.5.3",
-  "versionCode": 37,
-  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.5.3/My-Attendance-v15.5.3-signed.apk",
+  "versionName": "15.5.4",
+  "versionCode": 38,
+  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.5.4/My-Attendance-v15.5.4-signed.apk",
   "sha256": "",
-  "changelog": "Makes the Logout icon and text red, makes the Theme JSON itself directly switch Light/Dark mode when tapped, and scales the startup Loading JSON responsively to the actual device width.",
+  "changelog": "Restores the older Appearance Theme layout, reduces and re-centers the startup Loading animation, and replaces the Logout animation with the newly supplied red JSON.",
   "publishedAt": "2026-10-07T00:00:00Z"
 }
