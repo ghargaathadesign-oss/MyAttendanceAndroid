@@ -5,9 +5,11 @@ assets=Path(sys.argv[1] if len(sys.argv)>1 else 'app/src/main/assets')
 app=assets/'app.js'
 v112=assets/'v112-fixes.js'
 v1553=assets/'v1553-fixes.js'
+diag=assets/'diagnostics-ui.js'
 s=app.read_text(encoding='utf-8')
 t=v112.read_text(encoding='utf-8')
 u=v1553.read_text(encoding='utf-8')
+d=diag.read_text(encoding='utf-8')
 
 # One verified persistence path for every user-owned setting/data write.
 anchor="function E(id){return document.getElementById(id)}"
@@ -103,10 +105,18 @@ new="function saveTypography(){var t=readTypographyUI(),raw=JSON.stringify(t),ok
 if old not in t: raise SystemExit('saveTypography anchor missing')
 t=t.replace(old,new,1)
 
+# Diagnostics Backup & Restore button must use the public app API. The old
+# window.showScreen reference is not exported by the core app.
+old="if(backup)backup.onclick=function(){if(typeof window.showScreen==='function')window.showScreen('setting-backup')};"
+new="if(backup)backup.onclick=function(){var A=window.AttendanceAppApi;if(A&&typeof A.showScreen==='function')A.showScreen('setting-backup');else if(typeof window.showScreen==='function')window.showScreen('setting-backup')};"
+if old not in d: raise SystemExit('diagnostics backup navigation anchor missing')
+d=d.replace(old,new,1)
+
 # Correct the emergency Theme fallback key to the current v9 key.
 u=u.replace("attendance_theme_v8","attendance_theme_v9")
 
 app.write_text(s,encoding='utf-8')
 v112.write_text(t,encoding='utf-8')
 v1553.write_text(u,encoding='utf-8')
-print('v15.5.6 persistence and Attendance compatibility patch applied')
+diag.write_text(d,encoding='utf-8')
+print('v15.5.6 persistence, Attendance and diagnostics compatibility patch applied')
