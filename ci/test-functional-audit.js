@@ -93,7 +93,7 @@ w.Android={
   cloudTransferRestore:()=>nativeState.calls.push(['cloudTransferRestore']),
   cloudBackupHistoryList:()=>{nativeState.historyChecks++;nativeState.calls.push(['cloudBackupHistoryList']);setTimeout(()=>w.onCloudBackupHistory&&w.onCloudBackupHistory('[]'),0)},
   secureCloudRestoreHistory:id=>nativeState.calls.push(['secureCloudRestoreHistory',id]),
-  saveBase64File:(n,m,d)=>{nativeState.savedFiles.push([n,m,String(d).length]);return true},
+  saveBase64File:(n,m,d)=>{nativeState.savedFiles.push([n,m,String(d).length,String(d)]);return true},
   saveCsv:(n,d)=>{nativeState.csvFiles.push([n,String(d)]);return true},
   shareBase64File:(n,m,d)=>{nativeState.sharedFiles.push([n,m,String(d).length]);return true},
   saveTextFile:(n,m,d)=>{nativeState.savedFiles.push([n,m,String(d).length]);return true},
@@ -255,13 +255,13 @@ for(const s of [...w.document.querySelectorAll('script')]){
 
   await test('Leave Setup add/update/save/reopen/delete paths persist',async()=>{
     w.AttendanceAppApi.showScreen('setting-leaves');await wait(15);
-    setValue(w,'totalLeaves','20');
+    setValue(w,'totalLeaves','22');
     click(w,'addLeaveCategory');await wait(5);
     let rows=[...w.document.querySelectorAll('#leaveSetupRows .leaveSetupRow')];assert(rows.length>=1);
     let last=rows[rows.length-1];last.querySelector('.catName').value='Audit Leave';last.querySelector('.catAllowed').value='3';fire(w,last.querySelector('.catAllowed'),'change');
     click(w,'saveLeaves');await wait(20);
     let l=parseJSON(w.localStorage.getItem('attendance_leave_setup_v81'));
-    assert.strictEqual(+l.total,20);assert(l.categories.some(x=>x.name==='Audit Leave'&&+x.allowed===3));
+    assert.strictEqual(+l.total,22);assert(l.categories.some(x=>x.name==='Audit Leave'&&+x.allowed===3));
     assert(/saved/i.test(w.document.getElementById('leaveSaveStatus').textContent));
     w.AttendanceAppApi.showScreen('settings');w.AttendanceAppApi.showScreen('setting-leaves');await wait(15);
     let target=[...w.document.querySelectorAll('#leaveSetupRows .leaveSetupRow')].find(r=>r.querySelector('.catName').value==='Audit Leave');
@@ -275,14 +275,74 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert(![...w.document.querySelectorAll('#leaveSetupRows .catName')].some(el=>el.value==='Audit Leave'),'Deleted leave category returned after reopening');
   });
 
-  await test('Add Attendance Reset clears user-entered fields',async()=>{
+  await test('My Leaves balance uses the saved Leave Setup total, not monthly accrual',async()=>{
+    const before=w.localStorage.getItem('attendance_v8')||'[]',yr=new Date().getFullYear();
+    const leaveRecord=[{id:'leave-balance-audit',date:yr+'-01-15',status:'Paid Leave',checkIn:'',checkOut:'',reason:'Casual Leave',notes:''}];
+    assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',leaveRecord,'attendance'));
+    if(w.AttendanceV15&&w.AttendanceV15.onDataChanged)w.AttendanceV15.onDataChanged();
+    w.AttendanceAppApi.showScreen('leaves');await wait(20);
+    assert.strictEqual(w.document.getElementById('leaveAccrued').textContent,'22','Total Leaves did not use saved Leave Setup total');
+    assert.strictEqual(w.document.getElementById('leaveUsed').textContent,'1');
+    assert.strictEqual(w.document.getElementById('leaveBalance').textContent,'21','Leave Balance should be saved total minus paid leaves used');
+    assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',parseJSON(before),'attendance'));
+  });
+
+  await test('Add Attendance Reset clears values and refreshes visible custom controls',async()=>{
     w.AttendanceAppApi.showScreen('add');await wait(5);
-    setValue(w,'notesInput','Temporary note','input');setValue(w,'reasonInput','Temporary reason','input');setValue(w,'statusInput','Absent');
-    click(w,'resetBtn');await wait(10);
+    setValue(w,'dateInput','2026-10-06');setValue(w,'statusInput','Present');
+    setValue(w,'checkInH','9');setValue(w,'checkInM','15');setValue(w,'checkInP','AM');
+    setValue(w,'checkOutH','6');setValue(w,'checkOutM','45');setValue(w,'checkOutP','PM');
+    setValue(w,'notesInput','Temporary note','input');setValue(w,'reasonInput','Temporary reason','input');
+    click(w,'resetBtn');await wait(20);
+    const date=w.document.getElementById('dateInput').value,expected=w.AttendancePolicy.isSunday(date)?'Week Off':'Present';
     assert.strictEqual(w.document.getElementById('notesInput').value,'');
     assert.strictEqual(w.document.getElementById('reasonInput').value,'');
-    assert.strictEqual(w.document.getElementById('statusInput').value,'Present');
-    assert(/^\d{4}-\d{2}-\d{2}$/.test(w.document.getElementById('dateInput').value));
+    assert.strictEqual(w.document.getElementById('statusInput').value,expected);
+    assert.strictEqual(w.document.getElementById('checkInH').value,'');
+    assert.strictEqual(w.document.getElementById('checkInM').value,'');
+    assert.strictEqual(w.document.getElementById('checkOutH').value,'');
+    assert.strictEqual(w.document.getElementById('checkOutM').value,'');
+    assert(/^\d{4}-\d{2}-\d{2}$/.test(date));
+    const statusBtn=w.document.querySelector('#statusInput + .customSelect .customSelectButton');
+    assert(statusBtn&&statusBtn.textContent.trim()===expected,'Visible Status selector did not reset: '+(statusBtn&&statusBtn.textContent));
+    const dateLabel=w.document.querySelector('#dateInput + .v155DateButton .v155DateLabel');
+    assert(dateLabel&&dateLabel.textContent.trim()===date,'Visible Date selector did not reset');
+    const inHourBtn=w.document.querySelector('#checkInH + .customSelect .customSelectButton');
+    assert(inHourBtn&&/Hr/i.test(inHourBtn.textContent),'Visible Check In hour did not reset');
+  });
+
+  await test('Every Sunday is Week Off and every worked Sunday minute is OT in calendar and records',async()=>{
+    const before=w.localStorage.getItem('attendance_v8')||'[]',sun='2026-10-04',blankSun='2026-10-11';
+    assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',[{id:'sunday-audit',date:sun,status:'Present',checkIn:'09:00',checkOut:'10:15',reason:'',notes:'legacy Sunday status'}],'attendance'));
+    if(w.AttendanceV15&&w.AttendanceV15.onDataChanged)w.AttendanceV15.onDataChanged();
+    let x=w.AttendanceAppApi.dataGet().find(r=>r.id==='sunday-audit');assert(x);
+    assert.strictEqual(x.status,'Week Off');assert.strictEqual(x.specialOT,true);
+    assert.strictEqual(w.AttendancePolicy.requiredMinutes(x,{h:9,m:0,otDelay:30}),0);
+    assert.strictEqual(w.AttendancePolicy.balanceMinutes(x,{h:9,m:0,otDelay:30}),75);
+    setValue(w,'monthFilter','2026-10');w.AttendanceAppApi.showScreen('attendance');if(w.AttendanceV15&&w.AttendanceV15.onDataChanged)w.AttendanceV15.onDataChanged();if(w.AttendanceV15)w.AttendanceV15.renderScreen('attendance');await wait(30);
+    let cell=w.document.querySelector('#attendanceCalendar .v15Day[data-date="'+sun+'"]');assert(cell,'Worked Sunday calendar cell missing');
+    assert(cell.classList.contains('week'),'Sunday calendar cell is not Week Off');
+    assert(/WO\/OT/.test(cell.textContent),'Worked Sunday calendar does not show WO/OT: '+cell.textContent);
+    let blank=w.document.querySelector('#attendanceCalendar .v15Day[data-date="'+blankSun+'"]');assert(blank,'Blank Sunday calendar cell missing');
+    assert(blank.classList.contains('week'));assert(/WO/.test(blank.textContent),'Blank Sunday does not show Week Off');
+    const record=w.document.querySelector('#records .v154Record[data-id="sunday-audit"]');assert(record,'Sunday Monthly Record missing');
+    assert(/Week Off/.test(record.textContent),'Sunday record status is not Week Off');
+    assert(/OT\s*\+?1h\s*15m/i.test(record.textContent),'Sunday worked time is not shown as full OT: '+record.textContent);
+
+    blank.click();await wait(20);
+    assert(w.document.getElementById('screen-add').classList.contains('active'),'Blank Sunday did not open Add Attendance');
+    assert.strictEqual(w.document.getElementById('dateInput').value,blankSun);
+    assert.strictEqual(w.document.getElementById('statusInput').value,'Week Off');
+    setValue(w,'statusInput','Present');await wait(10);
+    assert.strictEqual(w.document.getElementById('statusInput').value,'Week Off','Sunday status could be changed away from Week Off');
+    setValue(w,'checkInH','9');setValue(w,'checkInM','0');setValue(w,'checkInP','AM');
+    setValue(w,'checkOutH','10');setValue(w,'checkOutM','15');setValue(w,'checkOutP','AM');
+    click(w,'saveBtn');await wait(25);
+    const raw=parseJSON(w.localStorage.getItem('attendance_v8')),saved=raw.find(r=>r.date===blankSun);assert(saved,'Sunday Add Attendance was not saved');
+    assert.strictEqual(saved.status,'Week Off');assert.strictEqual(saved.specialOT,true);
+    assert.strictEqual(w.AttendancePolicy.balanceMinutes(saved,{h:9,m:0,otDelay:30}),75);
+    assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',parseJSON(before),'attendance'));
+    if(w.AttendanceV15&&w.AttendanceV15.onDataChanged)w.AttendanceV15.onDataChanged();
   });
 
   await test('Add Attendance saves all core inputs',async()=>{
@@ -455,16 +515,31 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert(/Date,Status,Check In/.test(nativeState.csvFiles[nativeState.csvFiles.length-1][1]));
   });
 
-  await test('Excel export picker, Cancel and actual export work',async()=>{
+  await test('Excel export shows every Sunday as Week Off and worked Sunday fully as OT',async()=>{
+    const beforeData=w.localStorage.getItem('attendance_v8')||'[]';
+    assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',[{id:'xlsx-sunday',date:'2026-10-04',status:'Present',checkIn:'09:00',checkOut:'10:15',reason:'Sunday work',notes:''},{id:'xlsx-monday',date:'2026-10-05',status:'Present',checkIn:'09:00',checkOut:'18:00',reason:'',notes:''}],'attendance'));
     click(w,'exportExcelBtn');await wait(15);
     assert(w.document.getElementById('excelExportOverlay'),'Excel export picker did not open');
     click(w,'excelExportCancel');await wait(10);
     assert(!w.document.getElementById('excelExportOverlay'),'Excel export picker did not close');
     const before=nativeState.savedFiles.length;
     click(w,'exportExcelBtn');await wait(15);assert(w.document.getElementById('excelExportOverlay'));
-    click(w,'excelExportGo');await wait(500);
+    setValue(w,'excelExportMonth','2026-10');
+    click(w,'excelExportGo');
+    for(let i=0;i<30&&nativeState.savedFiles.length===before;i++)await wait(100);
     assert(nativeState.savedFiles.length>before,'Excel export did not save a file');
-    assert(nativeState.savedFiles.some(x=>/\.xlsx$/i.test(x[0])),'No XLSX file was produced');
+    const file=[...nativeState.savedFiles].reverse().find(x=>/\.xlsx$/i.test(x[0]));assert(file&&file[3],'No XLSX payload was produced');
+    const book=new (require('exceljs').Workbook)();await book.xlsx.load(Buffer.from(file[3],'base64'));
+    const ws=book.getWorksheet('Oct')||book.worksheets[0];assert(ws,'October worksheet missing');
+    const workedRow=9,blankSundayRow=16;
+    assert.strictEqual(String(ws.getCell(workedRow,3).value),'Sunday');
+    assert.strictEqual(String(ws.getCell(workedRow,7).value),'0:00','Sunday Required Hours must be zero');
+    assert.strictEqual(String(ws.getCell(workedRow,8).value),'1:15','All worked Sunday time must be Overtime');
+    assert.strictEqual(String(ws.getCell(workedRow,11).value),'Week Off');
+    assert.strictEqual(String(ws.getCell(blankSundayRow,3).value),'Sunday');
+    assert.strictEqual(String(ws.getCell(blankSundayRow,7).value),'0:00');
+    assert.strictEqual(String(ws.getCell(blankSundayRow,11).value),'Week Off','Blank Sunday must still export as Week Off');
+    assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',parseJSON(beforeData),'attendance'));
   });
 
   await test('Attendance search/filter/month navigation controls respond',async()=>{
