@@ -362,9 +362,6 @@ jobs:
           grep -q '_attendanceLottie' app/src/main/assets/lottie-runtime.js
           grep -q 'v1551SyncThemeToggle' app/src/main/assets/v1551-fixes.js
           grep -q '::-webkit-calendar-picker-indicator' app/src/main/assets/v1551-fixes.css
-          grep -q 'v1552ThemeCard' app/src/main/assets/index.html
-          grep -q 'v1552ThemeTitle' app/src/main/assets/index.html
-          grep -q 'v1552ThemeHint' app/src/main/assets/index.html
           grep -q 'v1552-fixes.css' app/src/main/assets/index.html
           grep -q 'v1552-fixes.js' app/src/main/assets/index.html
           grep -q 'width:100vw!important' app/src/main/assets/v1552-fixes.css
@@ -382,6 +379,9 @@ jobs:
           grep -q 'logout-red-v1554.json' app/src/main/assets/index.html
           grep -q 'v1554LogoutLottie' app/src/main/assets/index.html
           grep -q 'function isRedLogout(rec)' app/src/main/assets/lottie-runtime.js
+          if grep -q 'v1552ThemeCard' app/src/main/assets/index.html; then exit 1; fi
+          grep -q 'v1551ThemeSide light' app/src/main/assets/index.html
+          grep -q 'v1551ThemeSide dark' app/src/main/assets/index.html
           grep -q 'grid-template-columns:1fr 68px 1fr' app/src/main/assets/v1554-fixes.css
           grep -q 'width:min(76vw,310px)' app/src/main/assets/v1554-fixes.css
           if grep -q '<button class="back" type="button" data-back="home">‹</button>' app/src/main/assets/index.html; then exit 1; fi
