@@ -526,7 +526,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${FIREBASE_SERVICE_ACCOUNT_JSON:-}" ]; then
-            echo "::warning::FIREBASE_SERVICE_ACCOUNT_JSON is not configured. installed devices cannot receive the automatic v15.4 push until this repository secret is added and this workflow is rerun."
+            echo "::warning::FIREBASE_SERVICE_ACCOUNT_JSON is not configured. installed devices cannot receive the automatic v15.5 push until this repository secret is added and this workflow is rerun."
             exit 0
           fi
           python3 -m pip install --disable-pip-version-check --quiet google-auth requests
