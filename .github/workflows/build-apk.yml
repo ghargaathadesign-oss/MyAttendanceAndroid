@@ -112,6 +112,7 @@ jobs:
           python3 ci/patch_v1553.py app/src/main/assets
           python3 ci/patch_v1554.py app/src/main/assets
           python3 ci/patch_v1555.py app/src/main/assets
+          python3 ci/patch_v1556.py app/src/main/assets
 
           test -s app/src/main/assets/index.html
           test -s app/src/main/assets/app.css
@@ -394,6 +395,10 @@ jobs:
           grep -q 'Android.secureSet' app/src/main/assets/app.js
           grep -q 'saveSalary:saveSalary' app/src/main/assets/app.js
           grep -q "renderSalary();renderHome()" app/src/main/assets/app.js
+          grep -q 'verifiedStorageSet' app/src/main/assets/app.js
+          grep -q "AttendanceV15&&AttendanceV15.renderScreen" app/src/main/assets/app.js
+          grep -q 'verifiedStorageSet:verifiedStorageSet' app/src/main/assets/app.js
+          grep -q "attendance_theme_v9" app/src/main/assets/v1553-fixes.js
           if grep -q '<button class="back" type="button" data-back="home">‹</button>' app/src/main/assets/index.html; then exit 1; fi
           grep -q 'checkForUpdatesNative' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q '@JavascriptInterface public void checkForUpdates' app/src/main/java/com/personal/attendance/MainActivity.java
