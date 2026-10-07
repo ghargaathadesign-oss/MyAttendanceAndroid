@@ -1,0 +1,41 @@
+/* My Attendance v15.4 — attendance, profile and startup polish */
+#screen-attendance .attendanceCalendarTitleRow{margin-bottom:19px!important}
+#screen-attendance .v15CalendarWeek{margin-bottom:13px!important;column-gap:6px!important}
+#screen-attendance .v15CalendarGrid{row-gap:11px!important;column-gap:5px!important}
+#screen-attendance .attendanceLegendV15{display:flex!important;justify-content:center!important;align-items:center!important;text-align:center!important;flex-wrap:wrap!important;gap:10px 15px!important;margin-top:22px!important;padding-top:17px!important}
+#screen-attendance .attendanceLegendV15 span{display:inline-flex!important;align-items:center!important;justify-content:center!important}
+#screen-attendance .attendanceSwipeHint{text-align:center!important;margin-top:14px!important;line-height:1.5!important;padding:0 5px 5px!important}
+#screen-attendance .attendanceCalendarCard{padding-bottom:18px!important}
+
+.v15Record.v154Record{position:relative;padding:0!important;overflow:hidden}
+.v154RecordInner{display:grid;grid-template-columns:52px minmax(0,1fr);gap:11px;align-items:start;padding:13px 48px 13px 13px}
+.v154RecordInner .v15RecordDate{align-self:start}
+.v154RecordBody{min-width:0;display:flex;flex-direction:column}
+.v154RecordTimes{font-size:11px;font-weight:700;line-height:1.45;color:var(--ink)}
+.v154RecordStatus{display:flex;align-items:center;gap:6px;margin-top:9px;font-size:11px;font-weight:800;line-height:1.35}
+.v154RecordStatus .v15StatusDot{flex:0 0 auto}
+.v154RecordMeta{display:block;margin-top:7px;color:var(--muted);font-size:9px;line-height:1.45;overflow-wrap:anywhere}
+.v154RecordEdit{position:absolute;top:11px;right:11px;width:34px;height:34px;border-radius:11px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);display:grid;place-items:center;padding:0;z-index:2}
+.v154RecordEdit svg{width:16px;height:16px;fill:currentColor}
+.v154RecordEdit:active{transform:scale(.96)}
+#editPopupDelete{display:block;width:100%;margin-top:10px;min-height:45px}
+
+#screen-add .sectionHeader{grid-template-columns:auto 1fr!important}
+#screen-add .sectionHeader>h1{min-width:0}
+
+.profileReferenceExtra{display:block;color:var(--muted);font-size:9px;line-height:1.5;margin-top:4px}
+.profileExtraGrid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.profileExtraGrid .profileFieldWide{grid-column:1/-1}
+@media(max-width:390px){.profileExtraGrid{grid-template-columns:1fr}}
+
+.v154BootScreen{position:fixed;inset:0;z-index:999999;background:var(--bg,#f6f8fb);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;opacity:1;visibility:visible;transition:opacity .18s ease,visibility .18s ease}
+.v154BootScreen.hide{opacity:0;visibility:hidden;pointer-events:none}
+.v154BootMark{width:62px;height:62px;border-radius:21px;background:var(--surface,#fff);border:1px solid var(--line,#e6eaf0);box-shadow:0 12px 32px rgba(45,61,86,.09);display:grid;place-items:center;margin-bottom:15px;font-size:28px}
+.v154BootScreen b{font-size:17px;line-height:1.3}
+.v154BootScreen small{margin-top:6px;color:var(--muted,#77808c);font-size:10px}
+.v154BootDots{display:flex;gap:5px;margin-top:17px}
+.v154BootDots i{width:6px;height:6px;border-radius:50%;background:currentColor;color:var(--muted,#77808c);opacity:.25;animation:v154boot 1s ease-in-out infinite}
+.v154BootDots i:nth-child(2){animation-delay:.14s}.v154BootDots i:nth-child(3){animation-delay:.28s}
+@keyframes v154boot{0%,100%{opacity:.22;transform:translateY(0)}50%{opacity:.8;transform:translateY(-3px)}}
+body.dark-mode .v154BootScreen{background:var(--bg,#101319)}
+@media(prefers-reduced-motion:reduce){.v154BootScreen{transition:none}.v154BootDots i{animation:none;opacity:.45}}

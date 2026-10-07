@@ -1,8 +1,8 @@
 {
-  "versionName": "15.3",
-  "versionCode": 32,
-  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.3/My-Attendance-v15.3-signed.apk",
+  "versionName": "15.4",
+  "versionCode": 33,
+  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.4/My-Attendance-v15.4-signed.apk",
   "sha256": "",
-  "changelog": "Fixes blank Home screen after v15.2 startup sync, restores comfortable Attendance calendar spacing, keeps Salary Paid Days rounded, separates New Phone backup, and adds push/update diagnostics with Check for Updates fallback.",
+  "changelog": "Improves Attendance calendar spacing and centered legend, redesigns Monthly Records with a single edit icon and delete inside the edit popup, adds DOB, joining date, department and employee ID to Profile, removes the Add Attendance back button, and optimizes startup state plus Lottie loading.",
   "publishedAt": "2026-10-07T00:00:00Z"
 }
