@@ -23,8 +23,24 @@ assert.strictEqual(p.normalizeStatus('AB'),'Absent');
 const sal=p.salaryMonth([rec('2026-08-03','','','Absent'),rec('2026-08-09','09:00','15:00','Week Off',{specialOT:true}),rec('2026-08-10','09:00','19:00')],'2026-08',s,{monthly:26000,otMultiplier:1});
 assert.strictEqual(sal.specialOt,360);
 assert.strictEqual(sal.normalOt,30);
-assert.strictEqual(sal.shortfall,540);
+assert.strictEqual(sal.shortfall,0);
+assert.strictEqual(sal.paid,2);
 assert(sal.specialPay>0&&sal.normalOtPay>0);
+assert(sal.earned>0&&sal.earned<26000);
+const octoberRecords=[
+ rec('2026-10-01','09:00','18:00'),
+ rec('2026-10-02','09:00','18:00'),
+ rec('2026-10-03','09:00','18:00'),
+ rec('2026-10-04','09:00','18:00'),
+ rec('2026-10-05','09:00','18:00'),
+ rec('2026-10-06','09:00','18:00'),
+ rec('2026-10-07','09:00','18:43')
+];
+const oct=p.salaryMonth(octoberRecords,'2026-10',s,{monthly:40000,otMultiplier:1});
+assert.strictEqual(oct.paid,7);
+assert(oct.earned<15000,'Earned-to-date must not start from the full monthly salary');
+assert(oct.earned>7*(40000/31),'Recorded OT/Sunday extra should add to recorded base pay');
+
 const legacy={attendance_v8:JSON.stringify([
  {id:1,date:'5/10/2026',status:'SD',checkIn:'9:00 AM',checkOut:'5:00 PM',reason:'legacy'},
  {id:2,date:'2026/10/06',status:'AB',checkIn:'',checkOut:''}
