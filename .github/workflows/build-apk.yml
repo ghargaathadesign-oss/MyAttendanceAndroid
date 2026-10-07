@@ -198,7 +198,6 @@ jobs:
           node ci/test-backup-crypto.js
           node ci/test-transfer-crypto.js
           node ci/test-diagnostics.js
-          set -x
           grep -q 'window.initLottie' app/src/main/assets/lottie-runtime.js
           grep -q 'exceljs.min.js' app/src/main/assets/index.html
           grep -q 'deleteProfileBtn' app/src/main/assets/index.html
@@ -338,7 +337,6 @@ jobs:
           grep -q 'lottie/reminder-v155.json' app/src/main/assets/index.html
           grep -q 'lottie/privacy-v155.json' app/src/main/assets/index.html
           grep -q 'lottie/diagnose-v155.json' app/src/main/assets/index.html
-          grep -q 'lottie/logout-v155.json' app/src/main/assets/index.html
           grep -q 'lottie/notification-v155.json' app/src/main/assets/index.html
           grep -q 'lottie/present-v155.json' app/src/main/assets/index.html
           grep -q 'lottie/theme-v155.json' app/src/main/assets/index.html
@@ -378,6 +376,7 @@ jobs:
           grep -q 'data-v1553-bound' app/src/main/assets/v1553-fixes.js
           grep -q 'v1554-fixes.css' app/src/main/assets/index.html
           grep -q 'logout-red-v1554.json' app/src/main/assets/index.html
+          if grep -q 'lottie/logout-v155.json' app/src/main/assets/index.html; then exit 1; fi
           grep -q 'v1554LogoutLottie' app/src/main/assets/index.html
           grep -q 'function isRedLogout(rec)' app/src/main/assets/lottie-runtime.js
           if grep -q 'v1552ThemeCard' app/src/main/assets/index.html; then exit 1; fi
