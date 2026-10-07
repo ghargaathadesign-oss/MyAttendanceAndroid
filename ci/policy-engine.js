@@ -76,15 +76,22 @@ function daily(record,settings){
 }
 function balanceMinutes(record,settings){return daily(record,settings).balance}
 function salaryMonth(records,month,settings,salary){
-  var s=normalizeSettings(settings),sal=salary||{},monthly=Math.max(0,n(sal.monthly,0)),mult=clamp(n(sal.otMultiplier,1),0,5),p=String(month||'').split('-'),year=+p[0],mon=+p[1],days=(year&&mon)?new Date(year,mon,0).getDate():30,std=Math.max(1,standardMinutes(s)),dayRate=monthly/days,hourRate=dayRate/(std/60),normalOt=0,specialOt=0,shortfall=0,i,r,d;
+  var s=normalizeSettings(settings),sal=salary||{},monthly=Math.max(0,n(sal.monthly,0)),mult=clamp(n(sal.otMultiplier,1),0,5),p=String(month||'').split('-'),year=+p[0],mon=+p[1],days=(year&&mon)?new Date(year,mon,0).getDate():30,std=Math.max(1,standardMinutes(s)),dayRate=monthly/days,hourRate=dayRate/(std/60),normalOt=0,specialOt=0,shortfall=0,paid=0,recordedDays=0,i,r,d,st,unit;
   records=Array.isArray(records)?records:[];
   for(i=0;i<records.length;i++){
-    r=records[i];if(!r||String(r.date||'').slice(0,7)!==month)continue;d=daily(r,s);
+    r=records[i];if(!r||String(r.date||'').slice(0,7)!==month)continue;
+    recordedDays++;d=daily(r,s);st=normalizeStatus(r.status)||'Present';
     if(d.special)specialOt+=d.worked;else normalOt+=d.overtime;
     shortfall+=d.shortfall;
+    if(st==='Absent'||st==='Unpaid Leave')unit=0;
+    else if(st==='Paid Leave'||st==='Holiday'||st==='Week Off'||d.special)unit=1;
+    else if(st==='Half Day')unit=.5-(d.shortfall/std);
+    else unit=1-(d.shortfall/std);
+    paid+=clamp(unit,0,1);
   }
-  var deduction=(shortfall/60)*hourRate,normalOtPay=(normalOt/60)*hourRate*mult,specialPay=(specialOt/60)*hourRate,earned=Math.max(0,monthly-deduction+normalOtPay+specialPay),paid=clamp(days-(shortfall/std),0,days);
-  return{days:days,paid:paid,ot:normalOt+specialOt,net:(normalOt+specialOt)-shortfall,shortfall:shortfall,dayRate:dayRate,hourRate:hourRate,otPay:normalOtPay+specialPay,normalOt:normalOt,specialOt:specialOt,normalOtPay:normalOtPay,specialPay:specialPay,deduction:deduction,baseSalary:monthly,earned:earned};
+  paid=clamp(paid,0,days);
+  var baseEarned=dayRate*paid,deduction=(shortfall/60)*hourRate,normalOtPay=(normalOt/60)*hourRate*mult,specialPay=(specialOt/60)*hourRate,earned=Math.max(0,baseEarned+normalOtPay+specialPay);
+  return{days:days,recordedDays:recordedDays,paid:paid,ot:normalOt+specialOt,net:(normalOt+specialOt)-shortfall,shortfall:shortfall,dayRate:dayRate,hourRate:hourRate,otPay:normalOtPay+specialPay,normalOt:normalOt,specialOt:specialOt,normalOtPay:normalOtPay,specialPay:specialPay,deduction:deduction,baseSalary:monthly,baseEarned:baseEarned,earned:earned};
 }
 function leaveAccrued(asOf,totalCap,rate){
   var d=asOf instanceof Date?asOf:new Date(asOf||Date.now());if(isNaN(d.getTime()))d=new Date();
