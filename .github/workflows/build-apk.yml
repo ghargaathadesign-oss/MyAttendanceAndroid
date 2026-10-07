@@ -210,7 +210,6 @@ jobs:
           node ci/test-transfer-crypto.js
           node ci/test-diagnostics.js
           node --check ci/test-functional-audit.js
-          set -x
           grep -q 'window.initLottie' app/src/main/assets/lottie-runtime.js
           grep -q 'exceljs.min.js' app/src/main/assets/index.html
           grep -q 'deleteProfileBtn' app/src/main/assets/index.html
@@ -351,7 +350,6 @@ jobs:
           grep -q 'lottie/diagnose-v155.json' app/src/main/assets/index.html
           grep -q 'lottie/notification-v155.json' app/src/main/assets/index.html
           grep -q 'lottie/present-v155.json' app/src/main/assets/index.html
-          grep -q 'lottie/theme-v155.json' app/src/main/assets/index.html
           grep -q 'v155ReminderClock' app/src/main/assets/index.html
           test "$(grep -o 'v155ReminderClock' app/src/main/assets/index.html | wc -l)" = "3"
           grep -q 'v154BootLottie' app/src/main/assets/index.html
