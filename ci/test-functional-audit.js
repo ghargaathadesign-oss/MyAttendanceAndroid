@@ -242,8 +242,12 @@ for(const s of [...w.document.querySelectorAll('script')]){
     a=parseJSON(w.localStorage.getItem('attendance_v8'));x=a.find(r=>r.id===x.id);assert.strictEqual(x.notes,'Edited audit note');
     w.AttendanceAppApi.openEdit(x.id);click(w,'editCancel');await wait(5);assert(!w.document.getElementById('editModal').classList.contains('show'));
     w.AttendanceAppApi.openEdit(x.id);click(w,'editClose');await wait(5);assert(!w.document.getElementById('editModal').classList.contains('show'));
-    w.AttendanceAppApi.openEdit(x.id);click(w,'editPopupDelete');await wait(15);
-    a=parseJSON(w.localStorage.getItem('attendance_v8'));assert(!a.some(r=>r.id===x.id),'Attendance delete failed');
+    w.AttendanceAppApi.openEdit(x.id);
+    var deleteCalls=0,originalDelete=w.AttendanceAppApi.deleteRecord;
+    w.AttendanceAppApi.deleteRecord=function(id){deleteCalls++;return originalDelete(id)};
+    click(w,'editPopupDelete');await wait(30);
+    assert(deleteCalls>0,'Delete Attendance button did not invoke deleteRecord');
+    a=parseJSON(w.localStorage.getItem('attendance_v8'));assert(!a.some(r=>r.id===x.id),'deleteRecord ran but attendance data was not removed');
   });
 
   await test('Theme Light/Dark buttons and JSON toggle persist correctly',async()=>{
@@ -277,8 +281,12 @@ for(const s of [...w.document.querySelectorAll('script')]){
     const inp=w.document.getElementById('docFile');const file=new w.File(['hello audit'],'audit.txt',{type:'text/plain'});
     Object.defineProperty(inp,'files',{configurable:true,value:[file]});fire(w,inp,'change');click(w,'saveDocument');await wait(500);
     assert.strictEqual(await w.attendanceDocumentCount(),1);
-    const del=w.document.querySelector('#documentList .docDelete');assert(del,'Document delete button missing');del.click();await wait(250);
-    assert.strictEqual(await w.attendanceDocumentCount(),0);
+    const del=w.document.querySelector('#documentList .docDelete');assert(del,'Document delete button missing');del.click();await wait(40);
+    if((await w.attendanceDocumentCount())!==0){
+      const confirmBtn=[...w.document.querySelectorAll('button')].find(b=>/^Delete$/i.test(String(b.textContent||'').trim())||/Delete document/i.test(String(b.textContent||'')));
+      if(confirmBtn){confirmBtn.click();await wait(250)}
+    }
+    assert.strictEqual(await w.attendanceDocumentCount(),0,'Document delete confirmation completed but record remains');
   });
 
   await test('Attendance search/filter/month navigation controls respond',async()=>{
