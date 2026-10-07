@@ -5,9 +5,11 @@ assets=Path(sys.argv[1] if len(sys.argv)>1 else 'app/src/main/assets')
 index=assets/'index.html'
 app=assets/'app.js'
 v15=assets/'v15-features.js'
+v112=assets/'v112-fixes.js'
 h=index.read_text(encoding='utf-8')
 s=app.read_text(encoding='utf-8')
 v=v15.read_text(encoding='utf-8')
+t=v112.read_text(encoding='utf-8')
 
 # Leave Setup is now the authoritative annual balance; do not replace it with monthly accrual.
 old_help='Paid leave accrues automatically at 1.5 days per month, up to this annual cap.'
@@ -124,6 +126,47 @@ records=r"""function renderRecords(month){
 function renderAttendance"""
 v=v[:m.start()]+records+v[m.end():]
 v15.write_text(v,encoding='utf-8')
+
+# Final Excel/CSV exporter: canonicalize Sunday and use the shared policy for full Sunday OT.
+old_get="function getRecords(){try{return JSON.parse(localStorage.getItem('attendance_v8')||'[]')||[]}catch(e){return[]}}\nfunction putRecords(a){localStorage.setItem('attendance_v8',JSON.stringify(a))}"
+new_get="""function isSundayRecord(x){if(!x||!x.date)return false;var d=new Date(String(x.date)+'T00:00:00');return !isNaN(d.getTime())&&d.getDay()===0}
+function canonicalSunday(x){if(x&&isSundayRecord(x)){x.status='Week Off';x.specialOT=true}return x}
+function getRecords(){try{var a=JSON.parse(localStorage.getItem('attendance_v8')||'[]')||[],i;for(i=0;i<a.length;i++)canonicalSunday(a[i]);return a}catch(e){return[]}}
+function putRecords(a){var i;for(i=0;i<a.length;i++)canonicalSunday(a[i]);localStorage.setItem('attendance_v8',JSON.stringify(a))}"""
+if old_get not in t:
+    raise SystemExit('v112 final getRecords anchor missing')
+t=t.replace(old_get,new_get,1)
+
+old_req="function requiredMinutes(x,std){if(!x)return 0;if(x.status==='Paid Leave'||x.status==='Holiday'||x.status==='Week Off')return 0;if(x.status==='Half Day')return Math.round(std/2);return std}"
+new_req="function requiredMinutes(x,std){if(!x)return 0;if(isSundayRecord(x)||x.status==='Paid Leave'||x.status==='Holiday'||x.status==='Week Off')return 0;if(x.status==='Half Day')return Math.round(std/2);return std}"
+if old_req not in t:
+    raise SystemExit('v112 final requiredMinutes anchor missing')
+t=t.replace(old_req,new_req,1)
+
+old_bal="function balanceMinutes(x,s){var std=s.h*60+s.m,r=requiredMinutes(x,std),w=workMinutes(x),d;if(!x)return 0;if(x.status==='Paid Leave'||x.status==='Holiday'||x.status==='Week Off')return 0;if(x.status==='Absent'||x.status==='Unpaid Leave')return-r;d=w-r;return d>0?Math.max(0,d-s.otDelay):d}"
+new_bal="function balanceMinutes(x,s){if(!x)return 0;if(window.AttendancePolicy&&AttendancePolicy.balanceMinutes)return AttendancePolicy.balanceMinutes(x,s);var std=s.h*60+s.m,r=requiredMinutes(x,std),w=workMinutes(x),d;if(isSundayRecord(x)||x.status==='Holiday'||x.status==='Week Off')return w;if(x.status==='Paid Leave')return 0;if(x.status==='Absent'||x.status==='Unpaid Leave')return-r;d=w-r;return d>0?Math.max(0,d-s.otDelay):d}"
+if old_bal not in t:
+    raise SystemExit('v112 final balanceMinutes anchor missing')
+t=t.replace(old_bal,new_bal,1)
+
+old_decl="var days=new Date(year,month+1,0).getDate(),row=6,tw=0,tr=0,to=0,ts=0,net=0,date,w,req,bal,vals;for(i=1;i<=days;i++){date=year+'-'+P(month+1)+'-'+P(i);x=map[date]||null;w=workMinutes(x);req=x?requiredMinutes(x,s.h*60+s.m):0;"
+new_decl="var days=new Date(year,month+1,0).getDate(),row=6,tw=0,tr=0,to=0,ts=0,net=0,date,w,req,bal,vals,sun,displayStatus;for(i=1;i<=days;i++){date=year+'-'+P(month+1)+'-'+P(i);x=map[date]||null;sun=new Date(year,month,i).getDay()===0;displayStatus=sun?'Week Off':(x?(x.status||''):'');if(x&&sun)canonicalSunday(x);w=workMinutes(x);req=x?requiredMinutes(x,s.h*60+s.m):0;"
+if old_decl not in t:
+    raise SystemExit('v112 final styleSheet declaration anchor missing')
+t=t.replace(old_decl,new_decl,1)
+
+old_vals="vals=[excelDateLabel(date),new Date(year,month,i).toLocaleDateString('en-US',{weekday:'long'}),x?displayTime(x.checkIn,s.fmt):'',x?displayTime(x.checkOut,s.fmt):'',x?hm(w,false):'',x?hm(req,false):'',x?hm(Math.max(0,bal),false):'',x?hm(Math.max(0,-bal),false):'',x?hm(bal,true):'',x?(x.status||''):'',x?((x.reason||'')+(x.notes?((x.reason?' • ':'')+x.notes):'')):'' ];"
+new_vals="vals=[excelDateLabel(date),new Date(year,month,i).toLocaleDateString('en-US',{weekday:'long'}),x?displayTime(x.checkIn,s.fmt):'',x?displayTime(x.checkOut,s.fmt):'',x?hm(w,false):'',(x||sun)?hm(req,false):'',(x||sun)?hm(Math.max(0,bal),false):'',(x||sun)?hm(Math.max(0,-bal),false):'',(x||sun)?hm(bal,true):'',displayStatus,x?((x.reason||'')+(x.notes?((x.reason?' • ':'')+x.notes):'')):'' ];"
+if old_vals not in t:
+    raise SystemExit('v112 final styleSheet values anchor missing')
+t=t.replace(old_vals,new_vals,1)
+
+old_fill="if(c===9&&x)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:statusFill(x.status)}}"
+new_fill="if(c===9&&(x||sun))cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:statusFill(displayStatus)}}"
+if old_fill not in t:
+    raise SystemExit('v112 final Sunday status fill anchor missing')
+t=t.replace(old_fill,new_fill,1)
+v112.write_text(t,encoding='utf-8')
 
 app.write_text(s,encoding='utf-8')
 print('v15.5.8 Sunday, Reset and Leave Balance fixes applied')
