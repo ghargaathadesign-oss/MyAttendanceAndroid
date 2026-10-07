@@ -1,8 +1,8 @@
 {
-  "versionName": "15.5.4",
-  "versionCode": 38,
-  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.5.4/My-Attendance-v15.5.4-signed.apk",
+  "versionName": "15.5.5",
+  "versionCode": 39,
+  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.5.5/My-Attendance-v15.5.5-signed.apk",
   "sha256": "",
-  "changelog": "Restores the older Appearance Theme layout, reduces and re-centers the startup Loading animation, and replaces the Logout animation with the newly supplied red JSON.",
+  "changelog": "Fixes Salary Settings saving, verifies secure storage writes, and immediately refreshes Daily Rate, Paid Days, OT Pay, Estimated Earned, Home salary, and Reports after saving.",
   "publishedAt": "2026-10-07T00:00:00Z"
 }

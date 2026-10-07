@@ -3,7 +3,7 @@ name: Build My Attendance APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, v12.6-hardening, v12.7-device-auth, v12.8-restore-compat, v12.9-step7-delete, v13.0-step9-r8, v13.1-step12-diagnostics, v13.2-diagnostics-polish, v13.3-app-check-monitoring, v13.4-diagnostics-appcheck, v13.5-performance, v13.6-attendance-speed, v13.7-attendance-upgrade, v14-all-steps, v15-notification-attendance, v15.1-ui-polish, v15.2-update-push-polish, v15.2-delivery-hardening, v15.4-batch-updates, v15.5-icon-updates, v15.5.1-ui-fixes, v15.5.2-ui-polish, v15.5.3-ui-tweaks, v15.5.4-theme-loader-logout]
+    branches: [main, v12.6-hardening, v12.7-device-auth, v12.8-restore-compat, v12.9-step7-delete, v13.0-step9-r8, v13.1-step12-diagnostics, v13.2-diagnostics-polish, v13.3-app-check-monitoring, v13.4-diagnostics-appcheck, v13.5-performance, v13.6-attendance-speed, v13.7-attendance-upgrade, v14-all-steps, v15-notification-attendance, v15.1-ui-polish, v15.2-update-push-polish, v15.2-delivery-hardening, v15.4-batch-updates, v15.5-icon-updates, v15.5.1-ui-fixes, v15.5.2-ui-polish, v15.5.3-ui-tweaks, v15.5.4-theme-loader-logout, v15.5.5-salary-fix]
 
 permissions:
   contents: write
@@ -23,7 +23,7 @@ jobs:
           base64 -d ci/app_icon.webp.b64 > app/src/main/res/drawable/app_icon.webp
           test -s app/src/main/res/drawable/app_icon.webp
 
-      - name: Prepare v15.5.4 app
+      - name: Prepare v15.5.5 app
         shell: bash
         run: |
           set -e
@@ -111,6 +111,7 @@ jobs:
           python3 ci/patch_v1552.py app/src/main/assets
           python3 ci/patch_v1553.py app/src/main/assets
           python3 ci/patch_v1554.py app/src/main/assets
+          python3 ci/patch_v1555.py app/src/main/assets
 
           test -s app/src/main/assets/index.html
           test -s app/src/main/assets/app.css
@@ -154,6 +155,8 @@ jobs:
           test -s app/src/main/assets/v1553-fixes.css
           test -s app/src/main/assets/v1553-fixes.js
           test -s app/src/main/assets/v1554-fixes.css
+          test -s app/src/main/assets/v1555-salary.css
+          test -s app/src/main/assets/v1555-salary.js
           test -s app/src/main/assets/lottie/logout-red-v1554.json
           test -s app/src/main/assets/lottie/appearance-v155.json
           test -s app/src/main/assets/lottie/calendar-v155.json
@@ -384,6 +387,13 @@ jobs:
           grep -q 'v1551ThemeSide dark' app/src/main/assets/index.html
           grep -q 'grid-template-columns:1fr 68px 1fr' app/src/main/assets/v1554-fixes.css
           grep -q 'width:min(76vw,310px)' app/src/main/assets/v1554-fixes.css
+          grep -q 'salarySaveStatus' app/src/main/assets/index.html
+          grep -q 'v1555-salary.css' app/src/main/assets/index.html
+          grep -q 'v1555-salary.js' app/src/main/assets/index.html
+          grep -q 'function salaryPut(s)' app/src/main/assets/app.js
+          grep -q 'Android.secureSet' app/src/main/assets/app.js
+          grep -q 'saveSalary:saveSalary' app/src/main/assets/app.js
+          grep -q "renderSalary();renderHome()" app/src/main/assets/app.js
           if grep -q '<button class="back" type="button" data-back="home">‹</button>' app/src/main/assets/index.html; then exit 1; fi
           grep -q 'checkForUpdatesNative' app/src/main/java/com/personal/attendance/MainActivity.java
           grep -q '@JavascriptInterface public void checkForUpdates' app/src/main/java/com/personal/attendance/MainActivity.java
@@ -419,7 +429,8 @@ jobs:
           grep -q 'Short Day' app/src/main/assets/policy-engine.js
           grep -q 'Documents are encrypted with Android Keystore and stored only on this device' app/src/main/assets/index.html
           if grep -q 'RE-PUNCH' app/src/main/assets/app.js; then exit 1; fi
-          echo "v15.5.4 theme revert, loader alignment and supplied logout prepared successfully"
+          echo "v15.5.5 salary save reliability fix prepared successfully"
+
 
 
 
@@ -499,7 +510,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p output
-          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v15.5.4-unsigned.apk
+          cp app/build/outputs/apk/release/app-release-unsigned.apk output/My-Attendance-v15.5.5-unsigned.apk
           tar -czf output/android-build-tools-35.tar.gz -C "$ANDROID_HOME/build-tools" 35.0.0
 
       - name: Sign APK with permanent release key
@@ -517,11 +528,11 @@ jobs:
             exit 0
           fi
           KEYSTORE="$RUNNER_TEMP/my-attendance-release.jks"
-          ALIGNED="$RUNNER_TEMP/My-Attendance-v15.5.4-aligned.apk"
-          SIGNED="output/My-Attendance-v15.5.4-signed.apk"
+          ALIGNED="$RUNNER_TEMP/My-Attendance-v15.5.5-aligned.apk"
+          SIGNED="output/My-Attendance-v15.5.5-signed.apk"
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
           chmod 600 "$KEYSTORE"
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -P 16 4 output/My-Attendance-v15.5.4-unsigned.apk "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -P 16 4 output/My-Attendance-v15.5.5-unsigned.apk "$ALIGNED"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign             --ks "$KEYSTORE"             --ks-key-alias "$ANDROID_KEY_ALIAS"             --ks-pass env:ANDROID_KEYSTORE_PASSWORD             --key-pass env:ANDROID_KEY_PASSWORD             --out "$SIGNED"             "$ALIGNED"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$SIGNED" | tee output/apksigner-report.txt
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$SIGNED"
@@ -535,31 +546,31 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SIGNED="output/My-Attendance-v15.5.4-signed.apk"
+          SIGNED="output/My-Attendance-v15.5.5-signed.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$SIGNED" | tee output/package-badging.txt
           grep -q "package: name='com.personal.attendance'" output/package-badging.txt
-          grep -q "versionCode='38'" output/package-badging.txt
-          grep -q "versionName='15.5.4'" output/package-badging.txt
-          sha256sum "$SIGNED" | tee output/My-Attendance-v15.5.4-signed.apk.sha256
+          grep -q "versionCode='39'" output/package-badging.txt
+          grep -q "versionName='15.5.5'" output/package-badging.txt
+          sha256sum "$SIGNED" | tee output/My-Attendance-v15.5.5-signed.apk.sha256
 
-      - name: Publish v15.5.4 GitHub release
+      - name: Publish v15.5.5 GitHub release
         if: github.ref == 'refs/heads/main' && env.SIGNED_APK_AVAILABLE == '1'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="v15.5.4"
-          APK="output/My-Attendance-v15.5.4-signed.apk"
+          TAG="v15.5.5"
+          APK="output/My-Attendance-v15.5.5-signed.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
             gh release create "$TAG" "$APK" \
-              --title "My Attendance v15.5.4" \
-              --notes "v15.5.4 restores the older Appearance Theme layout, makes the startup Loading animation smaller and centered, and uses the newly supplied red Logout JSON."
+              --title "My Attendance v15.5.5" \
+              --notes "v15.5.5 fixes Salary Settings saving and immediately refreshes Daily Rate, Paid Days, OT Pay, Estimated Earned, Home salary and Reports."
           fi
 
-      - name: Send v15.5.4 update notification
+      - name: Send v15.5.5 update notification
         if: github.ref == 'refs/heads/main' && env.SIGNED_APK_AVAILABLE == '1'
         continue-on-error: true
         shell: bash
@@ -567,18 +578,18 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           FIREBASE_PROJECT_ID: my-attendance-c5c23
           FCM_TOPIC: attendance_updates
-          UPDATE_VERSION: '15.5.4'
-          UPDATE_VERSION_CODE: '38'
-          UPDATE_CHANGELOG: 'Appearance Theme restored to the older compact Light/JSON/Dark layout; startup Loading JSON reduced and centered; supplied red Logout JSON applied.'
+          UPDATE_VERSION: '15.5.5'
+          UPDATE_VERSION_CODE: '39'
+          UPDATE_CHANGELOG: 'Salary Settings save is hardened with secure-storage verification and fallback; salary summary and related Home/Reports values refresh immediately after saving.'
         run: |
           set -euo pipefail
           if [ -z "${FIREBASE_SERVICE_ACCOUNT_JSON:-}" ]; then
-            echo "::warning::FIREBASE_SERVICE_ACCOUNT_JSON is not configured. installed devices cannot receive the automatic v15.5.4 push until this repository secret is added and this workflow is rerun."
+            echo "::warning::FIREBASE_SERVICE_ACCOUNT_JSON is not configured. installed devices cannot receive the automatic v15.5.5 push until this repository secret is added and this workflow is rerun."
             exit 0
           fi
           python3 -m pip install --disable-pip-version-check --quiet google-auth requests
-          export UPDATE_APK_SHA256="$(cut -d' ' -f1 output/My-Attendance-v15.5.4-signed.apk.sha256)"
-          export UPDATE_APK_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/v15.5.4/My-Attendance-v15.5.4-signed.apk"
+          export UPDATE_APK_SHA256="$(cut -d' ' -f1 output/My-Attendance-v15.5.5-signed.apk.sha256)"
+          export UPDATE_APK_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/v15.5.5/My-Attendance-v15.5.5-signed.apk"
           python3 ci/send_update_fcm.py
 
 
@@ -586,10 +597,10 @@ jobs:
         if: env.SIGNED_APK_AVAILABLE == '1'
         uses: actions/upload-artifact@v4
         with:
-          name: My-Attendance-v15.5.4-Signed-APK
+          name: My-Attendance-v15.5.5-Signed-APK
           path: |
-            output/My-Attendance-v15.5.4-signed.apk
-            output/My-Attendance-v15.5.4-signed.apk.sha256
+            output/My-Attendance-v15.5.5-signed.apk
+            output/My-Attendance-v15.5.5-signed.apk.sha256
             output/apksigner-report.txt
             output/package-badging.txt
           if-no-files-found: error
@@ -598,8 +609,8 @@ jobs:
       - name: Upload unsigned APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: My-Attendance-v15.5.4-Unsigned-APK
-          path: output/My-Attendance-v15.5.4-unsigned.apk
+          name: My-Attendance-v15.5.5-Unsigned-APK
+          path: output/My-Attendance-v15.5.5-unsigned.apk
           if-no-files-found: error
           retention-days: 30
 

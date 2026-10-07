@@ -1,0 +1,12 @@
+/* My Attendance v15.5.5 — salary save feedback */
+#salarySaveStatus{
+  display:block;
+  min-height:16px;
+  margin-top:8px;
+  text-align:center;
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.4;
+}
+#salarySaveStatus.ok{color:#25a96b}
+#salarySaveStatus.err{color:#d84a5a}
