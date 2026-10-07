@@ -1,8 +1,8 @@
 {
-  "versionName": "15.5.2",
-  "versionCode": 36,
-  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.5.2/My-Attendance-v15.5.2-signed.apk",
+  "versionName": "15.5.3",
+  "versionCode": 37,
+  "apkUrl": "https://github.com/ghargaathadesign-oss/MyAttendanceAndroid/releases/download/v15.5.3/My-Attendance-v15.5.3-signed.apk",
   "sha256": "",
-  "changelog": "Makes the startup Loading JSON span the device width and sit slightly lower, rebuilds Appearance to match the supplied Light/Dark reference card with the JSON as the one-tap toggle, and redesigns Smart Reminders into cleaner same-theme adaptive cards.",
+  "changelog": "Logout icon and text use red styling; tapping the Day/Night Theme JSON directly switches between light and dark; startup loading artwork scales responsively to the device width without cropping.",
   "publishedAt": "2026-10-07T00:00:00Z"
 }
