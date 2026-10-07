@@ -42,9 +42,9 @@ h=h.replace(
 def bust_attr(m):
     pre,url,post=m.group(1),m.group(2),m.group(3)
     if url.startswith(('http://','https://','data:')): return m.group(0)
-    url=re.sub(r"\\?v=[^\"]+$",'',url)
+    url=re.sub(r"\?v=[^\"]+$",'',url)
     return pre+url+'?v=1557'+post
-h=re.sub(r'((?:src|href)=")([^"]+\\.(?:js|css))(")',bust_attr,h)
+h=re.sub(r'((?:src|href)=")([^"]+\.(?:js|css))(")',bust_attr,h)
 
 index.write_text(h,encoding='utf-8')
 
