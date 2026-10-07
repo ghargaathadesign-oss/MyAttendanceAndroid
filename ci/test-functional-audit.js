@@ -10,6 +10,8 @@ const {webcrypto}=require('crypto');
 const assets=path.resolve(process.argv[2]||'app/src/main/assets');
 const htmlPath=path.join(assets,'index.html');
 const html=fs.readFileSync(htmlPath,'utf8');
+const appSource=fs.readFileSync(path.join(assets,'app.js'),'utf8');
+function sourceSnippet(token){const i=appSource.indexOf(token);return i>=0?appSource.slice(Math.max(0,i-500),Math.min(appSource.length,i+2400)):'MISSING '+token}
 const results=[];
 function ok(name,detail){results.push({name,ok:true,detail:detail||''});}
 function fail(name,e){results.push({name,ok:false,detail:String(e&&e.stack||e)});}
@@ -243,11 +245,20 @@ for(const s of [...w.document.querySelectorAll('script')]){
     w.AttendanceAppApi.openEdit(x.id);click(w,'editCancel');await wait(5);assert(!w.document.getElementById('editModal').classList.contains('show'));
     w.AttendanceAppApi.openEdit(x.id);click(w,'editClose');await wait(5);assert(!w.document.getElementById('editModal').classList.contains('show'));
     w.AttendanceAppApi.openEdit(x.id);
-    var deleteCalls=0,originalDelete=w.AttendanceAppApi.deleteRecord;
-    w.AttendanceAppApi.deleteRecord=function(id){deleteCalls++;return originalDelete(id)};
+    var deleteCalls=0,deleteArgs=[],deleteSnapshots=[],originalDelete=w.AttendanceAppApi.deleteRecord;
+    w.AttendanceAppApi.deleteRecord=function(id){
+      deleteCalls++;deleteArgs.push(String(id));
+      deleteSnapshots.push({before:w.localStorage.getItem('attendance_v8'),hidden:w.document.getElementById('editPopupId').value});
+      var out=originalDelete(id);
+      deleteSnapshots[deleteSnapshots.length-1].after=w.localStorage.getItem('attendance_v8');
+      return out
+    };
     click(w,'editPopupDelete');await wait(30);
     assert(deleteCalls>0,'Delete Attendance button did not invoke deleteRecord');
-    a=parseJSON(w.localStorage.getItem('attendance_v8'));assert(!a.some(r=>r.id===x.id),'deleteRecord ran but attendance data was not removed');
+    assert(deleteArgs.includes(String(x.id)),'Delete button passed wrong record id: '+JSON.stringify(deleteArgs)+' hidden='+w.document.getElementById('editPopupId').value);
+    a=parseJSON(w.localStorage.getItem('attendance_v8'));
+    if(a.some(r=>r.id===x.id))console.log('ATTENDANCE DELETE DEBUG',JSON.stringify(deleteSnapshots),'SOURCE',sourceSnippet('function deleteRecord'));
+    assert(!a.some(r=>r.id===x.id),'deleteRecord ran with correct id but attendance data was not removed');
   });
 
   await test('Theme Light/Dark buttons and JSON toggle persist correctly',async()=>{
@@ -281,10 +292,14 @@ for(const s of [...w.document.querySelectorAll('script')]){
     const inp=w.document.getElementById('docFile');const file=new w.File(['hello audit'],'audit.txt',{type:'text/plain'});
     Object.defineProperty(inp,'files',{configurable:true,value:[file]});fire(w,inp,'change');click(w,'saveDocument');await wait(500);
     assert.strictEqual(await w.attendanceDocumentCount(),1);
-    const del=w.document.querySelector('#documentList .docDelete');assert(del,'Document delete button missing');del.click();await wait(40);
+    const del=w.document.querySelector('#documentList .docDelete');assert(del,'Document delete button missing');
+    assert(typeof w.document.getElementById('documentList').onclick==='function','Document list delegated click handler missing');
+    del.click();await wait(60);
     if((await w.attendanceDocumentCount())!==0){
-      const confirmBtn=[...w.document.querySelectorAll('button')].find(b=>/^Delete$/i.test(String(b.textContent||'').trim())||/Delete document/i.test(String(b.textContent||'')));
-      if(confirmBtn){confirmBtn.click();await wait(250)}
+      const buttons=[...w.document.querySelectorAll('button')].filter(b=>/delete/i.test(String(b.textContent||'')));
+      const confirmBtn=buttons.find(b=>/^Delete$/i.test(String(b.textContent||'').trim())||/Delete document/i.test(String(b.textContent||'')));
+      console.log('DOCUMENT DELETE DEBUG',JSON.stringify({buttons:buttons.map(b=>({id:b.id,text:String(b.textContent||'').trim(),cls:b.className})),list:w.document.getElementById('documentList').innerHTML.slice(0,1200)}),'SOURCE',sourceSnippet('function deleteDoc'));
+      if(confirmBtn){confirmBtn.click();await wait(350)}
     }
     assert.strictEqual(await w.attendanceDocumentCount(),0,'Document delete confirmation completed but record remains');
   });
