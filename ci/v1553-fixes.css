@@ -1,0 +1,81 @@
+/* v15.5.3 — responsive startup art, tap-enabled theme, red logout */
+
+/* Distinguish the destructive sign-out action without changing any other menu. */
+#settingsLogoutBtn,
+.settingsLogoutRow{
+  color:#d94150!important;
+}
+#settingsLogoutBtn b,
+#settingsLogoutBtn small,
+#settingsLogoutBtn i,
+.settingsLogoutRow b,
+.settingsLogoutRow small,
+.settingsLogoutRow i{
+  color:#d94150!important;
+}
+#settingsLogoutBtn>.v155LogoutLottie,
+.settingsLogoutRow>.v155LogoutLottie{
+  border-radius:12px!important;
+  background:rgba(217,65,80,.065)!important;
+}
+#settingsLogoutBtn .v155LogoutLottie svg,
+.settingsLogoutRow .v155LogoutLottie svg{
+  filter:brightness(0) saturate(100%) invert(34%) sepia(87%) saturate(1783%) hue-rotate(322deg) brightness(90%) contrast(97%)!important;
+}
+body.dark-mode #settingsLogoutBtn,
+body.dark-mode .settingsLogoutRow,
+body.dark-mode #settingsLogoutBtn b,
+body.dark-mode #settingsLogoutBtn small,
+body.dark-mode #settingsLogoutBtn i,
+body.dark-mode .settingsLogoutRow b,
+body.dark-mode .settingsLogoutRow small,
+body.dark-mode .settingsLogoutRow i{
+  color:#ff7983!important;
+}
+body.dark-mode #settingsLogoutBtn .v155LogoutLottie svg,
+body.dark-mode .settingsLogoutRow .v155LogoutLottie svg{
+  filter:brightness(0) saturate(100%) invert(63%) sepia(65%) saturate(1028%) hue-rotate(305deg) brightness(102%) contrast(101%)!important;
+}
+
+/* The supplied day/night animation is directly touchable, not just its card text. */
+#v1551ThemeToggle.v1552ThemeCard .v155ThemeLottie,
+#v1551ThemeToggle.v1552ThemeCard .v155ThemeLottie svg{
+  pointer-events:auto!important;
+  cursor:pointer!important;
+  touch-action:manipulation!important;
+}
+#v1551ThemeToggle.v1552ThemeCard .v155ThemeLottie svg *{
+  pointer-events:visiblePainted!important;
+}
+
+/* Responsive on all phone widths: no fixed 2x scale, no cropped edges. */
+.v154BootLottie{
+  box-sizing:border-box!important;
+  display:block!important;
+  width:calc(100vw - 24px)!important;
+  width:calc(100dvw - 24px)!important;
+  max-width:720px!important;
+  min-width:0!important;
+  height:clamp(86px,24vw,158px)!important;
+  aspect-ratio:auto!important;
+  margin:clamp(30px,5vh,62px) auto 0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  flex:0 0 auto!important;
+}
+.v154BootLottie svg{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:100%!important;
+  transform:none!important;
+  transform-origin:center center!important;
+  overflow:visible!important;
+}
+@media(max-width:340px){
+  .v154BootLottie{
+    width:calc(100vw - 16px)!important;
+    width:calc(100dvw - 16px)!important;
+    height:86px!important;
+  }
+}
