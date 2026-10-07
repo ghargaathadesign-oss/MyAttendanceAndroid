@@ -1,0 +1,49 @@
+/* My Attendance v15.5 — user supplied Lottie icon refresh */
+.v155TopBell{width:29px;height:29px;display:block;pointer-events:none}
+#topSettings .topBellGlyph{display:none!important}
+
+.v155LogoutLottie{width:30px;height:30px;display:block;flex:0 0 30px}
+.settingsLogoutRow{grid-template-columns:38px minmax(0,1fr) 18px!important}
+.settingsLogoutRow>.v155LogoutLottie{justify-self:center}
+
+.v155StatLottie{width:34px;height:34px;display:block;margin:0 auto 4px}
+#attendanceStats .v15StatIcon.v155StatLottie{font-size:0!important;line-height:0!important}
+
+.customDateButton.v155DateButton{display:flex!important;align-items:center!important;gap:9px!important;padding-left:10px!important;padding-right:36px!important}
+.v155CalendarLottie{width:27px;height:27px;flex:0 0 27px;display:block}
+.v155DateLabel{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.customDateButton.v155DateButton:after{right:14px!important}
+
+.v155ThemeToggle{display:grid!important;grid-template-columns:1fr 68px 1fr!important;align-items:center!important;gap:5px!important;min-height:58px!important;padding:5px!important;border:1px solid var(--line)!important;border-radius:999px!important;background:var(--surface2)!important;overflow:hidden}
+.v155ThemeToggle button{height:46px!important;min-width:0!important;border:0!important;border-radius:999px!important;background:transparent!important;color:var(--muted)!important;font-weight:800!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:0 10px!important;box-shadow:none!important}
+.v155ThemeToggle button small{font-size:11px!important;font-weight:800!important}
+.v155ThemeToggle #themeLight.on,.v155ThemeToggle #themeDark.on,
+body:not(.dark-mode) .v155ThemeToggle #themeLight,
+body.dark-mode .v155ThemeToggle #themeDark{background:var(--surface)!important;color:var(--ink)!important;box-shadow:0 4px 14px rgba(34,55,84,.10)!important}
+.v155ThemeLottie{width:62px;height:46px;display:block;pointer-events:none}
+body.dark-mode .v155ThemeToggle #themeDark{box-shadow:0 4px 14px rgba(0,0,0,.22)!important}
+
+.reminderTimeGrid.v155ReminderRow{align-items:stretch!important}
+.reminderTimeGrid.v155ReminderRow>.switchLine{box-sizing:border-box;min-height:62px!important;margin:0!important;padding-top:9px!important;padding-bottom:9px!important}
+.v155ReminderTime{position:relative!important;box-sizing:border-box!important;min-height:62px!important;height:auto!important;display:flex!important;align-items:center!important;padding:0!important;overflow:hidden}
+.v155ReminderTime input[type=time]{box-sizing:border-box!important;width:100%!important;height:100%!important;min-height:60px!important;padding-right:46px!important}
+.v155ReminderClock{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:35px;height:35px;display:block;pointer-events:none}
+@media(max-width:430px){
+  .reminderTimeGrid.v155ReminderRow{grid-template-columns:minmax(0,1fr) 112px!important}
+  .v155ReminderClock{width:31px;height:31px;right:4px}
+  .v155ReminderTime input[type=time]{padding-right:39px!important}
+}
+
+.v154BootLottie{width:72px;height:42px;display:block;margin-top:13px}
+.v154BootDots{display:none!important}
+
+.sectionHeader .pageLottie[data-lottie*="appearance-v155"],
+.sectionHeader .pageLottie[data-lottie*="reports-v155"],
+.sectionHeader .pageLottie[data-lottie*="reminder-v155"],
+.sectionHeader .pageLottie[data-lottie*="privacy-v155"],
+.sectionHeader .pageLottie[data-lottie*="diagnose-v155"]{width:31px!important;height:31px!important}
+
+.settingsMenuRow .menuLottie[data-lottie*="-v155"],
+.settingsLogoutRow .v155LogoutLottie{width:32px!important;height:32px!important}
+
+.miniCard .miniLottie[data-lottie*="present-v155"]{width:38px!important;height:38px!important}
