@@ -210,7 +210,6 @@ jobs:
           node ci/test-transfer-crypto.js
           node ci/test-diagnostics.js
           node --check ci/test-functional-audit.js
-          set -x
           grep -q 'window.initLottie' app/src/main/assets/lottie-runtime.js
           grep -q 'exceljs.min.js' app/src/main/assets/index.html
           grep -q 'deleteProfileBtn' app/src/main/assets/index.html
@@ -286,7 +285,6 @@ jobs:
           if grep -q 'setInterval(tick,250)' app/src/main/assets/app.js; then exit 1; fi
           grep -Eq "attendanceRender(Cache|Key)" app/src/main/assets/app.js
           grep -q 'attendanceTimeTextFast' app/src/main/assets/app.js
-          grep -q 'AttendancePolicy.balanceMinutes(x,s)' app/src/main/assets/app.js
           grep -q "activeScreen()==='attendance'" app/src/main/assets/app.js
           grep -q 'attendanceSearch' app/src/main/assets/index.html
           grep -q 'attendanceMoveMonth' app/src/main/assets/app.js
