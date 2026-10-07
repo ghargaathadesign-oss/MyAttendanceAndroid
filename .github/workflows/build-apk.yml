@@ -454,7 +454,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$SIGNED" | tee output/package-badging.txt
           grep -q "package: name='com.personal.attendance'" output/package-badging.txt
           grep -q "versionCode='33'" output/package-badging.txt
-          grep -q "versionName='15.3'" output/package-badging.txt
+          grep -q "versionName='15.4'" output/package-badging.txt
           sha256sum "$SIGNED" | tee output/My-Attendance-v15.4-signed.apk.sha256
 
       - name: Publish v15.4 GitHub release
@@ -482,7 +482,7 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           FIREBASE_PROJECT_ID: my-attendance-c5c23
           FCM_TOPIC: attendance_updates
-          UPDATE_VERSION: '15.3'
+          UPDATE_VERSION: '15.4'
           UPDATE_VERSION_CODE: '33'
           UPDATE_CHANGELOG: 'Attendance calendar spacing and legend improved; Monthly Records editing redesigned; Profile now includes DOB, joining date, department and employee ID; Add Attendance header cleaned up; startup state and Lottie loading optimized.'
         run: |
