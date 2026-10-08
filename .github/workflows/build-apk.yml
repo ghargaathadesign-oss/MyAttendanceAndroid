@@ -3,7 +3,7 @@ name: Build My Attendance APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, v12.6-hardening, v12.7-device-auth, v12.8-restore-compat, v12.9-step7-delete, v13.0-step9-r8, v13.1-step12-diagnostics, v13.2-diagnostics-polish, v13.3-app-check-monitoring, v13.4-diagnostics-appcheck, v13.5-performance, v13.6-attendance-speed, v13.7-attendance-upgrade, v14-all-steps, v15-notification-attendance, v15.1-ui-polish, v15.2-update-push-polish, v15.2-delivery-hardening, v15.4-batch-updates, v15.5-icon-updates, v15.5.1-ui-fixes, v15.5.2-ui-polish, v15.5.3-ui-tweaks, v15.5.4-theme-loader-logout, v15.5.5-salary-fix, v15.5.6-functional-audit, v15.5.7-bugfix-batch, v15.5.8-sunday-leave-fixes]
+    branches: [main, v12.6-hardening, v12.7-device-auth, v12.8-restore-compat, v12.9-step7-delete, v13.0-step9-r8, v13.1-step12-diagnostics, v13.2-diagnostics-polish, v13.3-app-check-monitoring, v13.4-diagnostics-appcheck, v13.5-performance, v13.6-attendance-speed, v13.7-attendance-upgrade, v14-all-steps, v15-notification-attendance, v15.1-ui-polish, v15.2-update-push-polish, v15.2-delivery-hardening, v15.4-batch-updates, v15.5-icon-updates, v15.5.1-ui-fixes, v15.5.2-ui-polish, v15.5.3-ui-tweaks, v15.5.4-theme-loader-logout, v15.5.5-salary-fix, v15.5.6-functional-audit, v15.5.7-bugfix-batch, v15.5.8-sunday-leave-fixes, v15.5.9-salary-backup-ui]
 
 permissions:
   contents: write
@@ -119,6 +119,7 @@ jobs:
           python3 ci/patch_v1556.py app/src/main/assets
           python3 ci/patch_v1557.py app/src/main/assets
           python3 ci/patch_v1558.py app/src/main/assets
+          python3 ci/patch_v1559.py app/src/main/assets
 
           test -s app/src/main/assets/index.html
           test -s app/src/main/assets/app.css

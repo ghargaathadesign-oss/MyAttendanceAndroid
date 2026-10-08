@@ -490,7 +490,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
   });
 
   await test('Home Clock In and Clock Out buttons save punch state',async()=>{
-    const today=new Date().toISOString().slice(0,10);
+    const today=w.AttendanceAppApi.nowDate();
     let records=parseJSON(w.localStorage.getItem('attendance_v8')||'[]');
     records=records.filter(r=>r.date!==today);
     assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',records,'attendance'));
@@ -591,6 +591,23 @@ for(const s of [...w.document.querySelectorAll('script')]){
     const confirmBtn=[...w.document.querySelectorAll('button')].find(b=>/Log Out/i.test(b.textContent||'')&&b.id!=='settingsLogoutBtn');
     if(confirmBtn)confirmBtn.click();await wait(10);
     assert(nativeState.signedOut,'Native sign-out was not invoked');
+  });
+
+  await test('Monthly salary selector and per-month adjustments persist independently',async()=>{
+    w.AttendanceAppApi.verifiedStorageSet('attendance_salary_v9',{monthly:31000,otMultiplier:1},'salary');
+    setValue(w,'salaryMonth','2026-10');
+    assert.equal(moneyNumber(w.document.getElementById('salaryDaily').textContent),1000);
+    const original=moneyNumber(w.document.getElementById('salaryEstimated').textContent);
+    setValue(w,'salaryAdjustmentAmount','250');setValue(w,'salaryAdjustmentReason','Bonus');click(w,'saveSalaryAdjustment');
+    assert.equal(moneyNumber(w.document.getElementById('salaryFinalAmount').textContent),original+250);
+    click(w,'salaryNextMonth');assert.equal(w.document.getElementById('salaryMonth').value,'2026-11');
+    assert.equal(w.document.getElementById('salaryAdjustmentAmount').value,'');
+    setValue(w,'salaryAdjustmentType','subtract');setValue(w,'salaryAdjustmentAmount','100');click(w,'saveSalaryAdjustment');
+    assert.equal(moneyNumber(w.document.getElementById('salaryFinalAmount').textContent),moneyNumber(w.document.getElementById('salaryEstimated').textContent)-100);
+    click(w,'salaryPrevMonth');assert.equal(w.document.getElementById('salaryAdjustmentAmount').value,'250');
+    setValue(w,'salaryAdjustmentAmount','-10');click(w,'saveSalaryAdjustment');
+    assert.match(w.document.getElementById('salaryAdjustmentStatus').textContent,/valid/);
+    assert.match(w.document.getElementById('salaryBreakdown').textContent,/1.5 days · 18 per year/);
   });
 
   await test('Important action buttons exist after all UI patches',async()=>{
