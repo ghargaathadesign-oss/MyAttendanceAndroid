@@ -1,0 +1,32 @@
+name: Test v15.5.9 notification
+on:
+  push:
+    branches: [test-v1559-notification]
+    paths: [.github/workflows/test-v1559-notification.yml]
+permissions:
+  contents: read
+jobs:
+  notify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - run: python3 -m pip install --quiet google-auth requests
+      - name: Send test notification
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          python3 - <<'PY'
+          import json,os,requests
+          from google.oauth2 import service_account
+          from google.auth.transport.requests import Request
+          info=json.loads(os.environ['FIREBASE_SERVICE_ACCOUNT_JSON'])
+          c=service_account.Credentials.from_service_account_info(info,scopes=['https://www.googleapis.com/auth/firebase.messaging'])
+          c.refresh(Request())
+          title='My Attendance · Notification test'
+          body='Test for v15.5.9. Open Notifications and check whether this message appears in history.'
+          data={'id':'test-v1559-20261008','type':'general','title':title,'body':body}
+          payload={'message':{'topic':'attendance_updates','notification':{'title':title,'body':body},'data':data,'android':{'priority':'high','notification':{'channel_id':'attendance_updates','tag':data['id'],'default_sound':True}}}}
+          r=requests.post('https://fcm.googleapis.com/v1/projects/'+info['project_id']+'/messages:send',headers={'Authorization':'Bearer '+c.token},json=payload,timeout=30)
+          r.raise_for_status()
+          print('Firebase accepted test:',r.json().get('name'))
+          PY
