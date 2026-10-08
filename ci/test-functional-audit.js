@@ -607,7 +607,10 @@ for(const s of [...w.document.querySelectorAll('script')]){
     click(w,'salaryPrevMonth');assert.equal(w.document.getElementById('salaryAdjustmentAmount').value,'250');
     setValue(w,'salaryAdjustmentAmount','-10');click(w,'saveSalaryAdjustment');
     assert.match(w.document.getElementById('salaryAdjustmentStatus').textContent,/valid/);
-    assert.match(w.document.getElementById('salaryBreakdown').textContent,/1.5 days · 18 per year/);
+    assert.match(w.document.getElementById('salaryBreakdown').textContent,/1.5 days allowed per month · 18 days per year/);
+    assert.match(w.document.getElementById('salaryDaily').parentNode.querySelector('.salaryCardInfo').textContent,/₹31,000 ÷ 31 calendar days/);
+    assert.equal(w.document.querySelectorAll('.salaryInfoCard').length,4);
+    assert.equal(w.document.querySelectorAll('.salaryDetailRow').length,0);
   });
 
   await test('Important action buttons exist after all UI patches',async()=>{

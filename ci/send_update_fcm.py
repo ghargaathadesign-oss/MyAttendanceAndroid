@@ -11,7 +11,7 @@ from google.oauth2 import service_account
 PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "my-attendance-c5c23").strip()
 TOPIC = os.environ.get("FCM_TOPIC", "attendance_updates").strip()
 TOPICS = []
-for _topic in [TOPIC, "attendance_all"]:
+for _topic in [TOPIC]:
     if _topic and _topic not in TOPICS:
         TOPICS.append(_topic)
 VERSION = os.environ["UPDATE_VERSION"].strip()
@@ -50,7 +50,6 @@ for topic in TOPICS:
     payload = {
         "message": {
             "topic": topic,
-            "notification": {"title": title, "body": body},
             "data": {
                 "id": f"update-{VERSION_CODE}",
                 "type": "update",
@@ -64,10 +63,6 @@ for topic in TOPICS:
             },
             "android": {
                 "priority": "high",
-                "notification": {
-                    "channel_id": "attendance_updates",
-                    "default_sound": True,
-                },
             },
         }
     }

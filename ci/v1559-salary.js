@@ -11,9 +11,17 @@ window.renderSalaryMonthDetails=function(c){
  E('salaryMonth').value=month;window.salarySelectedMonth=month;
  records.forEach(function(r){if(r.date.slice(0,4)===p[0]&&r.date<=month+'-31'&&r.status==='Paid Leave')yearUsed++;if(r.date.slice(0,7)!==month)return;if(r.status==='Paid Leave')used++;if(r.status==='Holiday')hol++;if(r.status==='Week Off'&&!AttendancePolicy.isSunday(r.date))off++});
  for(d=1;d<=c.days;d++)if(new Date(y,m-1,d).getDay()===0)off++;
- var box=E('salaryBreakdown');box.textContent='';
- [['Daily rate calculation',A().money(c.baseSalary)+' ÷ '+c.days+' calendar days'],['Hourly rate',A().money(c.hourRate)+' · daily rate ÷ standard hours'],['Paid days calculation',num(c.paid)+' recorded paid day equivalents'],['Overtime',A().durationText(c.ot)+' · '+A().money(c.otPay)],['Holidays / weekoffs',hol+' / '+off],['Paid leave taken this month',num(used)+' days'],['Monthly paid leave allowance','1.5 days · 18 per year'],['Accrued through selected month',num(accrued)+' days'],['Paid leave used through selected month',num(yearUsed)+' days'],['Accrued leave remaining',num(Math.max(0,accrued-yearUsed))+' days'],['Base earned salary',A().money(c.baseEarned)],['Manual adjustment',(adj.type==='subtract'?'−':'+')+A().money(amount)+(adj.reason?' · '+adj.reason:'')]].forEach(function(x){box.appendChild(row(x[0],x[1]))});
- var note=document.createElement('p');note.className='helpText';note.textContent='Paid days include recorded paid leave, holidays and weekoffs. Short time reduces paid-day equivalents. Normal OT uses your saved multiplier; all Sunday / holiday worked time receives an additional hourly payment. Leave accrual is shown separately from the saved annual Leave Setup balance.';box.appendChild(note);
+ function detail(id,text){var value=E(id),card=value.parentNode,info=card.querySelector('.salaryCardInfo');if(!info){info=document.createElement('small');info.className='salaryCardInfo';card.appendChild(info)}info.textContent=text}
+ detail('salaryDaily',A().money(c.baseSalary)+' ÷ '+c.days+' calendar days. Hourly rate '+A().money(c.hourRate)+' = daily rate ÷ standard hours.');
+ detail('salaryPaidDays',num(c.paid)+' recorded paid day equivalents. Includes paid leave and recorded holidays/weekoffs; short time reduces paid days.');
+ detail('salaryOTPay',A().durationText(c.ot)+' overtime. Normal OT '+A().money(c.normalOtPay)+'; Sunday/holiday OT '+A().money(c.specialPay)+'.');
+ detail('salaryEstimated',A().money(c.baseEarned)+' base earned + '+A().money(c.otPay)+' OT. Calculated from recorded attendance for this month.');
+ var box=E('salaryBreakdown');box.textContent='';box.className='salaryExtraCards';
+ function card(title,value,info){var el=document.createElement('section');el.className='salaryInfoCard';var t=document.createElement('small'),v=document.createElement('b'),i=document.createElement('small');t.textContent=title;v.textContent=value;i.textContent=info;i.className='salaryCardInfo';el.appendChild(t);el.appendChild(v);el.appendChild(i);box.appendChild(el)}
+ card('Holidays / Weekoffs',hol+' / '+off,'Recorded holidays and all Sundays, plus recorded non-Sunday weekoffs. Only recorded paid days contribute to earned salary.');
+ card('Paid leave this month',num(used)+' days','1.5 days allowed per month · 18 days per year.');
+ card('Paid leave balance',num(Math.max(0,accrued-yearUsed))+' days',num(accrued)+' accrued through selected month − '+num(yearUsed)+' used. Accrual is shown separately from your saved Leave Setup total.');
+ card('Manual adjustment',(adj.type==='subtract'?'−':'+')+A().money(amount),adj.reason||'Bonus or deduction saved for the selected month.');
  E('salaryAdjustmentType').value=adj.type;E('salaryAdjustmentAmount').value=amount||'';E('salaryAdjustmentReason').value=adj.reason||'';
  E('salaryFinalAmount').textContent=A().money(c.earned+(adj.type==='subtract'?-amount:amount));
 };
