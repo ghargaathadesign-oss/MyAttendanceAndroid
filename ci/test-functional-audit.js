@@ -260,6 +260,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
     let rows=[...w.document.querySelectorAll('#leaveSetupRows .leaveSetupRow')];assert(rows.length>=1);
     let last=rows[rows.length-1];last.querySelector('.catName').value='Audit Leave';last.querySelector('.catAllowed').value='3';fire(w,last.querySelector('.catAllowed'),'change');
     click(w,'saveLeaves');await wait(20);
+    setValue(w,'appDialogInput','0');w.document.querySelector('#appDialogOverlay .appDialogBtn').click();await wait(20);
     let l=parseJSON(w.localStorage.getItem('attendance_leave_setup_v81'));
     assert.strictEqual(+l.total,22);assert(l.categories.some(x=>x.name==='Audit Leave'&&+x.allowed===3));
     assert(/saved/i.test(w.document.getElementById('leaveSaveStatus').textContent));
@@ -281,10 +282,10 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',leaveRecord,'attendance'));
     if(w.AttendanceV15&&w.AttendanceV15.onDataChanged)w.AttendanceV15.onDataChanged();
     w.AttendanceAppApi.showScreen('leaves');await wait(20);
-    const accrued=Number((22/12*(new Date().getMonth()+1)).toFixed(2));
+    const accrued=Number((22/12).toFixed(2));
     assert.strictEqual(Number(w.document.getElementById('leaveAccrued').textContent),accrued);
-    assert.strictEqual(w.document.getElementById('leaveUsed').textContent,'1');
-    assert.strictEqual(Number(w.document.getElementById('leaveBalance').textContent),Number((accrued-1).toFixed(2)));
+    assert.strictEqual(w.document.getElementById('leaveUsed').textContent,'0');
+    assert.strictEqual(Number(w.document.getElementById('leaveBalance').textContent),accrued);
     assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',parseJSON(before),'attendance'));
   });
 
@@ -617,9 +618,9 @@ for(const s of [...w.document.querySelectorAll('script')]){
   await test('Additional leave grant persists and is added to accrued balance',async()=>{
     const original=w.localStorage.getItem('attendance_leave_setup_v81'),attendance=w.localStorage.getItem('attendance_v8');
     w.AttendanceAppApi.verifiedStorageSet('attendance_v8',[],'attendance');
-    w.AttendanceAppApi.showScreen('setting-leaves');setValue(w,'totalLeaves','18');setValue(w,'additionalLeaves','2.5','input');click(w,'saveLeaves');await wait(20);
+    w.AttendanceAppApi.showScreen('setting-leaves');setValue(w,'totalLeaves','18');setValue(w,'additionalLeaves','2.5','input');click(w,'saveLeaves');await wait(20);setValue(w,'appDialogInput','0');w.document.querySelector('#appDialogOverlay .appDialogBtn').click();await wait(20);
     assert.equal(parseJSON(w.localStorage.getItem('attendance_leave_setup_v81')).additional,2.5);
-    w.AttendanceAppApi.showScreen('leaves');assert.equal(Number(w.document.getElementById('leaveAccrued').textContent),1.5*(new Date().getMonth()+1)+2.5);
+    w.AttendanceAppApi.showScreen('leaves');assert.equal(Number(w.document.getElementById('leaveAccrued').textContent),1.5+2.5);
     assert.match(w.document.getElementById('leaveAllowanceInfo').textContent,/18 days \/ year ÷ 12 = 1.5 days \/ month/);
     w.AttendanceAppApi.showScreen('setting-leaves');assert.equal(w.document.getElementById('additionalLeaves').value,'2.5');
     setValue(w,'additionalLeaves','-1');click(w,'saveLeaves');assert.equal(parseJSON(w.localStorage.getItem('attendance_leave_setup_v81')).additional,2.5);
@@ -677,6 +678,25 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert.equal(w.document.querySelector('.settingsSearchField .settingsSearchLottie').dataset.lottie,'lottie/search-v15512.json');assert(w.document.querySelector('.settingsSearchField #settingsSearch'));setValue(w,'settingsSearch','backup','input');assert([...w.document.querySelectorAll('#screen-settings .settingsMenuRow')].filter(x=>!x.hidden).some(x=>x.dataset.setting==='backup'));setValue(w,'settingsSearch','','input');
     for(const name of ['hourglass-v15512.json','search-v15512.json'])for(const variant of ['lottie','lottie-dark','lottie-white']){const data=JSON.parse(fs.readFileSync(path.join(assets,variant,name),'utf8'));assert.equal(data.w,500);assert(data.layers.length>0)}
   });
+  await test('Starting leave balance validates, cancels, saves zero and prompts only when needed',async()=>{
+    const original=w.localStorage.getItem('attendance_leave_setup_v81'),records=w.localStorage.getItem('attendance_v8');
+    w.AttendanceAppApi.verifiedStorageSet('attendance_leave_setup_v81',{total:18,additional:0,categories:[]},'leaves');
+    w.AttendanceAppApi.showScreen('setting-leaves');await wait(20);click(w,'saveLeaves');
+    assert(w.document.getElementById('appDialogInput'));setValue(w,'appDialogInput','-1');w.document.querySelector('#appDialogOverlay .appDialogBtn').click();
+    assert(!parseJSON(w.localStorage.getItem('attendance_leave_setup_v81')).startingLeave);
+    w.document.querySelectorAll('#appDialogOverlay .appDialogBtn')[1].click();assert(!parseJSON(w.localStorage.getItem('attendance_leave_setup_v81')).startingLeave);
+    click(w,'saveLeaves');setValue(w,'appDialogInput','0');w.document.querySelector('#appDialogOverlay .appDialogBtn').click();
+    let cfg=parseJSON(w.localStorage.getItem('attendance_leave_setup_v81'));assert.equal(cfg.startingLeave.balance,0);assert.equal(cfg.startingLeave.month,w.AttendanceAppApi.monthNow());
+    click(w,'saveLeaves');assert(!w.document.getElementById('appDialogInput'));
+    setValue(w,'totalLeaves','24');click(w,'saveLeaves');assert(w.document.getElementById('appDialogInput'));setValue(w,'appDialogInput','2.5');w.document.querySelector('#appDialogOverlay .appDialogBtn').click();assert.equal(parseJSON(w.localStorage.getItem('attendance_leave_setup_v81')).startingLeave.balance,2.5);
+    w.AttendanceAppApi.verifiedStorageSet('attendance_leave_setup_v81',{total:18,additional:1,categories:[],startingLeave:{month:'2026-02',balance:0}},'leaves');
+    w.AttendanceAppApi.verifiedStorageSet('attendance_v8',[{id:'old',date:'2026-01-05',status:'Paid Leave'},{id:'current',date:'2026-02-04',status:'Paid Leave'}],'attendance');
+    let v=w.AttendanceV15512.leaveSummary('2026-02');assert.equal(v.carry,0);assert.equal(v.available,1.5);v=w.AttendanceV15512.leaveSummary('2026-03');assert.equal(v.carry,.5);assert.equal(v.extra,1);assert.equal(v.available,3);
+    w.salarySelectedMonth='2026-03';w.renderSalaryMonthDetails(w.AttendanceAppApi.salaryCalc('2026-03'));assert.equal(w.document.querySelectorAll('#salaryBreakdown .salaryInfoCard')[2].querySelector('b').textContent,'3 days');
+    assert(html.includes('class="v154BootDots"'));assert(!html.includes('class="v154BootLottie'));
+    w.AttendanceAppApi.verifiedStorageSet('attendance_leave_setup_v81',parseJSON(original),'leaves');w.AttendanceAppApi.verifiedStorageSet('attendance_v8',parseJSON(records),'attendance');
+  });
+
   await test('Important action buttons exist after all UI patches',async()=>{
     const ids=['saveBtn','resetBtn','saveWorkSettings','saveSalary','saveProfile','saveLeaves','saveDocument','saveRemindersBtn','testReminderBtn','saveAppLockBtn','settingsLogoutBtn','editClose','editCancel','editSave','editPopupDelete'];
     for(const id of ids)assert(w.document.getElementById(id),'Missing '+id);
