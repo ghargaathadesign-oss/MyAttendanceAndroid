@@ -275,15 +275,16 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert(![...w.document.querySelectorAll('#leaveSetupRows .catName')].some(el=>el.value==='Audit Leave'),'Deleted leave category returned after reopening');
   });
 
-  await test('My Leaves balance uses the saved Leave Setup total, not monthly accrual',async()=>{
+  await test('My Leaves uses monthly accrual instead of exposing the full annual allowance',async()=>{
     const before=w.localStorage.getItem('attendance_v8')||'[]',yr=new Date().getFullYear();
     const leaveRecord=[{id:'leave-balance-audit',date:yr+'-01-15',status:'Paid Leave',checkIn:'',checkOut:'',reason:'Casual Leave',notes:''}];
     assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',leaveRecord,'attendance'));
     if(w.AttendanceV15&&w.AttendanceV15.onDataChanged)w.AttendanceV15.onDataChanged();
     w.AttendanceAppApi.showScreen('leaves');await wait(20);
-    assert.strictEqual(w.document.getElementById('leaveAccrued').textContent,'22','Total Leaves did not use saved Leave Setup total');
+    const accrued=Number((22/12*(new Date().getMonth()+1)).toFixed(2));
+    assert.strictEqual(Number(w.document.getElementById('leaveAccrued').textContent),accrued);
     assert.strictEqual(w.document.getElementById('leaveUsed').textContent,'1');
-    assert.strictEqual(w.document.getElementById('leaveBalance').textContent,'21','Leave Balance should be saved total minus paid leaves used');
+    assert.strictEqual(Number(w.document.getElementById('leaveBalance').textContent),Number((accrued-1).toFixed(2)));
     assert(w.AttendanceAppApi.verifiedStorageSet('attendance_v8',parseJSON(before),'attendance'));
   });
 
@@ -607,12 +608,47 @@ for(const s of [...w.document.querySelectorAll('script')]){
     click(w,'salaryPrevMonth');assert.equal(w.document.getElementById('salaryAdjustmentAmount').value,'250');
     setValue(w,'salaryAdjustmentAmount','-10');click(w,'saveSalaryAdjustment');
     assert.match(w.document.getElementById('salaryAdjustmentStatus').textContent,/valid/);
-    assert.match(w.document.getElementById('salaryBreakdown').textContent,/1.5 days allowed per month · 18 days per year/);
+    assert.match(w.document.getElementById('salaryBreakdown').textContent,/days allowed per month/);
     assert.match(w.document.getElementById('salaryDaily').parentNode.querySelector('.salaryCardInfo').textContent,/₹31,000 ÷ 31 calendar days/);
     assert.equal(w.document.querySelectorAll('.salaryInfoCard').length,4);
     assert.equal(w.document.querySelectorAll('.salaryDetailRow').length,0);
   });
 
+  await test('Additional leave grant persists and is added to accrued balance',async()=>{
+    const original=w.localStorage.getItem('attendance_leave_setup_v81'),attendance=w.localStorage.getItem('attendance_v8');
+    w.AttendanceAppApi.verifiedStorageSet('attendance_v8',[],'attendance');
+    w.AttendanceAppApi.showScreen('setting-leaves');setValue(w,'totalLeaves','18');setValue(w,'additionalLeaves','2.5','input');click(w,'saveLeaves');await wait(20);
+    assert.equal(parseJSON(w.localStorage.getItem('attendance_leave_setup_v81')).additional,2.5);
+    w.AttendanceAppApi.showScreen('leaves');assert.equal(Number(w.document.getElementById('leaveAccrued').textContent),1.5*(new Date().getMonth()+1)+2.5);
+    assert.match(w.document.getElementById('leaveAllowanceInfo').textContent,/18 days \/ year ÷ 12 = 1.5 days \/ month/);
+    w.AttendanceAppApi.showScreen('setting-leaves');assert.equal(w.document.getElementById('additionalLeaves').value,'2.5');
+    setValue(w,'additionalLeaves','-1');click(w,'saveLeaves');assert.equal(parseJSON(w.localStorage.getItem('attendance_leave_setup_v81')).additional,2.5);
+    w.AttendanceAppApi.verifiedStorageSet('attendance_leave_setup_v81',parseJSON(original),'leaves');w.AttendanceAppApi.verifiedStorageSet('attendance_v8',parseJSON(attendance),'attendance');
+  });
+  await test('Settings search filters and restores all rows',async()=>{
+    setValue(w,'settingsSearch','salary','input');const matches=[...w.document.querySelectorAll('#screen-settings .settingsMenuRow')].filter(x=>!x.hidden);assert(matches.length>0);assert(matches.every(x=>/salary/i.test(x.textContent)));assert(matches.some(x=>x.dataset.setting==='salary'));
+    setValue(w,'settingsSearch','no-such-setting','input');assert.equal(w.document.getElementById('settingsSearchEmpty').hidden,false);
+    setValue(w,'settingsSearch','','input');assert([...w.document.querySelectorAll('#screen-settings .settingsMenuRow')].every(x=>!x.hidden));
+  });
+  await test('Dropdown closes on background scroll but stays open during menu scrolling',async()=>{
+    const wrap=w.document.querySelector('.customSelect');assert(wrap);wrap.classList.add('open');fire(w,wrap.querySelector('.customSelectMenu'),'scroll');assert(wrap.classList.contains('open'));
+    fire(w,w.document.getElementById('screen-settings'),'scroll');assert(!wrap.classList.contains('open'));
+  });
+  await test('Weekoffs count elapsed calendar dates even when worked',async()=>{
+    const original=w.localStorage.getItem('attendance_v8');
+    w.AttendanceAppApi.verifiedStorageSet('attendance_v8',[{id:'worked-off',date:'2026-10-04',status:'Week Off',checkIn:'10:00',checkOut:'18:00'}],'attendance');
+    setValue(w,'salaryMonth','2026-10');const day=new Date().getDate(),expected=[4,11,18,25].filter(d=>d<=day).length;
+    assert.equal(w.document.querySelector('#salaryBreakdown .salaryInfoCard b').textContent,expected+' / 4');
+    setValue(w,'salaryMonth','2026-09');assert.equal(w.document.querySelector('#salaryBreakdown .salaryInfoCard b').textContent,'4 / 4');
+    setValue(w,'salaryMonth','2027-01');assert.equal(w.document.querySelector('#salaryBreakdown .salaryInfoCard b').textContent,'0 / 5');
+    w.AttendanceAppApi.verifiedStorageSet('attendance_v8',parseJSON(original),'attendance');
+  });
+  await test('Active Clock Out shows two time sections outside the button',async()=>{
+    const original=w.localStorage.getItem('attendance_v8'),now=new Date();now.setMinutes(now.getMinutes()-60);const time=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    w.AttendanceAppApi.verifiedStorageSet('attendance_v8',[{id:'timer-test',date:w.AttendanceAppApi.nowDate(),status:'Present',checkIn:time,checkOut:''}],'attendance');w.AttendanceAppApi.renderHome();w.AttendanceV15511.renderPunchTimes();
+    assert.equal(w.document.querySelectorAll('#todayStatus section').length,2);assert.equal(w.document.querySelectorAll('#punchBtn #todayStatus').length,0);assert.match(w.document.getElementById('todayStatus').textContent,/Passed Time01:00/);
+    w.AttendanceAppApi.verifiedStorageSet('attendance_v8',parseJSON(original),'attendance');w.AttendanceAppApi.renderHome();
+  });
   await test('Important action buttons exist after all UI patches',async()=>{
     const ids=['saveBtn','resetBtn','saveWorkSettings','saveSalary','saveProfile','saveLeaves','saveDocument','saveRemindersBtn','testReminderBtn','saveAppLockBtn','settingsLogoutBtn','editClose','editCancel','editSave','editPopupDelete'];
     for(const id of ids)assert(w.document.getElementById(id),'Missing '+id);

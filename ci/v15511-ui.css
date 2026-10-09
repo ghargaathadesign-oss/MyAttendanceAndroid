@@ -1,0 +1,8 @@
+#workProgressText{display:none!important}
+#todayStatus.punchTimeSections{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:min(100%,340px);margin:16px auto 0}
+.punchTimeSections section{background:var(--card,#fff);border:1px solid var(--line,#e5e9ee);border-radius:14px;padding:12px 8px;text-align:center}
+.punchTimeSections small{display:block;font-size:11px;color:var(--muted)}
+.punchTimeSections b{display:block;font-size:21px;color:var(--text);margin-top:5px;font-variant-numeric:tabular-nums}
+#screen-settings [hidden]{display:none!important}
+#settingsSearch{width:100%}
+#leaveAllowanceInfo{margin:12px 0;line-height:1.6}
