@@ -1,0 +1,51 @@
+/* Compact home cards: icons stay mounted when the time changes. */
+#todayStatus.punchTimeSections{width:100%;gap:10px;margin:16px auto 22px;align-items:stretch}
+#todayStatus.punchTimeSections section{display:flex;align-items:center;gap:8px;padding:9px 10px;min-height:54px;border-radius:13px;text-align:left;background:var(--surface);color:var(--ink)}
+#todayStatus .v15512Hourglass{width:30px;height:30px;flex:0 0 30px}
+#todayStatus .punchTimeCopy{min-width:0}
+#todayStatus.punchTimeSections b{font-size:18px;line-height:1.1;margin:0;color:var(--ink)}
+#todayStatus.punchTimeSections small{font-size:10px;line-height:1.4;margin-top:4px;white-space:nowrap}
+/* Search has its own space beneath the heading. */
+#screen-settings .settingsSearchPanel{margin:4px 0 20px;padding:0;position:relative}
+#screen-settings .settingsSearchField{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 15px;box-shadow:0 4px 15px rgba(33,55,87,.035)}
+.settingsSearchField:focus-within{border-color:#83b7e7;box-shadow:0 0 0 3px rgba(65,139,210,.08)}
+#screen-settings .settingsSearchLottie{width:27px;height:27px;flex:0 0 27px}
+#screen-settings #settingsSearch{width:100%;min-width:0;border:0!important;box-shadow:none!important;outline:none;background:transparent;padding:0!important;font-size:13px;font-weight:400;color:var(--ink);height:26px}
+#screen-settings #settingsSearch::placeholder{color:var(--muted);opacity:.8;font-weight:400}
+#screen-settings #settingsSearchEmpty{margin:12px 4px 0}
+/* My Leaves: monthly allowance and carry-forward are explicit. */
+#screen-leaves .friendlyLeaveMonth{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px}
+.friendlyLeaveMonth button{display:grid;place-items:center;width:36px;height:36px;flex:0 0 36px;border:0;border-radius:50%;background:var(--surface2);color:var(--ink);font-size:24px;cursor:pointer}
+.friendlyLeaveMonth b{font-size:16px;color:var(--ink)}
+.friendlyLeaveHero{position:relative;overflow:hidden;border:1px solid #dceaf8;border-radius:22px;padding:23px 22px;background:linear-gradient(125deg,#deefff,#e9f6fc);margin-bottom:16px;min-height:155px;color:#1a3560}
+.friendlyLeaveHero .friendlyLeaveLabel{display:block;font-size:14px;font-weight:500;margin-bottom:10px}
+.friendlyLeaveHero #leaveBalance{font-size:56px;letter-spacing:-2px;line-height:1.05;color:#245ed5;display:block;font-weight:750}
+.friendlyLeaveHero .friendlyLeaveUnit{font-size:18px;font-weight:600;display:block;margin-top:1px}
+.friendlyLeaveHero #leaveBalanceCaption{display:block;font-size:12px;margin-top:15px;color:#536988;max-width:75%}
+.friendlyLeaveHero .friendlyHeroLeaf{position:absolute;width:86px;height:100px;right:20px;top:40px;color:#159f9a;opacity:.85}
+.friendlyLeaveGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.friendlyLeaveCard{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px 14px;box-shadow:0 4px 15px rgba(28,52,83,.035);min-width:0}
+.friendlyLeaveIcon{display:grid;place-items:center;width:34px;height:34px;border-radius:12px;background:#ecf8f8;color:#139f9a;margin-bottom:11px}
+.friendlyLeaveIcon svg{width:21px;height:21px}
+.friendlyLeaveCard .friendlyLeaveCardLabel{display:block;font-size:12px;font-weight:500;color:var(--ink);line-height:1.4;margin-bottom:7px}
+.friendlyLeaveCard b{display:block;font-size:21px;line-height:1.2;color:var(--ink)}
+.friendlyLeaveCard .friendlyLeaveCardHint{display:block;font-size:10px;line-height:1.5;color:var(--muted);margin-top:7px}
+.friendlyLeaveNote{display:flex;align-items:center;gap:12px;border-radius:16px;background:#e7f7f6;padding:14px 15px;color:#274b55;font-size:11px;line-height:1.6}
+.friendlyLeaveNote>span{font-size:17px;color:#119d98}
+.friendlyLeaveNote p{margin:0}
+.friendlyLeaveAnnual{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:15px 1px 20px;font-size:11px;color:var(--muted)}
+.friendlyLeaveAnnual button{font-size:11px;font-weight:600;color:#2865cf;border:0;background:transparent;cursor:pointer;min-height:36px;padding:0}
+.friendlyLeaveHistory{padding:17px 14px;background:var(--surface);border:1px solid var(--line);border-radius:18px}
+.friendlyLeaveHistory .overviewHead{margin:0 0 13px}
+.friendlyLeaveHistory .overviewHead b{font-size:16px}
+.friendlyLeaveHistory .overviewHead span{font-size:10px}
+.friendlyLeaveRecord{display:flex;align-items:center;gap:11px;padding:12px 0;border-top:1px solid var(--line)}
+.friendlyLeaveDate{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:11px;background:#eef4ff;color:#244e9c;width:44px;height:48px;flex:0 0 44px}
+.friendlyLeaveDate b{font-size:19px}.friendlyLeaveDate small{font-size:9px;text-transform:uppercase}
+.friendlyLeaveRecordText{flex:1;min-width:0}.friendlyLeaveRecordText b{font-size:12px;display:block}.friendlyLeaveRecordText small{font-size:10px;color:var(--muted);display:block;margin-top:5px;overflow-wrap:anywhere}
+.friendlyLeaveDay{font-size:12px;color:var(--ink);white-space:nowrap}
+body.dark-mode .friendlyLeaveHero{background:linear-gradient(125deg,#173452,#17393e);border-color:#28475f;color:#e4f0ff}
+body.dark-mode .friendlyLeaveHero #leaveBalance{color:#91beff}body.dark-mode .friendlyLeaveHero #leaveBalanceCaption{color:#b2c5d9}
+body.dark-mode .friendlyLeaveNote{background:#173739;color:#d0ebed}body.dark-mode .friendlyLeaveIcon{background:#193637;color:#7ad4ce}
+body.dark-mode .friendlyLeaveDate{background:#1c3557;color:#a3c7ff}body.dark-mode .friendlyLeaveAnnual button{color:#91beff}
+@media(max-width:350px){#todayStatus.punchTimeSections section{gap:5px;padding:8px}#todayStatus .v15512Hourglass{width:24px;height:24px;flex-basis:24px}.friendlyLeaveCard{padding:14px 11px}.friendlyLeaveCard b{font-size:19px}}
