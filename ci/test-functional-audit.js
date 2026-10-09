@@ -646,8 +646,36 @@ for(const s of [...w.document.querySelectorAll('script')]){
   await test('Active Clock Out shows two time sections outside the button',async()=>{
     const original=w.localStorage.getItem('attendance_v8'),now=new Date();now.setMinutes(now.getMinutes()-60);const time=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
     w.AttendanceAppApi.verifiedStorageSet('attendance_v8',[{id:'timer-test',date:w.AttendanceAppApi.nowDate(),status:'Present',checkIn:time,checkOut:''}],'attendance');w.AttendanceAppApi.renderHome();w.AttendanceV15511.renderPunchTimes();
-    assert.equal(w.document.querySelectorAll('#todayStatus section').length,2);assert.equal(w.document.querySelectorAll('#punchBtn #todayStatus').length,0);assert.match(w.document.getElementById('todayStatus').textContent,/Passed Time01:00/);
+    assert.equal(w.document.querySelectorAll('#todayStatus section').length,2);assert.equal(w.document.querySelectorAll('#punchBtn #todayStatus').length,0);assert.equal(w.document.getElementById('homeTimePassed').textContent,'01:00');assert.match(w.document.getElementById('todayStatus').textContent,/Passed Time/);
     w.AttendanceAppApi.verifiedStorageSet('attendance_v8',parseJSON(original),'attendance');w.AttendanceAppApi.renderHome();
+  });
+  await test('Friendly Leaves shows monthly allowance, carry-forward and grants from real records',async()=>{
+    const previous=w.localStorage.getItem('attendance_v8'),setup=w.localStorage.getItem('attendance_leave_setup_v81');
+    w.AttendanceAppApi.verifiedStorageSet('attendance_leave_setup_v81',{total:18,additional:2,categories:[]},'leaves');
+    w.AttendanceAppApi.verifiedStorageSet('attendance_v8',[{id:'jan-leave',date:'2026-01-05',status:'Paid Leave'},{id:'feb-leave',date:'2026-02-05',status:'Paid Leave'}],'attendance');
+    w.leavesSelectedMonth='2026-02';w.AttendanceAppApi.showScreen('leaves');await wait(20);
+    assert.equal(w.document.getElementById('leaveMonthly').textContent,'1.5 days');assert.equal(w.document.getElementById('leaveCarry').textContent,'0.5 days');assert.equal(w.document.getElementById('leaveGranted').textContent,'2 days');assert.equal(w.document.getElementById('leaveMonthlyUsed').textContent,'1 day');assert.equal(w.document.getElementById('leaveBalance').textContent,'3');
+    assert.equal(w.document.querySelectorAll('.friendlyLeaveRecord').length,1);
+    click(w,'leavesNextMonth');assert.equal(w.leavesSelectedMonth,'2026-03');assert.equal(w.document.getElementById('leaveCarry').textContent,'1 day');assert.equal(w.document.getElementById('leaveBalance').textContent,'4.5');
+    click(w,'leavesPrevMonth');assert.equal(w.leavesSelectedMonth,'2026-02');click(w,'friendlyLeaveSettings');assert(w.document.getElementById('screen-setting-leaves').classList.contains('active'));
+    w.AttendanceAppApi.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');w.AttendanceAppApi.verifiedStorageSet('attendance_leave_setup_v81',parseJSON(setup),'leaves');w.leavesSelectedMonth=w.AttendanceAppApi.monthNow();
+  });
+  await test('Leave grants are not counted twice after being used in earlier months',async()=>{
+    const previous=w.localStorage.getItem('attendance_v8'),setup=w.localStorage.getItem('attendance_leave_setup_v81');
+    w.AttendanceAppApi.verifiedStorageSet('attendance_leave_setup_v81',{total:18,additional:2,categories:[]},'leaves');
+    w.AttendanceAppApi.verifiedStorageSet('attendance_v8',[5,6,7].map(d=>({id:'grant-'+d,date:'2026-01-0'+d,status:'Paid Leave'})),'attendance');
+    const x=w.AttendanceV15512.leaveSummary('2026-02');assert.equal(x.carry,0);assert.equal(x.extra,0.5);assert.equal(x.available,2);
+    w.AttendanceAppApi.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');w.AttendanceAppApi.verifiedStorageSet('attendance_leave_setup_v81',parseJSON(setup),'leaves');
+  });
+  await test('Supplied hourglass animation stays mounted as time values refresh',async()=>{
+    const previous=w.localStorage.getItem('attendance_v8');w.AttendanceAppApi.verifiedStorageSet('attendance_v8',[{id:'stable-timer',date:w.AttendanceAppApi.nowDate(),status:'Present',checkIn:'10:00',checkOut:''}],'attendance');
+    w.AttendanceV15511.renderPunchTimes();const icons=[...w.document.querySelectorAll('#todayStatus .v15512Hourglass')];assert.equal(icons.length,2);w.AttendanceV15511.renderPunchTimes();assert.strictEqual(w.document.querySelector('#todayStatus .v15512Hourglass'),icons[0]);assert(icons.every(x=>x.dataset.lottie==='lottie/hourglass-v15512.json'));
+    assert.equal(w.document.querySelector('#todayStatus .punchTimeCopy').firstElementChild.tagName,'B');
+    w.AttendanceAppApi.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');w.AttendanceAppApi.renderHome();
+  });
+  await test('Refined Settings search uses the supplied animation and preserves filtering',async()=>{
+    assert.equal(w.document.querySelector('.settingsSearchField .settingsSearchLottie').dataset.lottie,'lottie/search-v15512.json');assert(w.document.querySelector('.settingsSearchField #settingsSearch'));setValue(w,'settingsSearch','backup','input');assert([...w.document.querySelectorAll('#screen-settings .settingsMenuRow')].filter(x=>!x.hidden).some(x=>x.dataset.setting==='backup'));setValue(w,'settingsSearch','','input');
+    for(const name of ['hourglass-v15512.json','search-v15512.json'])for(const variant of ['lottie','lottie-dark','lottie-white']){const data=JSON.parse(fs.readFileSync(path.join(assets,variant,name),'utf8'));assert.equal(data.w,500);assert(data.layers.length>0)}
   });
   await test('Important action buttons exist after all UI patches',async()=>{
     const ids=['saveBtn','resetBtn','saveWorkSettings','saveSalary','saveProfile','saveLeaves','saveDocument','saveRemindersBtn','testReminderBtn','saveAppLockBtn','settingsLogoutBtn','editClose','editCancel','editSave','editPopupDelete'];
