@@ -55,7 +55,7 @@ service firebase.storage {
         && request.resource.contentType == 'application/json';
     }
     match /support/{threadUid}/messages/{senderUid}/{messageId} {
-      allow create: if conversationAccess(threadUid)
+      allow create: if resource == null && conversationAccess(threadUid)
         && request.auth.uid == senderUid
         && request.resource.size <= 8192
         && request.resource.contentType == 'application/json'
