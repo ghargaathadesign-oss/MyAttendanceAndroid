@@ -36,6 +36,33 @@ service firebase.storage {
         && request.resource.contentType.matches('image/.*');
     }
 
+    function supportOwner() {
+      return request.auth != null && request.auth.token.email_verified == true
+        && request.auth.token.email == 'pratik.kumar.kashyap@gmail.com';
+    }
+    function conversationAccess(threadUid) {
+      return signedInOwner(threadUid) || supportOwner();
+    }
+    match /support/{path=**} {
+      allow list: if supportOwner();
+    }
+    match /support/{threadUid}/{path=**} {
+      allow get, list, delete: if conversationAccess(threadUid);
+    }
+    match /support/{threadUid}/profile.json {
+      allow create, update: if signedInOwner(threadUid)
+        && request.resource.size <= 4096
+        && request.resource.contentType == 'application/json';
+    }
+    match /support/{threadUid}/messages/{senderUid}/{messageId} {
+      allow create: if conversationAccess(threadUid)
+        && request.auth.uid == senderUid
+        && request.resource.size <= 8192
+        && request.resource.contentType == 'application/json'
+        && request.resource.metadata.senderUid == request.auth.uid
+        && request.resource.metadata.support == (supportOwner() ? 'true' : 'false');
+    }
+
     // Deny everything else by default.
     match /{allPaths=**} {
       allow read, write: if false;

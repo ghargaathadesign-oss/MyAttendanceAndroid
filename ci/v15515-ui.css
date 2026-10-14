@@ -1,0 +1,13 @@
+/* Text-only startup: no overlay or animation obscures the login/Home screen. */
+.languageOptions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0}
+.languageOptions button{position:relative;display:flex;flex-direction:column;gap:7px;padding:20px 16px;border:1px solid var(--line);border-radius:16px;background:var(--surface2);color:var(--ink);text-align:left}
+.languageOptions b{font-size:18px}.languageOptions small{color:var(--muted)}.languageOptions span{position:absolute;right:12px;top:10px;display:none}.languageOptions button.selected{border-color:#4e8bec;background:rgba(78,139,236,.1)}.languageOptions button.selected span{display:block;color:#4e8bec}
+.policyContent h2,#screen-setting-help h2{font-size:15px;margin:18px 0 8px}.policyContent p,#screen-setting-help details p{font-size:13px;line-height:1.7;color:var(--muted)}
+#screen-setting-help details{border-top:1px solid var(--line);padding:14px 0}#screen-setting-help summary{font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+.supportHeading{display:flex;gap:8px;justify-content:space-between;align-items:center}.supportHeading h2{margin:0!important}.supportHeading p{margin:6px 0}.supportHeading button{flex:0 0 auto}
+#supportMessages{display:flex;flex-direction:column;gap:10px;max-height:360px;overflow:auto;padding:12px 0;overscroll-behavior:contain}
+.supportBubble{max-width:88%;border-radius:16px;padding:12px 14px;background:var(--surface2);align-self:flex-start;color:var(--ink);font-size:13px;line-height:1.55;overflow-wrap:anywhere;white-space:pre-wrap}.supportBubble.mine{align-self:flex-end;background:rgba(78,139,236,.15)}.supportBubble small{display:block;font-size:10px;color:var(--muted);margin-top:6px;white-space:normal}
+#supportText{box-sizing:border-box;width:100%;border:1px solid var(--line);border-radius:14px;padding:13px;background:var(--surface2);color:var(--ink);font:inherit;font-size:13px;resize:vertical;min-height:90px}#supportForm button{margin-top:10px}#supportClear{margin-top:14px;font-size:12px}
+.supportThread{width:100%;display:flex;flex-direction:column;text-align:left;padding:15px;border:1px solid var(--line);border-radius:14px;margin:10px 0;background:var(--surface2);color:var(--ink);overflow-wrap:anywhere}.supportThread small{margin-top:5px;color:var(--muted)}
+@font-face{font-family:AttendanceHindi;src:url('v15515-hindi.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+html[lang=hi] body,html[lang=hi] button,html[lang=hi] input,html[lang=hi] select,html[lang=hi] textarea{font-family:AttendanceHindi,system-ui,sans-serif!important}html[lang=hi] .settingsMenuRow b{line-height:1.5}
