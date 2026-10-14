@@ -1,0 +1,27 @@
+<section class="screen settingScreen" id="screen-setting-help">
+ <div class="sectionHeader"><button class="back settingBack" type="button">‹</button><span class="pageLottie lottieIcon" data-lottie="lottie/privacy-v155.json" aria-hidden="true"></span><h1>Help &amp; Support</h1></div>
+ <div class="supportTabs" role="tablist" aria-label="Help and conversations">
+  <button type="button" id="supportHelpTab" role="tab" aria-selected="true" aria-controls="supportHelpPanel">Help</button>
+  <button type="button" id="supportChatTab" role="tab" aria-selected="false" aria-controls="supportChatPanel">Chat</button>
+  <button type="button" id="supportAdminMessagesTab" role="tab" aria-selected="false" aria-controls="supportChatPanel" hidden>Messages</button>
+ </div>
+ <div id="supportHelpPanel" role="tabpanel" aria-labelledby="supportHelpTab">
+  <section class="settingsCard supportWelcome"><span class="supportWelcomeIcon" aria-hidden="true">?</span><h2>How can we help?</h2><p class="helpText">Choose a topic below or start a conversation with support.</p></section>
+  <section class="settingsCard helpTopicCard"><span class="helpTopicLabel">Attendance &amp; time</span><details><summary>How do I record my working hours?</summary><p>Tap Clock In when you arrive and Clock Out when you leave. Open Attendance to review or edit a record.</p></details></section>
+  <section class="settingsCard helpTopicCard"><span class="helpTopicLabel">Leave balance</span><details><summary>How does paid leave work?</summary><p>Annual allowance is divided by 12. Enter unused leave from earlier months when saving Leave Setup. Unused monthly leave carries forward.</p></details></section>
+  <section class="settingsCard helpTopicCard"><span class="helpTopicLabel">Salary</span><details><summary>Why is my salary an estimate?</summary><p>Salary uses recorded attendance, calendar days, overtime and saved adjustments. Review your records and salary settings.</p></details></section>
+  <section class="settingsCard helpTopicCard"><span class="helpTopicLabel">Backup &amp; account</span><details><summary>How do I protect my data?</summary><p>Use Backup before changing devices. Keep your device lock enabled and restore with the same verified account.</p></details></section>
+  <section class="settingsCard helpContactCard"><h2 id="supportContactTitle">Need more help?</h2><p class="helpText" id="supportContactText">Your conversation stays private between you and support.</p><button type="button" class="btn primary fullBtn" id="supportOpenChat">Start chat</button></section>
+ </div>
+ <div id="supportChatPanel" role="tabpanel" aria-labelledby="supportChatTab" hidden>
+  <section class="settingsCard supportCard">
+   <div class="supportHeading"><div><h2 id="supportTitle">Chat with support</h2><p class="helpText" id="supportSubtitle">Send a message. Support can reply here.</p></div><button type="button" class="btn ghost" id="supportRefresh" aria-label="Refresh messages">↻</button></div>
+   <div id="supportInbox" hidden></div>
+   <div id="supportConversation" hidden><div class="supportConversationHead"><button type="button" class="btn ghost" id="supportBack" hidden aria-label="Back to inbox">‹</button><span class="supportChatAvatar" id="supportChatAvatar" aria-hidden="true">S</span><div id="supportChatIdentity" data-no-translate><b id="supportChatPerson">Support</b><small id="supportChatEmail"></small></div></div></div>
+   <div id="supportMessages" aria-live="polite"></div>
+   <p id="supportStatus" class="helpText" aria-live="polite"></p>
+   <form id="supportForm"><label for="supportText" class="label">Your message</label><div class="supportComposer"><textarea id="supportText" maxlength="2000" rows="2" placeholder="Write your message…" required></textarea><button class="btn primary" type="submit" id="supportSend" aria-label="Send message">➤</button></div></form>
+   <div class="supportFooter"><button type="button" class="btn ghost" id="supportClear">Clear chat</button><small>Never send passwords or PINs.</small></div>
+  </section>
+ </div>
+</section>

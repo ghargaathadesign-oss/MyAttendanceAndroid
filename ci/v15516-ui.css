@@ -1,0 +1,20 @@
+/* The native snapshot hides login before first paint only for a verified session. */
+html.sessionVerified #authGate{display:none!important}
+.supportTabs{display:flex;padding:5px;gap:5px;border:1px solid var(--line);border-radius:16px;background:var(--surface2);margin:0 0 18px}
+.supportTabs button{flex:1;min-height:42px;border:0;border-radius:12px;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:600}
+.supportTabs button[aria-selected=true]{background:var(--surface);color:var(--ink);box-shadow:0 3px 12px rgba(35,59,91,.08)}.supportTabs button[hidden]{display:none}
+.supportWelcome{position:relative;padding-right:70px!important}.supportWelcome h2{margin-top:0!important;font-size:18px!important}.supportWelcomeIcon{position:absolute;right:18px;top:22px;display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:rgba(78,139,236,.1);font-size:22px;color:#4e8bec}
+.helpTopicCard{padding:17px 18px!important}.helpTopicLabel{display:block;color:var(--muted);font-size:10px;font-weight:600;letter-spacing:.4px;margin-bottom:8px}#screen-setting-help .helpTopicCard details{border:0;padding:0}.helpTopicCard summary{line-height:1.5}.helpContactCard h2{margin-top:0!important}.helpContactCard button{margin-top:12px}
+#supportChatPanel .supportCard{padding:17px!important}#supportChatPanel .supportHeading{border-bottom:1px solid var(--line);padding-bottom:13px;margin-bottom:14px}
+.supportConversationHead{display:flex;align-items:center;gap:10px;padding:0 0 12px;border-bottom:1px solid var(--line)}.supportConversationHead button{padding:6px 9px!important}.supportChatAvatar,.supportThreadAvatar{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:rgba(78,139,236,.12);color:#4e8bec;font-weight:700;flex:0 0 38px}
+#supportChatIdentity{min-width:0}#supportChatIdentity b{font-size:13px;overflow-wrap:anywhere}#supportChatIdentity small{display:block;font-size:10px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}
+#supportMessages{min-height:230px;max-height:45vh;max-height:45dvh;padding:16px 2px;gap:12px}
+.supportBubble{max-width:86%;border-radius:15px 15px 15px 4px;padding:11px 13px;background:var(--surface2);font-size:13px}
+.supportBubble.mine{border-radius:15px 15px 4px 15px;background:rgba(78,139,236,.15)}
+.supportComposer{display:flex;align-items:flex-end;gap:9px}#supportText{flex:1;min-width:0;min-height:66px;height:66px;max-height:160px;resize:vertical;font-size:13px}
+#supportForm #supportSend{display:grid;place-items:center;flex:0 0 43px;width:43px;height:43px;border-radius:14px;padding:0;margin:0 0 2px;font-size:20px}#supportForm .label{font-size:11px;margin-bottom:8px}
+.supportFooter{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}.supportFooter #supportClear{padding:5px 0;margin:0;font-size:11px}.supportFooter small{font-size:9px;color:var(--muted);line-height:1.4;max-width:60%;text-align:right}
+#supportInbox .supportThread{display:flex;flex-direction:row;align-items:center;gap:12px;padding:14px 10px;border:0;border-bottom:1px solid var(--line);border-radius:0;margin:0;background:transparent}
+.supportThreadCopy{display:flex;flex-direction:column;min-width:0;flex:1}.supportThreadCopy b{font-size:13px}.supportThreadCopy small{font-size:10px;overflow-wrap:anywhere}.supportEmpty{color:var(--muted);font-size:12px;text-align:center;padding:48px 12px}
+#supportChatPanel [hidden]{display:none!important}
+@media(max-width:350px){.supportWelcome{padding-right:60px!important}.supportWelcomeIcon{right:12px}.supportFooter{gap:8px}.supportFooter small{font-size:8px}}

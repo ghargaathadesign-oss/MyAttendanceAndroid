@@ -724,7 +724,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
     w.AttendanceI18n.setLanguage('en');await wait(20);
     click(w,'loginPrivacyPolicy');await wait(15);assert(w.document.querySelector('#appDialogOverlay .policyContent'));assert.match(w.document.querySelector('#appDialogOverlay').textContent,/not end-to-end encrypted/);
     w.document.querySelector('#appDialogOverlay .appDialogBtn').click();
-    w.AttendanceAppApi.showScreen('setting-help');await wait(20);assert.equal(w.document.querySelectorAll('#screen-setting-help details').length,3);
+    w.AttendanceAppApi.showScreen('setting-help');await wait(20);assert.equal(w.document.querySelectorAll('#screen-setting-help details').length,4);
     const detail=w.document.querySelector('#screen-setting-help details');detail.open=true;assert(detail.open);
   });
 
@@ -733,7 +733,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
     w.Android.supportLoad=thread=>{calls.push(['load',thread]);setTimeout(()=>w.onSupportState(JSON.stringify({ok:true,owner:false,messages:[{text:'<img src=x onerror=alert(1)>',createdAt:Date.now(),mine:false,support:true}]})),0)};
     w.Android.supportSend=(thread,text)=>calls.push(['send',thread,text]);
     w.Android.supportClear=thread=>calls.push(['clear',thread]);
-    click(w,'supportRefresh');await wait(20);assert(!w.document.querySelector('#supportMessages img'));assert.match(w.document.getElementById('supportMessages').textContent,/<img/);
+    click(w,'supportChatTab');await wait(20);assert(!w.document.querySelector('#supportMessages img'));assert.match(w.document.getElementById('supportMessages').textContent,/<img/);
     setValue(w,'supportText','Please help','input');w.document.getElementById('supportForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
     assert.deepEqual(calls[calls.length-1],['send','','Please help']);w.onSupportSent(false,'Offline');assert.equal(w.document.getElementById('supportText').value,'Please help');assert.equal(w.document.getElementById('supportSend').disabled,false);
     w.onSupportSent(true,'');await wait(20);assert.equal(w.document.getElementById('supportText').value,'');
@@ -743,10 +743,45 @@ for(const s of [...w.document.querySelectorAll('script')]){
     const calls=[];w.Android.supportLoad=thread=>{calls.push(['load',thread]);setTimeout(()=>w.onSupportState(JSON.stringify({ok:true,owner:true,messages:[],threads:thread?[]:[{uid:'chat-user',email:'user@example.com',name:'User Name'}]})),0)};
     w.Android.supportSend=(thread,text)=>calls.push(['send',thread,text]);
     w.onSupportState(JSON.stringify({ok:true,owner:true,threads:[{uid:'chat-user',email:'user@example.com',name:'User Name'}]}));
-    assert.equal(w.document.getElementById('supportForm').hidden,true);w.document.querySelector('.supportThread').click();await wait(20);
+    click(w,'supportAdminMessagesTab');await wait(20);assert.equal(w.document.getElementById('supportForm').hidden,true);w.document.querySelector('.supportThread').click();await wait(20);
     assert.equal(w.document.getElementById('supportForm').hidden,false);setValue(w,'supportText','We can help','input');w.document.getElementById('supportForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
     assert.deepEqual(calls[calls.length-1],['send','chat-user','We can help']);w.onSupportSent(true,'');await wait(20);
     w.AttendanceAppApi.showScreen('home');await wait(20);
+  });
+
+  await test('Policy and Help are the final settings rows directly above Logout',async()=>{
+    const rows=[...w.document.querySelectorAll('#screen-settings .settingsMenu > button')];const tail=rows.slice(-3);
+    assert.equal(tail[0].dataset.setting,'policy');assert.equal(tail[1].dataset.setting,'help');assert.equal(tail[2].id,'settingsLogoutBtn');
+  });
+
+  await test('Security and new settings use supplied animation assets in light and dark themes',async()=>{
+    assert.equal(w.document.querySelector('[data-setting="privacy"] b').textContent,'Security');
+    assert.equal(w.document.querySelector('#screen-setting-privacy h1').textContent,'Security');
+    for(const [key,file] of [['privacy','security-v15516.json'],['language','language-v15516.json'],['policy','policy-v15516.json'],['help','privacy-v155.json']]){
+      assert.equal(w.document.querySelector('[data-setting="'+key+'"] [data-lottie]').dataset.lottie,'lottie/'+file);
+      for(const folder of ['lottie','lottie-dark','lottie-white'])assert(JSON.parse(fs.readFileSync(path.join(assets,folder,file),'utf8')).layers.length);
+    }
+  });
+
+  await test('Only an authoritative verified native snapshot hides login before first paint',async()=>{
+    const code=[...w.document.querySelectorAll('script:not([src])')].map(s=>s.textContent).find(s=>s.includes('window.attendanceInitialAuth=state'));
+    assert(code,'Early auth bootstrap missing');
+    for(const snapshot of [{signedIn:true,emailVerified:true,uid:'saved-user'},{signedIn:true,emailVerified:false,uid:'unverified'},{signedIn:false,emailVerified:false},null]){
+      const isolated=new JSDOM('<html><head></head><body></body></html>',{runScripts:'outside-only'});isolated.window.Android={authSnapshot:()=>JSON.stringify(snapshot)};isolated.window.eval(code);
+      assert.equal(isolated.window.document.documentElement.classList.contains('sessionVerified'),!!(snapshot&&snapshot.signedIn&&snapshot.emailVerified));isolated.window.close();
+    }
+    const noBridge=new JSDOM('<html><body></body></html>',{runScripts:'outside-only'});noBridge.window.eval(code);assert(!noBridge.window.document.documentElement.classList.contains('sessionVerified'));noBridge.window.close();
+    const css=fs.readFileSync(path.join(assets,'v15516-ui.css'),'utf8');assert(css.includes('html.sessionVerified #authGate{display:none!important}'));
+    const cloud=fs.readFileSync(path.join(assets,'cloud-ui.js'),'utf8');assert(cloud.includes("account(window.attendanceInitialAuth)"));assert(cloud.includes("classList.toggle('sessionVerified'"));
+  });
+
+  await test('Help topics and Chat are separate; Messages tab is admin only',async()=>{
+    w.onSupportState(JSON.stringify({ok:true,owner:false,messages:[]}));w.AttendanceAppApi.showScreen('setting-help');await wait(20);
+    click(w,'supportHelpTab');assert.equal(w.document.getElementById('supportHelpPanel').hidden,false);assert.equal(w.document.getElementById('supportChatPanel').hidden,true);assert.equal(w.document.getElementById('supportAdminMessagesTab').hidden,true);
+    assert.equal(w.document.querySelectorAll('.helpTopicCard').length,4);w.AttendanceSupport16.setTab('messages');assert.equal(w.document.getElementById('supportHelpPanel').hidden,false);
+    click(w,'supportChatTab');assert.equal(w.document.getElementById('supportChatPanel').hidden,false);assert.equal(w.document.getElementById('supportHelpPanel').hidden,true);
+    w.onSupportState(JSON.stringify({ok:true,owner:true,threads:[{uid:'admin-test',name:'A User',email:'a@example.com'}]}));assert.equal(w.document.getElementById('supportAdminMessagesTab').hidden,false);assert.equal(w.document.getElementById('supportChatTab').hidden,true);
+    click(w,'supportHelpTab');assert.equal(w.document.getElementById('supportChatPanel').hidden,true);w.AttendanceAppApi.showScreen('home');await wait(20);
   });
 
   await test('Important action buttons exist after all UI patches',async()=>{
