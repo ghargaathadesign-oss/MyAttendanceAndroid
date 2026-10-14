@@ -7,7 +7,11 @@
     if(id==null||!id.matches("[A-Za-z0-9_-]{1,128}"))throw new Exception("Choose a conversation first.");return id;
   }
   private com.google.firebase.storage.StorageReference supportRoot(){return com.google.firebase.storage.FirebaseStorage.getInstance().getReference().child("support");}
-  private <T> T supportAwait(com.google.android.gms.tasks.Task<T> task) throws Exception {return com.google.android.gms.tasks.Tasks.await(task,15,java.util.concurrent.TimeUnit.SECONDS);}
+  private <T> T supportAwait(com.google.android.gms.tasks.Task<T> task) throws Exception {
+    try{return com.google.android.gms.tasks.Tasks.await(task,15,java.util.concurrent.TimeUnit.SECONDS);}
+    catch(java.util.concurrent.ExecutionException e){if(e.getCause() instanceof Exception)throw (Exception)e.getCause();throw e;}
+  }
+  @Override protected void onDestroy(){supportWorker.shutdownNow();super.onDestroy();}
   private String supportError(Exception e){if(e instanceof com.google.firebase.storage.StorageException){int c=((com.google.firebase.storage.StorageException)e).getErrorCode();if(c==com.google.firebase.storage.StorageException.ERROR_NOT_AUTHORIZED)return "Chat access is unavailable. Contact support or try again after signing in.";}return "Could not connect. Check your internet connection and try again.";}
   private final java.util.Map<String,org.json.JSONObject> supportMessageCache=new java.util.HashMap<>();
   private org.json.JSONArray supportMessages(FirebaseUser u,String id) throws Exception {
