@@ -19,7 +19,7 @@ on:
         type: boolean
         default: false
   push:
-    branches: [main, firebase-production-security]
+    branches: [main, firebase-production-security, v15.5.15-language-help]
     paths:
       - 'storage.rules'
       - 'firebase.json'
@@ -54,7 +54,7 @@ jobs:
         run: npx firebase-tools emulators:exec --only storage --project demo-my-attendance "node ci/test-storage-rules.mjs"
 
   backend-preflight:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     needs: test-storage-rules
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -83,7 +83,7 @@ jobs:
           PY
 
   deploy-storage-rules:
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy_storage_rules
+    if: (github.event_name == 'workflow_dispatch' && inputs.deploy_storage_rules) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     needs: [test-storage-rules, backend-preflight]
     runs-on: ubuntu-24.04
     timeout-minutes: 10

@@ -596,6 +596,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
   });
 
   await test('Monthly salary selector and per-month adjustments persist independently',async()=>{
+    w.AttendanceAppApi.showScreen('setting-salary');await wait(20);
     w.AttendanceAppApi.verifiedStorageSet('attendance_salary_v9',{monthly:31000,otMultiplier:1},'salary');
     setValue(w,'salaryMonth','2026-10');
     assert.equal(moneyNumber(w.document.getElementById('salaryDaily').textContent),1000);
@@ -636,6 +637,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
     fire(w,w.document.getElementById('screen-settings'),'scroll');assert(!wrap.classList.contains('open'));
   });
   await test('Weekoffs count elapsed calendar dates even when worked',async()=>{
+    w.AttendanceAppApi.showScreen('setting-salary');await wait(20);
     const original=w.localStorage.getItem('attendance_v8');
     w.AttendanceAppApi.verifiedStorageSet('attendance_v8',[{id:'worked-off',date:'2026-10-04',status:'Week Off',checkIn:'10:00',checkOut:'18:00'}],'attendance');
     setValue(w,'salaryMonth','2026-10');const day=new Date().getDate(),expected=[4,11,18,25].filter(d=>d<=day).length;
@@ -693,8 +695,58 @@ for(const s of [...w.document.querySelectorAll('script')]){
     w.AttendanceAppApi.verifiedStorageSet('attendance_v8',[{id:'old',date:'2026-01-05',status:'Paid Leave'},{id:'current',date:'2026-02-04',status:'Paid Leave'}],'attendance');
     let v=w.AttendanceV15512.leaveSummary('2026-02');assert.equal(v.carry,0);assert.equal(v.available,1.5);v=w.AttendanceV15512.leaveSummary('2026-03');assert.equal(v.carry,.5);assert.equal(v.extra,1);assert.equal(v.available,3);
     w.salarySelectedMonth='2026-03';w.renderSalaryMonthDetails(w.AttendanceAppApi.salaryCalc('2026-03'));assert.equal(w.document.querySelectorAll('#salaryBreakdown .salaryInfoCard')[2].querySelector('b').textContent,'3 days');
-    assert(html.includes('class="v154BootDots"'));assert(!html.includes('class="v154BootLottie'));
+    assert(!html.includes('id="v154BootScreen"'));assert(!html.includes('class="v154BootLottie'));
     w.AttendanceAppApi.verifiedStorageSet('attendance_leave_setup_v81',parseJSON(original),'leaves');w.AttendanceAppApi.verifiedStorageSet('attendance_v8',parseJSON(records),'attendance');
+  });
+
+  await test('Startup has no loading overlay and defers documents and export engines',async()=>{
+    assert(!html.includes('id="v154BootScreen"'));assert(!html.includes('v154BootDots'));assert(!html.includes('v154BootLottie'));
+    assert(!w.document.querySelector('script[src="exceljs.min.js"],script[src="xlsx.full.min.js"]'));
+    const start=appSource.match(/function startUserScopedApp\(\)\{([\s\S]*?)\n\}/)[1];assert(start.includes('init();'));assert(!start.includes('attendanceDocumentsReady'));assert(!start.includes('4500'));
+    assert(appSource.includes('documentsStarted'));assert(!appSource.includes('var prewarm='));
+  });
+
+  await test('English/Hindi changes visible labels and persists without changing saved records',async()=>{
+    const data=w.localStorage.getItem('attendance_v8');
+    w.AttendanceAppApi.showScreen('setting-language');await wait(20);click(w,'languageHindi');await wait(20);
+    assert.equal(w.document.documentElement.lang,'hi');assert.equal(w.localStorage.getItem('attendance_language_v15515'),'hi');
+    assert.equal(w.document.querySelector('#screen-setting-language h1').textContent,'भाषा');
+    assert.equal(w.document.getElementById('supportText').placeholder,'अपना संदेश लिखें…');
+    assert.equal(w.document.querySelector('#totalLeaves option[value="18"]').textContent,'18 / वर्ष · 1.5 / महीना');
+    assert.equal(w.localStorage.getItem('attendance_v8'),data);
+    w.AttendanceAppApi.showScreen('leaves');await wait(30);assert.equal(w.document.querySelector('.friendlyLeaveLabel').textContent,'उपलब्ध छुट्टी');
+    w.AttendanceAppApi.showScreen('setting-language');await wait(20);click(w,'languageEnglish');await wait(20);assert.equal(w.document.documentElement.lang,'en');
+    assert.equal(w.document.querySelector('#screen-setting-language h1').textContent,'Language');
+    assert.equal(w.document.querySelector('#totalLeaves option[value="18"]').textContent,'18 / year · 1.5 / month');
+  });
+
+  await test('Privacy policy is accessible from login and Help has working FAQs',async()=>{
+    w.AttendanceI18n.setLanguage('en');await wait(20);
+    click(w,'loginPrivacyPolicy');await wait(15);assert(w.document.querySelector('#appDialogOverlay .policyContent'));assert.match(w.document.querySelector('#appDialogOverlay').textContent,/not end-to-end encrypted/);
+    w.document.querySelector('#appDialogOverlay .appDialogBtn').click();
+    w.AttendanceAppApi.showScreen('setting-help');await wait(20);assert.equal(w.document.querySelectorAll('#screen-setting-help details').length,3);
+    const detail=w.document.querySelector('#screen-setting-help details');detail.open=true;assert(detail.open);
+  });
+
+  await test('Help sends through the native bridge, preserves failed drafts and escapes messages',async()=>{
+    const calls=[];
+    w.Android.supportLoad=thread=>{calls.push(['load',thread]);setTimeout(()=>w.onSupportState(JSON.stringify({ok:true,owner:false,messages:[{text:'<img src=x onerror=alert(1)>',createdAt:Date.now(),mine:false,support:true}]})),0)};
+    w.Android.supportSend=(thread,text)=>calls.push(['send',thread,text]);
+    w.Android.supportClear=thread=>calls.push(['clear',thread]);
+    click(w,'supportRefresh');await wait(20);assert(!w.document.querySelector('#supportMessages img'));assert.match(w.document.getElementById('supportMessages').textContent,/<img/);
+    setValue(w,'supportText','Please help','input');w.document.getElementById('supportForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
+    assert.deepEqual(calls[calls.length-1],['send','','Please help']);w.onSupportSent(false,'Offline');assert.equal(w.document.getElementById('supportText').value,'Please help');assert.equal(w.document.getElementById('supportSend').disabled,false);
+    w.onSupportSent(true,'');await wait(20);assert.equal(w.document.getElementById('supportText').value,'');
+  });
+
+  await test('Owner inbox opens a selected conversation and replies to that user',async()=>{
+    const calls=[];w.Android.supportLoad=thread=>{calls.push(['load',thread]);setTimeout(()=>w.onSupportState(JSON.stringify({ok:true,owner:true,messages:[],threads:thread?[]:[{uid:'chat-user',email:'user@example.com',name:'User Name'}]})),0)};
+    w.Android.supportSend=(thread,text)=>calls.push(['send',thread,text]);
+    w.onSupportState(JSON.stringify({ok:true,owner:true,threads:[{uid:'chat-user',email:'user@example.com',name:'User Name'}]}));
+    assert.equal(w.document.getElementById('supportForm').hidden,true);w.document.querySelector('.supportThread').click();await wait(20);
+    assert.equal(w.document.getElementById('supportForm').hidden,false);setValue(w,'supportText','We can help','input');w.document.getElementById('supportForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
+    assert.deepEqual(calls[calls.length-1],['send','chat-user','We can help']);w.onSupportSent(true,'');await wait(20);
+    w.AttendanceAppApi.showScreen('home');await wait(20);
   });
 
   await test('Important action buttons exist after all UI patches',async()=>{
