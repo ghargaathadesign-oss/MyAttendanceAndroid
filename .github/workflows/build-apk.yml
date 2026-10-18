@@ -361,7 +361,8 @@ jobs:
           grep -q 'lottie/appearance-v155.json' app/src/main/assets/index.html
           grep -q 'lottie/reports-v155.json' app/src/main/assets/index.html
           grep -q 'lottie/reminder-v155.json' app/src/main/assets/index.html
-          grep -q 'lottie/privacy-v155.json' app/src/main/assets/index.html
+          grep -q 'lottie/security-v15516.json' app/src/main/assets/index.html
+          grep -q 'lottie/help-v15518.json' app/src/main/assets/index.html
           grep -q 'lottie/diagnose-v155.json' app/src/main/assets/index.html
           grep -q 'lottie/notification-v155.json' app/src/main/assets/index.html
           grep -q 'lottie/present-v155.json' app/src/main/assets/index.html
