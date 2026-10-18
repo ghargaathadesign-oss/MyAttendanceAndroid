@@ -750,14 +750,14 @@ for(const s of [...w.document.querySelectorAll('script')]){
   });
 
   await test('Policy and Help are the final settings rows directly above Logout',async()=>{
-    const rows=[...w.document.querySelectorAll('#screen-settings .settingsMenu > button')];const tail=rows.slice(-3);
-    assert.equal(tail[0].dataset.setting,'policy');assert.equal(tail[1].dataset.setting,'help');assert.equal(tail[2].id,'settingsLogoutBtn');
+    const rows=[...w.document.querySelectorAll('#screen-settings .settingsMenu > button')];const tail=rows.slice(-4);
+    assert.equal(tail[0].dataset.setting,'policy');assert.equal(tail[1].dataset.setting,'help');assert.equal(tail[2].id,'inviteEmployeeBtn');assert.equal(tail[3].id,'settingsLogoutBtn');
   });
 
   await test('Security and new settings use supplied animation assets in light and dark themes',async()=>{
     assert.equal(w.document.querySelector('[data-setting="privacy"] b').textContent,'Security');
     assert.equal(w.document.querySelector('#screen-setting-privacy h1').textContent,'Security');
-    for(const [key,file] of [['privacy','security-v15516.json'],['language','language-v15516.json'],['policy','policy-v15516.json'],['help','privacy-v155.json']]){
+    for(const [key,file] of [['privacy','security-v15516.json'],['language','language-v15516.json'],['policy','policy-v15516.json'],['help','help-v15518.json']]){
       assert.equal(w.document.querySelector('[data-setting="'+key+'"] [data-lottie]').dataset.lottie,'lottie/'+file);
       for(const folder of ['lottie','lottie-dark','lottie-white'])assert(JSON.parse(fs.readFileSync(path.join(assets,folder,file),'utf8')).layers.length);
     }
@@ -803,6 +803,45 @@ for(const s of [...w.document.querySelectorAll('script')]){
     setValue(w,'salaryAmount',original.monthly,'input');setValue(w,'salaryBasicDa',original.basicDa||0,'input');
     w.document.getElementById('salaryPfEnabled').checked=false;w.document.getElementById('salaryEsicEnabled').checked=false;click(w,'saveSalary');await wait(100);
     assert.equal(A.salaryGet().pfEnabled,false);assert.equal(A.salaryCalc(month).netEarned,A.salaryCalc(month).earned);
+  });
+
+  await test('Support native methods receive exact argument counts and errors do not look like empty inboxes',async()=>{
+    const counts=[];
+    w.Android.supportLoad=function(thread){assert.equal(arguments.length,1);counts.push(['load',thread]);w.onSupportState(JSON.stringify({ok:true,owner:true,threads:[]}))};
+    w.Android.supportClear=function(thread){assert.equal(arguments.length,1);counts.push(['clear',thread]);w.onSupportCleared(true,'')};
+    w.Android.supportSend=function(thread,text){assert.equal(arguments.length,2);counts.push(['send',thread,text])};
+    w.onSupportState(JSON.stringify({ok:true,owner:true,threads:[]}));w.AttendanceAppApi.showScreen('setting-help');
+    click(w,'supportAdminMessagesTab');if(!w.document.getElementById('supportBack').hidden)click(w,'supportBack');click(w,'supportRefresh');
+    assert(counts.some(c=>c[0]==='load'));assert(w.document.getElementById('supportStatus').textContent.includes('up to date'));
+    w.onSupportState(JSON.stringify({ok:false,error:'Offline'}));assert(!w.document.getElementById('supportInbox').textContent.includes('No help chats yet'));assert.equal(w.document.getElementById('supportStatus').textContent,'Offline');
+    w.onSupportState(JSON.stringify({ok:true,owner:true,threads:[{uid:'arity-user',email:'user@example.com'}]}));click(w,w.document.querySelector('.supportThread'));
+    setValue(w,'supportText','Arity check','input');fire(w,w.document.getElementById('supportForm'),'submit');assert(counts.some(c=>c[0]==='send'&&c[2]==='Arity check'));w.onSupportSent(false,'Offline');
+    click(w,'supportClear');click(w,w.document.querySelector('.appDialogBtn.danger'));assert(counts.some(c=>c[0]==='clear'));w.AttendanceAppApi.showScreen('home');
+  });
+
+  await test('OT cover is saved per month, changes salary once and preserves paid leave',async()=>{
+    const A=w.AttendanceAppApi,previous=w.localStorage.getItem('attendance_v8'),work=w.localStorage.getItem('attendance_settings_v8'),cfg=w.localStorage.getItem('attendance_ot_cover_v15518');
+    A.verifiedStorageSet('attendance_settings_v8',{h:9,m:0,otDelay:30,fmt:'12h'},'work');
+    const records=[{id:'cover-1',date:'2026-10-04',status:'Week Off',checkIn:'09:00',checkOut:'18:00',specialOT:true},{id:'cover-2',date:'2026-10-05',status:'Absent'},{id:'cover-3',date:'2026-10-06',status:'Paid Leave'}];
+    A.verifiedStorageSet('attendance_v8',records,'attendance');A.showScreen('setting-salary');w.salarySelectedMonth='2026-10';A.renderAll();
+    const beforeRecords=w.localStorage.getItem('attendance_v8'),leaveBefore=JSON.stringify(w.AttendanceV15512.leaveSummary('2026-10'));w.document.getElementById('salaryOtCoverEnabled').checked=true;click(w,'saveSalaryOtCover');
+    const c=A.salaryCalc('2026-10');assert.equal(c.otCoveredDays,1);assert.equal(c.otUsedForLeave,540);assert.equal(c.otPay,0);assert.equal(c.paid,3);assert.equal(w.localStorage.getItem('attendance_v8'),beforeRecords);assert.equal(JSON.stringify(w.AttendanceV15512.leaveSummary('2026-10')),leaveBefore);
+    click(w,'salaryNextMonth');assert.equal(w.document.getElementById('salaryOtCoverEnabled').checked,false);click(w,'salaryPrevMonth');assert.equal(w.document.getElementById('salaryOtCoverEnabled').checked,true);
+    A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');if(work)A.verifiedStorageSet('attendance_settings_v8',parseJSON(work),'work');if(cfg)w.localStorage.setItem('attendance_ot_cover_v15518',cfg);else w.localStorage.removeItem('attendance_ot_cover_v15518');A.renderAll();
+  });
+
+  await test('Salary cards open live details in info popups',async()=>{
+    const A=w.AttendanceAppApi;A.showScreen('setting-salary');A.renderAll();
+    const cards=[...w.document.querySelectorAll('.salarySummary>div,.salaryInfoCard,.salaryAdjustment,.salaryFinal,#salaryOtCover,.payrollSetup')];
+    for(const card of cards){const button=card.querySelector(':scope > .salaryInfoButton');assert(button,'Missing info button');button.click();assert(w.document.getElementById('appDialogOverlay'));assert(w.document.querySelector('.appDialogText').textContent.length>0,'Empty details for '+button.getAttribute('aria-label'));click(w,w.document.querySelector('.appDialogBtn'));}
+    const css=fs.readFileSync(path.join(assets,'v15518-ui.css'),'utf8');assert(css.includes('.salaryCardInfo'));assert(css.includes('display:none!important'));
+  });
+
+  await test('Email invite validates recipient and opens a composer without sending mail',async()=>{
+    const calls=[];w.Android.inviteEmployee=email=>calls.push(email);w.AttendanceAppApi.showScreen('settings');
+    click(w,'inviteEmployeeBtn');const input=w.document.querySelector('.inviteEmailInput'),send=w.document.querySelector('.appDialogActions button');assert(input);assert.equal(send.disabled,true);input.value='bad';fire(w,input,'input');assert.equal(send.disabled,true);input.value='employee@example.com';fire(w,input,'input');assert.equal(send.disabled,false);send.click();assert.deepEqual(calls,['employee@example.com']);
+    click(w,'inviteEmployeeBtn');click(w,w.document.querySelector('.appDialogBtn.outline'));assert.equal(calls.length,1);
+    setValue(w,'settingsSearch','invite','input');assert.equal(w.document.getElementById('inviteEmployeeBtn').hidden,false);setValue(w,'settingsSearch','','input');
   });
 
   await test('Important action buttons exist after all UI patches',async()=>{
