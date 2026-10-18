@@ -784,6 +784,27 @@ for(const s of [...w.document.querySelectorAll('script')]){
     click(w,'supportHelpTab');assert.equal(w.document.getElementById('supportChatPanel').hidden,true);w.AttendanceAppApi.showScreen('home');await wait(20);
   });
 
+  await test('PF and ESIC settings validate, persist, and update salary across screens',async()=>{
+    const A=w.AttendanceAppApi;A.showScreen('setting-salary');await wait(40);
+    const original=A.salaryGet(),month=A.monthNow();w.salarySelectedMonth=month;
+    setValue(w,'salaryAmount',31000,'input');setValue(w,'salaryBasicDa',15500,'input');
+    w.document.getElementById('salaryPfEnabled').checked=true;fire(w,w.document.getElementById('salaryPfEnabled'),'change');
+    w.document.getElementById('salaryEsicEnabled').checked=true;fire(w,w.document.getElementById('salaryEsicEnabled'),'change');
+    assert.equal(w.document.getElementById('salaryPfFields').hidden,false);
+    click(w,'saveSalary');await wait(120);assert.equal(A.salaryGet().pfEnabled,true);assert.equal(A.salaryGet().basicDa,15500);
+    const c=A.salaryCalc(month);assert(c.pfDeduction>0);assert.equal(moneyNumber(w.document.getElementById('qSalary').textContent),Math.round(c.netEarned));
+    assert(w.document.getElementById('salaryPayrollBreakdown').textContent.includes('PF'));
+    const adj=Number(w.document.getElementById('salaryAdjustmentAmount').value)||0,sign=w.document.getElementById('salaryAdjustmentType').value==='subtract'?-1:1;
+    assert.equal(moneyNumber(w.document.getElementById('salaryFinalAmount').textContent),Math.round(c.netEarned+sign*adj));
+    A.showScreen('setting-reports');await wait(40);assert.equal(moneyNumber(w.document.getElementById('reportSalary').textContent),Math.round(c.netEarned));
+    A.showScreen('setting-salary');await wait(40);setValue(w,'salaryBasicDa',99999,'input');click(w,'saveSalary');await wait(120);
+    assert.equal(A.salaryGet().basicDa,15500);assert(w.document.getElementById('salarySaveStatus').classList.contains('err'));
+    assert(w.document.getElementById('salarySaveStatus').textContent.includes('Basic + DA'));
+    setValue(w,'salaryAmount',original.monthly,'input');setValue(w,'salaryBasicDa',original.basicDa||0,'input');
+    w.document.getElementById('salaryPfEnabled').checked=false;w.document.getElementById('salaryEsicEnabled').checked=false;click(w,'saveSalary');await wait(100);
+    assert.equal(A.salaryGet().pfEnabled,false);assert.equal(A.salaryCalc(month).netEarned,A.salaryCalc(month).earned);
+  });
+
   await test('Important action buttons exist after all UI patches',async()=>{
     const ids=['saveBtn','resetBtn','saveWorkSettings','saveSalary','saveProfile','saveLeaves','saveDocument','saveRemindersBtn','testReminderBtn','saveAppLockBtn','settingsLogoutBtn','editClose','editCancel','editSave','editPopupDelete'];
     for(const id of ids)assert(w.document.getElementById(id),'Missing '+id);

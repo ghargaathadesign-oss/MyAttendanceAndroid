@@ -1,0 +1,13 @@
+<div class="payrollSetup">
+ <div class="typographyHead"><span><b>Salary deductions</b><small>Enable the deductions shown on your payslip.</small></span></div>
+ <label class="payrollToggle" for="salaryPfEnabled"><span><b>Provident Fund (PF)</b><small>12% employee contribution</small></span><input id="salaryPfEnabled" type="checkbox" role="switch"></label>
+ <div id="salaryPfFields" hidden>
+  <label class="label" for="salaryBasicDa">Monthly Basic Salary + DA</label>
+  <div class="field moneyField"><span>₹</span><input id="salaryBasicDa" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Enter the combined monthly amount"></div>
+  <label class="payrollFull"><input id="salaryPfFullWages" type="checkbox"><span>My PF is calculated on full Basic + DA</span></label>
+  <small class="payrollHint">Otherwise, the statutory wage ceiling applies: ₹25,000 from 17 September 2026; ₹15,000 before that. PF excludes overtime.</small>
+ </div>
+ <label class="payrollToggle" for="salaryEsicEnabled"><span><b>ESIC</b><small>0.75% employee contribution</small></span><input id="salaryEsicEnabled" type="checkbox" role="switch"></label>
+ <small id="salaryEsicHint" class="payrollHint" hidden>Enable if you are covered by ESI. Calculated on earned wages including overtime, before manual adjustments. Coverage normally starts at wages up to ₹21,000/month; existing coverage can continue above this. Employee contribution is exempt when average daily wages are ₹176 or less.</small>
+ <small class="payrollHint">Only your employee share is deducted. Estimates follow recorded paid days; compare with your payslip.</small>
+</div>

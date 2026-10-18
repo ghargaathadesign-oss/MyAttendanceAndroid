@@ -16,7 +16,7 @@ function triggerSave(ev){
   var A=window.AttendanceAppApi||{};
   if(typeof A.saveSalary==='function'){
     status('Saving…');
-    A.saveSalary();
+    if(A.saveSalary()===false)return;
     setTimeout(function(){
       var amt=E('salaryAmount');
       var n=amt?parseFloat(String(amt.value||'').replace(/[^0-9.\-]/g,'')):0;

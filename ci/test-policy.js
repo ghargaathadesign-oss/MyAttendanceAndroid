@@ -63,4 +63,18 @@ assert.strictEqual(arr[0].checkIn,'09:00');
 assert.strictEqual(arr[0].checkOut,'17:00');
 assert.strictEqual(arr[1].status,'Absent');
 assert.strictEqual(p.validateStorage({bad_key:'x'}).ok,false);
-console.log('policy tests passed');
+console.log('policy tests passed');// Payroll is optional; caps follow each earned day's effective date.
+function paidMonth(month){const parts=month.split('-').map(Number),days=new Date(parts[0],parts[1],0).getDate();return Array.from({length:days},(_,i)=>rec(month+'-'+String(i+1).padStart(2,'0'),'','','Paid Leave'))}
+function payroll(month,monthly,basicDa,extra={}){return p.salaryMonth(paidMonth(month),month,s,Object.assign({monthly,basicDa,pfEnabled:true,esicEnabled:true},extra))}
+let pay=payroll('2026-10',20000,15000);assert.equal(pay.pfDeduction,1800);assert.equal(pay.esicDeduction,150);assert.equal(pay.netEarned,18050);
+assert.equal(payroll('2026-10',50000,40000).pfDeduction,3000);
+assert.equal(payroll('2026-08',50000,40000).pfDeduction,1800);
+assert.equal(payroll('2026-09',50000,30000).pfDeduction,2360);
+assert.equal(payroll('2026-10',50000,40000,{pfFullWages:true}).pfDeduction,4800);
+assert.equal(payroll('2026-10',21000,15000).esicDeduction,158);
+assert.equal(payroll('2026-10',5000,3000).esicDeduction,0);
+pay=p.salaryMonth([rec('2026-10-05','','','Paid Leave')],'2026-10',s,{monthly:31000,basicDa:15500,pfEnabled:true,esicEnabled:true});assert.equal(pay.pfDeduction,60);assert.equal(pay.esicDeduction,8);assert.equal(pay.netEarned,932);
+const overtime=p.salaryMonth([rec('2026-10-05','09:00','20:30')],'2026-10',s,{monthly:31000,basicDa:15500,pfEnabled:true,esicEnabled:true});assert.equal(overtime.pfDeduction,60);assert(overtime.esicDeduction>pay.esicDeduction);
+pay=p.salaryMonth([],'2026-11',s,{monthly:31000,basicDa:15500,pfEnabled:true,esicEnabled:true});assert.equal(pay.netEarned,0);assert.equal(pay.payrollDeduction,0);
+pay=payroll('2026-10',20000,15000,{pfEnabled:false,esicEnabled:false});assert.equal(pay.netEarned,pay.earned);assert.equal(pay.payrollDeduction,0);
+console.log('PF/ESIC payroll cases passed');
