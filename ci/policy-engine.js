@@ -76,24 +76,26 @@ function daily(record,settings){
 }
 function balanceMinutes(record,settings){return daily(record,settings).balance}
 function salaryMonth(records,month,settings,salary){
-  var s=normalizeSettings(settings),sal=salary||{},monthly=Math.max(0,n(sal.monthly,0)),mult=clamp(n(sal.otMultiplier,1),0,5),p=String(month||'').split('-'),year=+p[0],mon=+p[1],days=(year&&mon)?new Date(year,mon,0).getDate():30,std=Math.max(1,standardMinutes(s)),dayRate=monthly/days,hourRate=dayRate/(std/60),normalOt=0,specialOt=0,shortfall=0,paid=0,recordedDays=0,pfWages=0,wageDays=0,basic=Math.min(monthly,Math.max(0,n(sal.basicDa,0))),i,r,d,st,unit;
+  var s=normalizeSettings(settings),sal=salary||{},monthly=Math.max(0,n(sal.monthly,0)),mult=clamp(n(sal.otMultiplier,1),0,5),p=String(month||'').split('-'),year=+p[0],mon=+p[1],days=(year&&mon)?new Date(year,mon,0).getDate():30,std=Math.max(1,standardMinutes(s)),dayRate=monthly/days,hourRate=dayRate/(std/60),normalOt=0,specialOt=0,shortfall=0,paid=0,recordedDays=0,pfWages=0,wageDays=0,unpaidDates=[],basic=Math.min(monthly,Math.max(0,n(sal.basicDa,0))),i,r,d,st,unit;
   records=Array.isArray(records)?records:[];
   for(i=0;i<records.length;i++){
     r=records[i];if(!r||String(r.date||'').slice(0,7)!==month)continue;
     recordedDays++;d=daily(r,s);st=normalizeStatus(r.status)||'Present';
     if(d.special)specialOt+=d.worked;else normalOt+=d.overtime;
     shortfall+=d.shortfall;
-    if(st==='Absent'||st==='Unpaid Leave')unit=0;
+    if(st==='Absent'||st==='Unpaid Leave'){unit=0;unpaidDates.push(String(r.date))}
     else if(st==='Paid Leave'||st==='Holiday'||st==='Week Off'||d.special)unit=1;
     else if(st==='Half Day')unit=.5-(d.shortfall/std);
     else unit=1-(d.shortfall/std);
     unit=clamp(unit,0,1);paid+=unit;if(unit>0)wageDays++;
     pfWages+=(sal.pfFullWages?basic:Math.min(basic,String(r.date)<'2026-09-17'?15000:25000))*unit/days;
   }
-  paid=clamp(paid,0,days);
-  var baseEarned=dayRate*paid,deduction=(shortfall/60)*hourRate,normalOtPay=(normalOt/60)*hourRate*mult,specialPay=(specialOt/60)*hourRate,earned=Math.max(0,baseEarned+normalOtPay+specialPay);
+  var covered=sal.otCoverEnabled===true?Math.min(unpaidDates.length,(normalOt+specialOt)/std,Math.max(0,days-paid)):0,otUsed=covered*std,normalUsed=Math.min(normalOt,otUsed),specialUsed=Math.max(0,otUsed-normalUsed),left=covered;
+  unpaidDates.sort();for(i=0;i<unpaidDates.length&&left>0;i++){unit=Math.min(1,left);pfWages+=(sal.pfFullWages?basic:Math.min(basic,unpaidDates[i]<'2026-09-17'?15000:25000))*unit/days;left-=unit;wageDays++}
+  paid=clamp(paid+covered,0,days);
+  var baseEarned=dayRate*paid,deduction=(shortfall/60)*hourRate,normalOtPay=((normalOt-normalUsed)/60)*hourRate*mult,specialPay=((specialOt-specialUsed)/60)*hourRate,earned=Math.max(0,baseEarned+normalOtPay+specialPay);
   var pf=sal.pfEnabled===true?Math.round(pfWages*.12):0,esiExempt=wageDays>0&&baseEarned/wageDays<=176,esic=sal.esicEnabled===true&&!esiExempt?Math.ceil(Math.max(0,earned*.0075-1e-9)):0;
-  return{pfDeduction:pf,esicDeduction:esic,payrollDeduction:pf+esic,pfWages:pfWages,esicExempt:esiExempt,netEarned:Math.max(0,earned-pf-esic),days:days,recordedDays:recordedDays,paid:paid,ot:normalOt+specialOt,net:(normalOt+specialOt)-shortfall,shortfall:shortfall,dayRate:dayRate,hourRate:hourRate,otPay:normalOtPay+specialPay,normalOt:normalOt,specialOt:specialOt,normalOtPay:normalOtPay,specialPay:specialPay,deduction:deduction,baseSalary:monthly,baseEarned:baseEarned,earned:earned};
+  return{otCoveredDays:covered,otUsedForLeave:otUsed,otPaidMinutes:Math.max(0,normalOt+specialOt-otUsed),unpaidDaysAfterOT:Math.max(0,unpaidDates.length-covered),pfDeduction:pf,esicDeduction:esic,payrollDeduction:pf+esic,pfWages:pfWages,esicExempt:esiExempt,netEarned:Math.max(0,earned-pf-esic),days:days,recordedDays:recordedDays,paid:paid,ot:normalOt+specialOt,net:(normalOt+specialOt)-shortfall,shortfall:shortfall,dayRate:dayRate,hourRate:hourRate,otPay:normalOtPay+specialPay,normalOt:normalOt,specialOt:specialOt,normalOtPay:normalOtPay,specialPay:specialPay,deduction:deduction,baseSalary:monthly,baseEarned:baseEarned,earned:earned};
 }
 function leaveAccrued(asOf,totalCap,rate){
   var d=asOf instanceof Date?asOf:new Date(asOf||Date.now());if(isNaN(d.getTime()))d=new Date();

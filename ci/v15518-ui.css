@@ -1,0 +1,11 @@
+#screen-setting-salary .salaryCardInfo,#screen-setting-salary .payrollHint{display:none!important}
+.salaryInfoSection{position:relative}.salaryInfoSection>.salaryInfoButton{position:absolute;right:10px;top:10px;width:26px;height:26px;border:1px solid var(--line,#dbe4ed);border-radius:50%;background:var(--card,#fff);color:var(--muted,#6c7c8e);font:600 14px Georgia,serif;display:grid;place-items:center;cursor:pointer;z-index:1}
+.salaryInfoSection>.salaryInfoButton:focus-visible{outline:2px solid var(--blue,#2d8bdd);outline-offset:2px}
+.salaryInfoSection>.typographyHead,.salaryInfoSection>small:first-child{padding-right:30px}.salarySummary>.salaryInfoSection{padding-top:15px;min-height:88px}.salarySummary>.salaryInfoSection>small:first-child{max-width:calc(100% - 18px)}
+#salaryPayrollBreakdown.salaryInfoSection{padding-top:35px}.salaryAdjustment.salaryInfoSection>.label{padding-right:34px}.salaryFinal.salaryInfoSection{padding-top:38px}.salaryInfoCard.salaryInfoSection{padding-top:20px;min-height:100px}
+#salaryOtCover{padding:20px 16px;margin:18px 0;border:1px solid var(--line,#e3e8ef);border-radius:16px}#salaryOtCover .payrollToggle{padding-right:28px;gap:10px}#salaryOtCover .payrollToggle b{font-size:14px}
+.otCoverStats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0 16px}.otCoverStats>div{padding:12px;border-radius:12px;background:var(--bg,#f5f8fb);display:flex;flex-direction:column;gap:6px}.otCoverStats small{font-size:11px;color:var(--muted)}.otCoverStats b{font-size:17px}.otCoverStatus{display:block;margin-top:8px;font-size:12px;color:var(--muted)}
+.inviteEmailInput{box-sizing:border-box;width:100%;margin-top:18px;padding:14px;border:1px solid var(--line,#dbe4ed);border-radius:12px;background:var(--card,#fff);color:var(--text);font:inherit}
+#inviteEmployeeBtn .inviteIcon{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:var(--bg,#f5f8fb);color:var(--text);font-size:22px}
+@media(max-width:360px){.salaryFinal.salaryInfoSection{flex-wrap:wrap}.otCoverStats{gap:8px}.salarySummary>.salaryInfoSection{min-height:90px}}
+.salaryInfoDialog .appDialogText{white-space:pre-line;text-align:left;max-height:55vh;overflow:auto;line-height:1.65}
