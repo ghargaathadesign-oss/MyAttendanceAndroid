@@ -666,7 +666,7 @@ jobs:
           FCM_TOPIC: attendance_updates
           UPDATE_VERSION: '15.5.17'
           UPDATE_VERSION_CODE: '51'
-          UPDATE_CHANGELOG: 'No login flash for saved sessions; updated settings icons and Security; separate Help, Chat and admin Messages tabs.'
+          UPDATE_CHANGELOG: 'Optional PF and ESIC deductions; combined Basic + DA input; effective-date PF ceilings; clear take-home salary across Salary, Home and Reports.'
         run: |
           set -euo pipefail
           if [ -z "${FIREBASE_SERVICE_ACCOUNT_JSON:-}" ]; then
