@@ -824,8 +824,8 @@ for(const s of [...w.document.querySelectorAll('script')]){
     A.verifiedStorageSet('attendance_settings_v8',{h:9,m:0,otDelay:30,fmt:'12h'},'work');
     const records=[{id:'cover-1',date:'2026-10-04',status:'Week Off',checkIn:'09:00',checkOut:'18:00',specialOT:true},{id:'cover-2',date:'2026-10-05',status:'Absent'},{id:'cover-3',date:'2026-10-06',status:'Paid Leave'}];
     A.verifiedStorageSet('attendance_v8',records,'attendance');A.showScreen('setting-salary');w.salarySelectedMonth='2026-10';A.renderAll();
-    const beforeRecords=w.localStorage.getItem('attendance_v8'),leaveBefore=JSON.stringify(w.AttendanceV15512.leaveSummary('2026-10'));w.document.getElementById('salaryOtCoverEnabled').checked=true;click(w,'saveSalaryOtCover');
-    const c=A.salaryCalc('2026-10');assert.equal(c.otCoveredDays,1);assert.equal(c.otUsedForLeave,540);assert.equal(c.otPay,0);assert.equal(c.paid,3);assert.equal(w.localStorage.getItem('attendance_v8'),beforeRecords);assert.equal(JSON.stringify(w.AttendanceV15512.leaveSummary('2026-10')),leaveBefore);
+    const beforeRecords=w.localStorage.getItem('attendance_v8'),leaveBefore=JSON.stringify(w.AttendanceV15512.leaveSummary('2026-10'));w.document.getElementById('salaryOtCoverEnabled').checked=true;fire(w,w.document.getElementById('salaryOtCoverEnabled'),'change');
+    const c=A.salaryCalc('2026-10');assert.equal(c.otCoveredDays,1);assert.equal(c.otUsedForLeave,540);assert.equal(c.otPay,0);assert.equal(c.paid,2);assert.equal(c.otPaidLeaveRefund,1);assert.equal(w.localStorage.getItem('attendance_v8'),beforeRecords);assert.equal(w.AttendanceV15512.leaveSummary('2026-10').used,0);
     click(w,'salaryNextMonth');assert.equal(w.document.getElementById('salaryOtCoverEnabled').checked,false);click(w,'salaryPrevMonth');assert.equal(w.document.getElementById('salaryOtCoverEnabled').checked,true);
     A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');if(work)A.verifiedStorageSet('attendance_settings_v8',parseJSON(work),'work');if(cfg)w.localStorage.setItem('attendance_ot_cover_v15518',cfg);else w.localStorage.removeItem('attendance_ot_cover_v15518');A.renderAll();
   });
@@ -842,6 +842,27 @@ for(const s of [...w.document.querySelectorAll('script')]){
     click(w,'inviteEmployeeBtn');const input=w.document.querySelector('.inviteEmailInput'),send=w.document.querySelector('.appDialogActions button');assert(input);assert.equal(send.disabled,true);input.value='bad';fire(w,input,'input');assert.equal(send.disabled,true);input.value='employee@example.com';fire(w,input,'input');assert.equal(send.disabled,false);send.click();assert.deepEqual(calls,['employee@example.com']);
     click(w,'inviteEmployeeBtn');click(w,w.document.querySelector('.appDialogBtn.outline'));assert.equal(calls.length,1);
     setValue(w,'settingsSearch','invite','input');assert.equal(w.document.getElementById('inviteEmployeeBtn').hidden,false);setValue(w,'settingsSearch','','input');
+  });
+
+  await test('OT toggle immediately restores paid leave, reduces OT, and reverses without changing records',async()=>{
+    const A=w.AttendanceAppApi,keys=['attendance_v8','attendance_settings_v8','attendance_ot_cover_v15518','attendance_leave_setup_v81'],saved=keys.map(k=>w.localStorage.getItem(k));
+    A.verifiedStorageSet('attendance_settings_v8',{h:9,m:0,otDelay:30},'work');A.verifiedStorageSet('attendance_ot_cover_v15518',{},'OT cover');A.verifiedStorageSet('attendance_leave_setup_v81',{total:18,additional:0,categories:[],startingLeave:{month:'2026-10',balance:0}},'leaves');
+    A.verifiedStorageSet('attendance_v8',[{id:'ref-1',date:'2026-10-04',status:'Week Off',checkIn:'09:00',checkOut:'13:30',specialOT:true},{id:'ref-2',date:'2026-10-05',status:'Paid Leave'}],'attendance');
+    const raw=w.localStorage.getItem('attendance_v8');A.showScreen('setting-salary');w.salarySelectedMonth='2026-10';A.renderAll();const before=w.AttendanceV15512.leaveSummary('2026-10').available;
+    const toggle=w.document.getElementById('salaryOtCoverEnabled');toggle.checked=true;fire(w,toggle,'change');let c=A.salaryCalc('2026-10');assert.equal(c.otPaidMinutes,0);assert.equal(c.otPaidLeaveRefund,.5);assert.equal(w.AttendanceV15512.leaveSummary('2026-10').available,before+.5);assert.equal(w.localStorage.getItem('attendance_v8'),raw);
+    A.showScreen('leaves');w.leavesSelectedMonth='2026-10';w.renderFriendlyLeaves();assert.equal(Number(w.document.getElementById('leaveBalance').textContent),before+.5);assert(w.document.getElementById('leaveRecords').textContent.includes('0.5 OT / 0.5 PL'));
+    assert.equal(w.AttendanceV15512.leaveSummary('2026-11').carry,1);
+    A.showScreen('setting-salary');toggle.checked=false;fire(w,toggle,'change');assert.equal(w.AttendanceV15512.leaveSummary('2026-10').available,before);assert.equal(A.salaryCalc('2026-10').otPaidMinutes,270);
+    keys.forEach((k,i)=>{if(saved[i]===null)w.localStorage.removeItem(k);else w.localStorage.setItem(k,saved[i])});A.renderAll();
+  });
+
+  await test('Reports draws two monthly series and a combined daily punch chart',async()=>{
+    const A=w.AttendanceAppApi,previous=w.localStorage.getItem('attendance_v8');A.verifiedStorageSet('attendance_v8',[{id:'chart-1',date:'2026-10-05',status:'Present',checkIn:'09:00',checkOut:'18:00'},{id:'chart-2',date:'2026-10-06',status:'Present',checkIn:'22:00',checkOut:'06:00'}],'attendance');
+    A.showScreen('setting-reports');setValue(w,'reportMonth','2026-10');assert.equal(w.document.querySelectorAll('#reportTrend .chartSeries').length,2);assert.equal(w.document.querySelectorAll('#reportPunchChart .chartSeries').length,2);assert.equal(w.document.querySelectorAll('#reportPunchChart .chartPoint').length,4);
+    const out=w.document.querySelector('#reportPunchChart .chartPoint.series1:last-child');out.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));assert(w.document.querySelector('#reportPunchChart .chartReadout').textContent.includes('+1 day'));
+    setValue(w,'reportMonth','2026-09');assert.equal(w.document.querySelectorAll('#reportPunchChart .chartPoint').length,0);assert(w.document.querySelector('#reportPunchChart .chartReadout').textContent.includes('No recorded data'));
+    assert.equal(w.document.querySelector('#inviteEmployeeBtn [data-lottie]').dataset.lottie,'lottie/invite-v15519.json');for(const folder of ['lottie','lottie-dark','lottie-white'])assert(JSON.parse(fs.readFileSync(path.join(assets,folder,'invite-v15519.json'),'utf8')).layers.length);
+    A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');
   });
 
   await test('Important action buttons exist after all UI patches',async()=>{

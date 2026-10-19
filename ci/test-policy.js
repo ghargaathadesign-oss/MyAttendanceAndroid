@@ -82,10 +82,16 @@ console.log('PF/ESIC payroll cases passed');
 const coverRecords=[rec('2026-10-04','09:00','18:00','Week Off',{specialOT:true}),rec('2026-10-05','','','Absent'),rec('2026-10-06','','','Paid Leave')];
 const coverOriginal=JSON.stringify(coverRecords);
 let cover=p.salaryMonth(coverRecords,'2026-10',s,{monthly:31000,otMultiplier:2,otCoverEnabled:true,basicDa:15500,pfEnabled:true,esicEnabled:true});
-assert.equal(cover.ot,540);assert.equal(cover.otUsedForLeave,540);assert.equal(cover.otCoveredDays,1);assert.equal(cover.otPaidMinutes,0);assert.equal(cover.otPay,0);assert.equal(cover.paid,3);assert.equal(cover.earned,3000);assert.equal(cover.pfDeduction,180);assert.equal(cover.esicDeduction,23);assert.equal(JSON.stringify(coverRecords),coverOriginal);
+assert.equal(cover.ot,540);assert.equal(cover.otUsedForLeave,540);assert.equal(cover.otCoveredDays,1);assert.equal(cover.otPaidMinutes,0);assert.equal(cover.otPay,0);assert.equal(cover.paid,2);assert.equal(cover.earned,2000);assert.equal(cover.pfDeduction,120);assert.equal(cover.esicDeduction,15);assert.equal(cover.otPaidLeaveRefund,1);assert.equal(JSON.stringify(coverRecords),coverOriginal);
 cover=p.salaryMonth(coverRecords,'2026-10',s,{monthly:31000,otCoverEnabled:false});assert.equal(cover.otUsedForLeave,0);assert.equal(cover.paid,2);assert.equal(cover.otPay,1000);
 cover=p.salaryMonth([rec('2026-10-04','09:00','13:30','Week Off',{specialOT:true}),rec('2026-10-05','','','Unpaid Leave')],'2026-10',s,{monthly:31000,otCoverEnabled:true});assert.equal(cover.otCoveredDays,.5);assert.equal(cover.paid,1.5);assert.equal(cover.unpaidDaysAfterOT,.5);
-cover=p.salaryMonth([rec('2026-10-04','09:00','18:00','Week Off',{specialOT:true}),rec('2026-10-05','','','Paid Leave')],'2026-10',s,{monthly:31000,otCoverEnabled:true});assert.equal(cover.otCoveredDays,0);assert.equal(cover.otPaidMinutes,540);
+cover=p.salaryMonth([rec('2026-10-04','09:00','18:00','Week Off',{specialOT:true}),rec('2026-10-05','','','Paid Leave')],'2026-10',s,{monthly:31000,otCoverEnabled:true});assert.equal(cover.otCoveredDays,1);assert.equal(cover.otPaidMinutes,0);assert.equal(cover.otPaidLeaveRefund,1);
 cover=p.salaryMonth([rec('2026-09-06','09:00','18:00','Week Off',{specialOT:true}),rec('2026-10-05','','','Absent')],'2026-10',s,{monthly:31000,otCoverEnabled:true});assert.equal(cover.otCoveredDays,0);assert.equal(cover.paid,0);
 cover=p.salaryMonth([rec('2026-10-04','09:00','18:00','Week Off',{specialOT:true}),rec('2026-10-05','09:00','18:30'),rec('2026-10-06','','','Absent')],'2026-10',{h:8,m:0,otDelay:30},{monthly:31000,otMultiplier:2,otCoverEnabled:true});assert.equal(cover.otUsedForLeave,480);assert.equal(cover.otPaidMinutes,120);assert.equal(cover.normalOtPay,0);assert.equal(cover.specialPay,250);
 console.log('OT leave cover cases passed');
+
+// OT refunds Paid Leave before covering unpaid dates, without creating extra salary.
+cover=p.salaryMonth([rec('2026-10-04','09:00','13:30','Week Off',{specialOT:true}),rec('2026-10-05','','','Paid Leave')],'2026-10',s,{monthly:31000,otCoverEnabled:true});assert.equal(cover.otPaidLeaveRefund,.5);assert.equal(cover.otLeaveAllocations['2026-10-05'],.5);assert.equal(cover.paid,2);assert.equal(cover.otPay,0);assert.equal(cover.net,0);
+console.log('OT paid-leave refunds passed');
+
+cover=p.salaryMonth([rec('2026-10-04','09:00','18:00','Week Off',{specialOT:true}),rec('2026-10-25','','','Paid Leave')],'2026-10',s,{monthly:31000,otCoverEnabled:true,asOfDate:'2026-10-19'});assert.equal(cover.otPaidLeaveRefund,0);assert.equal(cover.otPaidMinutes,540);
