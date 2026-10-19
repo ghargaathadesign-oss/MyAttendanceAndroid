@@ -527,5 +527,21 @@
   "Monthly in and out times": "मासिक आने और जाने का समय",
   "Required and worked hours by month": "हर महीने के आवश्यक और काम किए गए घंटे",
   "Missing records are gaps. Tap a point for details.": "रिकॉर्ड नहीं होने पर अंतराल रहता है। विवरण के लिए बिंदु पर टैप करें।",
-  "Uses overtime earned in the selected month to cover recorded leave days, earliest date first within each type. Your standard workday sets the conversion: 9 hours = 1 day when your standard day is 9 hours. Partial cover is allowed. Normal OT is used before Sunday/holiday OT. Used hours are not paid again. OT covers Paid Leave first and returns that allowance to your balance, then covers Absent or Unpaid Leave. Attendance records stay unchanged. Unused OT is paid in the same month; it is not carried forward.": "चुने गए महीने का OT पहले सवेतन छुट्टी कवर करके वह छुट्टी आपके बैलेंस में वापस देता है, फिर अनुपस्थित या अवैतनिक दिन कवर करता है। हर प्रकार में सबसे पुरानी तारीख पहले आती है। 9 घंटे का सामान्य कार्यदिवस होने पर 9 घंटे = 1 दिन; आंशिक कवर भी संभव है। सामान्य OT पहले इस्तेमाल होता है, फिर रविवार/अवकाश का OT। इस्तेमाल OT का दोबारा भुगतान नहीं होता। उपस्थिति रिकॉर्ड नहीं बदलते। बचा OT उसी महीने देय है; अगले महीने नहीं जाता।"
+  "Uses overtime earned in the selected month to cover recorded leave days, earliest date first within each type. Your standard workday sets the conversion: 9 hours = 1 day when your standard day is 9 hours. Partial cover is allowed. Normal OT is used before Sunday/holiday OT. Used hours are not paid again. OT covers Paid Leave first and returns that allowance to your balance, then covers Absent or Unpaid Leave. Attendance records stay unchanged. Unused OT is paid in the same month; it is not carried forward.": "चुने गए महीने का OT पहले सवेतन छुट्टी कवर करके वह छुट्टी आपके बैलेंस में वापस देता है, फिर अनुपस्थित या अवैतनिक दिन कवर करता है। हर प्रकार में सबसे पुरानी तारीख पहले आती है। 9 घंटे का सामान्य कार्यदिवस होने पर 9 घंटे = 1 दिन; आंशिक कवर भी संभव है। सामान्य OT पहले इस्तेमाल होता है, फिर रविवार/अवकाश का OT। इस्तेमाल OT का दोबारा भुगतान नहीं होता। उपस्थिति रिकॉर्ड नहीं बदलते। बचा OT उसी महीने देय है; अगले महीने नहीं जाता।",
+  "Share app link": "ऐप लिंक साझा करें",
+  "Could not open sharing. Try again.": "साझा करने का विकल्प नहीं खुला। फिर कोशिश करें।",
+  "Invite link copied": "आमंत्रण लिंक कॉपी हुआ",
+  "Working hours trend": "काम के घंटों का रुझान",
+  "Daily rhythm": "दैनिक आने-जाने का समय",
+  "Average in": "औसत आने का समय",
+  "Average out": "औसत जाने का समय",
+  "Recorded punch days": "दर्ज पंच वाले दिन",
+  "6-month total": "6 महीने का कुल",
+  "Choose a recorded day": "दर्ज दिन चुनें",
+  "Choose a month": "महीना चुनें",
+  "Your chart will appear after attendance is recorded.": "उपस्थिति दर्ज करने के बाद चार्ट दिखाई देगा।",
+  "Required vs worked hours · Last six months · Recorded days only": "आवश्यक और काम किए घंटे · पिछले छह महीने · केवल दर्ज दिन",
+  "Your in and out times at a glance. Recorded punch days only; +1 day means the following day.": "आने-जाने का समय एक नज़र में। केवल दर्ज पंच वाले दिन; +1 day का अर्थ अगला दिन है।",
+  "Only recorded punch days are plotted. Missing punches are gaps.": "चार्ट में केवल दर्ज पंच वाले दिन हैं। अधूरे पंच में अंतराल रहता है।",
+  "Required and worked hours across six months. Missing months are gaps.": "छह महीने के आवश्यक और काम किए घंटे। बिना रिकॉर्ड वाले महीनों में अंतराल रहता है।"
 }
