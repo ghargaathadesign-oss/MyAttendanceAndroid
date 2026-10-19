@@ -8,11 +8,11 @@ function render(){
  var A=window.AttendanceAppApi;if(!A||!E('qPartial'))return;
  var month=A.monthNow(),today=A.nowDate(),records=A.dataGet(),settings=A.setGet(),c=A.salaryCalc(month),present=0,partial=0,off={},paid=0,unpaid=0,pending=false;
  var parts=month.split('-');for(var day=1;day<=+today.slice(8,10);day++){var date=month+'-'+String(day).padStart(2,'0');if(AttendancePolicy.isSunday(date))off[date]=true}
- records.forEach(function(r){if(r.date.slice(0,7)!==month||r.date>today)return;var st=AttendancePolicy.normalizeStatus(r.status),d=AttendancePolicy.daily(r,settings,today);
+ records.forEach(function(r){if(r.date.slice(0,7)!==month||r.date>today)return;var st=AttendancePolicy.attendanceStatus(r),d=AttendancePolicy.daily(r,settings,today);
   if(st==='Paid Leave')paid++;if(st==='Unpaid Leave')unpaid++;
   if(d.pending)pending=true;
   if(st==='Week Off'||AttendancePolicy.isSunday(r.date)){off[r.date]=true;return}
-  if(st==='Half Day'||st==='Short Day'||st==='Present'&&!d.pending&&(!r.checkIn||!r.checkOut||d.worked<d.required))partial++;
+  if(st==='Half Day')partial++;
   else if(st==='Present')present++;
  });
  var leave=window.AttendanceV15512.leaveSummary(month),adj={};try{adj=JSON.parse(localStorage.getItem('attendance_salary_adjustments_v1559')||'{}')[month]||{}}catch(e){}

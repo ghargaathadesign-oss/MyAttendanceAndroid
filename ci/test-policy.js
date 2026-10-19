@@ -58,7 +58,7 @@ const norm=p.normalizeStorage(legacy);
 assert.strictEqual(norm.ok,true);
 const arr=JSON.parse(norm.storage.attendance_v8);
 assert.strictEqual(arr[0].date,'2026-10-05');
-assert.strictEqual(arr[0].status,'Short Day');
+assert.strictEqual(arr[0].status,'Present');
 assert.strictEqual(arr[0].checkIn,'09:00');
 assert.strictEqual(arr[0].checkOut,'17:00');
 assert.strictEqual(arr[1].status,'Absent');
@@ -112,3 +112,16 @@ assert.equal(p.salaryMonth(currentOT,'2026-10',s,{monthly:31000,asOfDate:'2026-1
 assert.equal(p.daily(rec('2026-10-19','10:00','18:00'),s,'2026-10-19').shortfall,60);
 assert.equal(p.daily(rec('2026-10-19','22:00','08:00'),s,'2026-10-19').overtime,30);
 console.log('Open shift, completed shift, future record and payroll regression cases passed');
+
+// Attendance credit changes at exactly six hours; pay stays proportional for 6+ hours.
+for(const [minutes,status,paid] of [[269,'Half Day',269/540],[270,'Half Day',.5],[330,'Half Day',.5],[359,'Half Day',.5],[360,'Present',360/540],[361,'Present',361/540],[480,'Present',480/540],[540,'Present',1]]){
+ const end=9*60+minutes,r=rec('2026-10-05','09:00',String(Math.floor(end/60)).padStart(2,'0')+':'+String(end%60).padStart(2,'0'),'Half Day');
+ assert.equal(p.attendanceStatus(r),status);assert.equal(p.normalizeRecord(r).record.status,status);const d=p.daily(r,s);assert.equal(d.overtime,0);
+ const result=p.salaryMonth([r],'2026-10',s,{monthly:31000});assert(Math.abs(result.paid-paid)<1e-9);assert(Math.abs(result.baseEarned-1000*paid)<1e-8);
+}
+assert.equal(p.attendanceStatus(rec('2026-10-05','22:00','04:00','Half Day')),'Present');
+assert.equal(p.attendanceStatus(rec('2026-10-05','10:00','','Present')),'Present');
+assert.equal(p.attendanceStatus(rec('2026-10-04','09:00','10:00','Present')),'Week Off');
+assert.equal(p.attendanceStatus(rec('2026-10-05','09:00','10:00','Holiday')),'Holiday');
+const otDifference=p.salaryMonth([rec('2026-10-04','00:00','14:45','Week Off'),rec('2026-10-05','09:00','20:30'),rec('2026-10-06','09:00','17:15','Short Day')],'2026-10',s,{monthly:31000});assert.equal(otDifference.ot,1005);assert.equal(otDifference.remainingShortfall,45);assert.equal(otDifference.net,960);
+console.log('Six-hour threshold, hourly salary, half-day OT and 16h45 gross / 16h net cases passed');
