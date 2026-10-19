@@ -1,0 +1,21 @@
+/* Both balance rows share columns, spacing and label baselines. */
+#screen-home .homeLeaveBalances23{margin-top:10px;margin-bottom:20px}
+#screen-home .homeBalances21 small{min-height:30px;display:flex;align-items:center;justify-content:center}
+/* Align all salary content to the same card edge. */
+#screen-home .homeSalary21{padding:20px;text-align:left}
+#screen-home .homeGross21{padding:16px 0;margin:13px 0 10px;border-radius:0;background:transparent;border-bottom:1px solid var(--line);text-align:left}
+#screen-home .homeGross21 small,#screen-home .homeGross21 b,#screen-home .homeGross21 span{margin-left:0;margin-right:0;text-align:left}
+#screen-home .homeGross21 b{line-height:1.25;margin-top:7px;margin-bottom:7px}
+#screen-home .homeDeduction21{padding-left:0;padding-right:0}
+#screen-home .homeSalary21 .homeNote21{margin:10px 0 0;text-align:left}
+/* Heading, month, chart and selected-day text use one left edge. */
+#screen-home .homePunch21{padding:20px!important;text-align:left}
+#screen-home .homePunch21>.label{margin-left:0;margin-right:0;text-align:left}
+#screen-home #homePunchMonth21{display:block;width:100%;padding:0!important;margin:8px 0 0!important;background:transparent;border-radius:0;text-align:left}
+#screen-home .homePunch21>.reportChartNote{margin:10px 0 0;text-align:left}
+#screen-home #homePunchChart21{width:100%;margin:0;padding:0!important;text-align:left}
+#homePunchChart21 .chartScroll,#homePunchChart21 svg{margin-left:0;margin-right:0}
+#homePunchChart21 .chartDetails20{padding:13px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;text-align:left}
+#homePunchChart21 .chartPicker20{padding-left:0!important;text-align:left}
+#homePunchChart21 .chartReadout{margin-left:0;margin-right:0;text-align:left}
+@media(max-width:360px){#screen-home .homeSalary21,#screen-home .homePunch21{padding:16px!important}}

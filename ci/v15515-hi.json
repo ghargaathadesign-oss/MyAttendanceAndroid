@@ -92,7 +92,7 @@
   "Present": "उपस्थित",
   "Absent": "अनुपस्थित",
   "Paid Leave": "सवेतन छुट्टी",
-  "Unpaid Leave": "बिना वेतन छुट्टी",
+  "Unpaid Leave": "अवैतनिक छुट्टी",
   "Week Off": "साप्ताहिक अवकाश",
   "Holiday": "अवकाश",
   "Half Day": "आधा दिन",
@@ -563,5 +563,7 @@
   "Shortfall after OT cover": "ओटी समायोजन के बाद कम घंटे",
   "Gross OT earned": "अर्जित कुल ओटी",
   "Same net balance as Home for this month. Earned OT minus OT used for leave and uncovered shortfall.": "इस महीने के लिए होम जैसा ही शुद्ध शेष। अर्जित ओटी में से छुट्टी के लिए इस्तेमाल ओटी और शेष कम घंटे घटाए जाते हैं।",
-  "Under 6 hours: Half Day. 6 hours or more: Present. Pay for full attendance days follows actual worked hours.": "6 घंटे से कम: आधा दिन। 6 घंटे या अधिक: उपस्थित। पूरे उपस्थिति दिनों का वेतन वास्तविक काम के घंटों पर आधारित है।"
+  "Under 6 hours: Half Day. 6 hours or more: Present. Pay for full attendance days follows actual worked hours.": "6 घंटे से कम: आधा दिन। 6 घंटे या अधिक: उपस्थित। पूरे उपस्थिति दिनों का वेतन वास्तविक काम के घंटों पर आधारित है।",
+  "Paid Leave Used": "इस्तेमाल की गई सवेतन छुट्टी",
+  "Absent Days": "अनुपस्थित दिन"
 }
