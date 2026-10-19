@@ -1,0 +1,29 @@
+/* Match the existing Clock In / Out surface without changing its theme. */
+#screen-home .homeOverview25,#screen-home .homeSalary21,#screen-home .homePunch21{position:relative;isolation:isolate;background:linear-gradient(135deg,var(--surface,#fff) 65%,var(--soft,#f3f6fc));border:1px solid var(--line);border-radius:28px;padding:20px;box-shadow:0 12px 30px rgba(55,79,125,.10),inset 0 1px 0 rgba(255,255,255,.65);margin:20px 0}
+#screen-home .homeOverview25:before,#screen-home .homeSalary21:before,#screen-home .homePunch21:before{content:'';position:absolute;z-index:-1;pointer-events:none;right:0;bottom:0;width:80px;height:65px;border-radius:100% 0 28px 0;background:rgba(101,138,232,.045)}
+#screen-home .homeOverview25 .overviewHead{margin:0 0 15px;gap:10px}
+#screen-home .homeAttendance21{margin:0 0 28px;gap:10px}
+#screen-home .homeAttendance21>div,#screen-home .homeBalances21>div,#screen-home .chartMetric20{border:1px solid var(--line);border-radius:20px;background:linear-gradient(145deg,var(--surface,#fff),var(--card,#fff));box-shadow:0 7px 18px rgba(65,91,142,.09),inset 0 1px 0 rgba(255,255,255,.65);padding:15px 6px;min-width:0}
+#screen-home .homeCountIcon21{background:transparent;width:28px;height:28px}
+#screen-home .homeBalances21{border:0;background:transparent;padding:0;gap:10px;margin:0 0 10px}
+#screen-home .homeBalances21>div+div{border-left:1px solid var(--line)}
+#screen-home .homeBalances21 small{font-size:10px;line-height:1.5;min-height:32px}
+#screen-home .homeBalances21 b{font-size:18px;letter-spacing:-.4px}
+#screen-home .homeLeaveBalances23{margin-top:10px;margin-bottom:0}
+#screen-home .homeOverview25>.homeNote21{margin:12px 0 0}
+#screen-home .homeGross21{padding:18px 14px;margin:16px 0 8px;border-radius:18px;background:var(--soft,#f6f8fc);border:1px solid var(--line)}
+#screen-home .homeSalaryTitle21>b,#screen-home .homePunch21>.label{font-size:17px;font-weight:750;letter-spacing:0;text-transform:none;color:var(--text)}
+#screen-home .homeDeduction21{padding:11px 0}
+#screen-home .homePunch21 .chartMetrics20{gap:10px}
+#screen-home .homePunch21 .chartDetails20{display:grid;grid-template-columns:36px minmax(0,1fr);align-items:center;gap:4px 10px;border:1px solid var(--line);border-radius:18px;padding:12px!important;background:var(--surface,#fff);box-shadow:0 6px 16px rgba(55,79,125,.09);margin-top:12px}
+#homePunchChart21 .homeCalendar25{grid-column:1;grid-row:1 / 3;width:30px;height:30px;display:block}
+#homePunchChart21 .chartDetails20>.chartPicker20,#homePunchChart21 .chartDetails20>.customSelect{grid-column:2;min-width:0;width:100%}
+#homePunchChart21 .chartPicker20{padding:6px 34px 6px 0!important;border:0;background:transparent;color:var(--text);font-family:inherit;min-height:36px}
+#homePunchChart21 .chartReadout{grid-column:2;margin:0;font-size:11px;line-height:1.6;color:var(--muted)}
+/* Reserve an arrow column even inside narrow 12-hour punch controls. */
+.timeRow{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;min-width:0}.timeRow.mode24{grid-template-columns:repeat(2,minmax(0,1fr))}
+.timeRow .customSelectButton{padding-left:4px!important;padding-right:19px!important;text-align:center!important;font-size:12px!important;min-height:44px;letter-spacing:0}
+.timeRow .customSelectButton:after{right:5px!important;width:5px!important;height:5px!important}
+.timeRow .customSelect{min-width:0!important}.timeBox{min-width:0}
+@media(max-width:360px){#screen-home .homeOverview25,#screen-home .homeSalary21,#screen-home .homePunch21{padding:16px!important}.homeAttendance21,#screen-home .homeBalances21{gap:7px}#screen-home .homeBalances21 b{font-size:15px}.timeRow .customSelectButton{font-size:11px!important;padding-left:2px!important;padding-right:16px!important}.timeRow .customSelectButton:after{right:4px!important}}
+body.dark-mode #screen-home .homeOverview25,body.dark-mode #screen-home .homeSalary21,body.dark-mode #screen-home .homePunch21,body.dark-mode #screen-home .homeAttendance21>div,body.dark-mode #screen-home .homeBalances21>div{box-shadow:0 8px 22px rgba(0,0,0,.2);background:var(--surface)}
