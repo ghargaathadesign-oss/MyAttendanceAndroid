@@ -1,0 +1,9 @@
+/* Reserve a row for every info button so it cannot overlap text or switches. */
+#screen-setting-salary .salaryInfoSection{position:relative;padding-top:44px!important}
+#screen-setting-salary .salaryInfoSection>.salaryInfoButton{top:10px;right:12px;width:26px;height:26px}
+#screen-setting-salary .salaryInfoSection>.typographyHead,#screen-setting-salary .salaryInfoSection>small:first-child{padding-right:0;max-width:100%}
+#screen-setting-salary #salaryOtCover .payrollToggle{padding-right:0}
+#saveSalaryOtCover{display:none}.otCoverOutcome{font-size:12px;line-height:1.6;color:var(--muted);margin-top:12px}.otCoverOutcome:empty{display:none}
+.reportLineChart{display:block!important;height:auto!important;padding:12px 0!important}.chartScroll{width:100%;overflow-x:auto;overscroll-behavior-x:contain}.reportLineChart svg{display:block;width:100%;height:auto;overflow:visible}.reportLineChart svg.timePlot{min-width:660px}
+.chartGrid{stroke:var(--line,#dfe7f0);stroke-width:1}.chartAxis{fill:var(--muted,#728196);font-size:10px;font-family:inherit}.chartSeries.series0{stroke:#4b8deb}.chartSeries.series1{stroke:#24b5a0}.chartPoint.series0{fill:#4b8deb;stroke:var(--card,#fff);stroke-width:2}.chartPoint.series1{fill:#24b5a0;stroke:var(--card,#fff);stroke-width:2}.chartPoint{cursor:pointer}.chartPoint:focus{outline:none;stroke:var(--text);stroke-width:3}
+.chartLegend{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;margin:8px 0}.chartLegend span{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px}.chartLegend span:before{content:'';width:18px;height:3px;background:#4b8deb;border-radius:3px}.chartLegend .legend1:before{background:#24b5a0}.chartReadout,.reportChartNote{font-size:11px;line-height:1.6;color:var(--muted);margin:10px 0 0}.chartReadout{text-align:center;min-height:35px}.chartMonthLabel{display:block;font-weight:600;margin:8px 0;font-size:13px}
