@@ -1,0 +1,21 @@
+/* Shared proportions; intrinsic heights allow Hindi and larger text to wrap. */
+.screen,.screen>*{min-width:0;box-sizing:border-box}
+.screen .settingsCard,.screen .formCard,.screen .leaveCard{box-sizing:border-box;min-width:0;max-width:100%;padding:18px;border-radius:18px;margin-bottom:14px}
+.screen .sectionHeader{min-height:44px;gap:10px;align-items:center;margin-bottom:16px}
+.screen .sectionHeader h1{min-width:0;line-height:1.3;overflow-wrap:anywhere}
+.screen .field,.screen .timeBox,.screen .salaryInfoCard,.screen .friendlyLeaveCard{min-width:0;box-sizing:border-box}
+.screen .row2,.screen .backupGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.screen input,.screen select,.screen textarea{font-family:inherit;max-width:100%;box-sizing:border-box}
+.screen .btn{min-height:44px;line-height:1.4;white-space:normal}
+#screen-settings .settingsMenuRow,#screen-settings .settingsLogoutRow{height:auto!important;min-height:74px!important;max-height:none!important;grid-template-columns:40px minmax(0,1fr) 18px!important;gap:12px!important;padding:14px 16px!important}
+#screen-settings .settingsMenuRow>span:nth-child(2) small,#screen-settings .settingsLogoutRow>span:nth-child(2) small{display:block!important;-webkit-line-clamp:unset;overflow:visible!important;line-height:1.5}
+#screen-settings .settingsMenuRow>span:nth-child(2) b{line-height:1.4}
+#screen-settings .menuLottie{width:36px;height:36px}
+.screen .settingsCard>.label:first-child{margin-top:0;line-height:1.5}
+.screen .salaryInfoHeading{min-width:0}.screen .salaryDetailRow{align-items:flex-start}
+.screen .salaryDetailRow b,.screen .payrollRow b{overflow-wrap:anywhere}
+.screen .reportChartCard20{min-width:0}.screen .chartMetric20{min-width:0}
+@media(max-width:360px){.screen .settingsCard,.screen .formCard,.screen .leaveCard{padding:16px}.screen .row2,.screen .backupGrid{gap:9px}}
+@media(prefers-reduced-motion:reduce){.screen *{scroll-behavior:auto!important}}
+
+.screen .btn{min-width:0;max-width:100%}.screen .recordMeta,.screen .friendlyLeaveRecordText,.screen .policyContent,.screen .helpText{min-width:0;overflow-wrap:anywhere}

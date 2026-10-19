@@ -796,7 +796,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert(w.document.getElementById('salaryPayrollBreakdown').textContent.includes('PF'));
     const adj=Number(w.document.getElementById('salaryAdjustmentAmount').value)||0,sign=w.document.getElementById('salaryAdjustmentType').value==='subtract'?-1:1;
     assert.equal(moneyNumber(w.document.getElementById('salaryFinalAmount').textContent),Math.round(c.netEarned+sign*adj));
-    A.showScreen('setting-reports');await wait(40);assert.equal(moneyNumber(w.document.getElementById('reportSalary').textContent),Math.round(c.netEarned));
+    A.showScreen('setting-reports');await wait(40);assert.equal(moneyNumber(w.document.getElementById('reportSalary').textContent),Math.round(c.netEarned+sign*adj));
     A.showScreen('setting-salary');await wait(40);setValue(w,'salaryBasicDa',99999,'input');click(w,'saveSalary');await wait(120);
     assert.equal(A.salaryGet().basicDa,15500);assert(w.document.getElementById('salarySaveStatus').classList.contains('err'));
     assert(w.document.getElementById('salarySaveStatus').textContent.includes('Basic + DA'));
@@ -901,7 +901,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
     const picker=w.document.querySelector('#homePunchChart21 select');picker.value='0';fire(w,picker,'change');assert(w.document.querySelector('#homePunchChart21 .chartReadout').textContent.includes('09:00'));
     A.showScreen('setting-reports');setValue(w,'reportMonth',month);assert(!w.document.getElementById('screen-setting-reports').textContent.includes('Daily rhythm'));assert(w.document.getElementById('screen-setting-reports').textContent.includes('Daily In & Out'));
     const ids=[...w.document.querySelectorAll('linearGradient')].map(e=>e.id);assert.equal(new Set(ids).size,ids.length);
-    A.verifiedStorageSet('attendance_v8',[],'attendance');A.renderHome();assert(w.document.getElementById('homePunchChart21').textContent.includes('No recorded data'));A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.renderAll();
+    A.verifiedStorageSet('attendance_v8',[],'attendance');A.showScreen('home');A.renderHome();assert(w.document.getElementById('homePunchChart21').textContent.includes('No recorded data'));A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.renderAll();
   });
 
   await test('Six-hour Home attendance rule uses supplied icons and preserves hourly salary',async()=>{
@@ -925,6 +925,36 @@ for(const s of [...w.document.querySelectorAll('script')]){
     for(const id of ['qPaidLeaveUsed23','qUnpaidLeave23','qAbsentDays23'])assert(w.document.getElementById(id).parentNode.parentNode.classList.contains('homeBalances21'));
     A.verifiedStorageSet('attendance_v8',[],'attendance');A.renderHome();for(const id of ['qPaidLeaveUsed23','qUnpaidLeave23','qAbsentDays23'])assert.equal(w.document.getElementById(id).textContent,'0');
     A.verifiedStorageSet('attendance_v8',parseJSON(original),'attendance');A.verifiedStorageSet('attendance_ot_cover_v15518',parseJSON(flags),'OT cover');A.renderAll();
+  });
+
+  await test('Render snapshots read history once, calculate each month once and isolate mutable records',async()=>{
+    const A=w.AttendanceAppApi,previous=w.localStorage.getItem('attendance_v8'),month=A.monthNow();A.verifiedStorageSet('attendance_v8',[{id:'perf24',date:month+'-01',status:'Present',checkIn:'09:00',checkOut:'18:00'}],'attendance');A.showScreen('home');await wait(30);
+    let nativeReads=0;const get=w.Android.secureGet;w.Android.secureGet=function(key){if(String(key).endsWith('attendance_v8'))nativeReads++;return get(key)};const parses=A.viewStats.dataParses,calcs=A.viewStats.salaryCalculations;A.renderAll();assert.equal(nativeReads,1);assert.equal(A.viewStats.dataParses-parses,1);assert.equal(A.viewStats.salaryCalculations-calcs,1);w.Android.secureGet=get;
+    A.withView(function(){const a=A.dataGet();a[0].checkIn='00:01';assert.equal(A.dataGet()[0].checkIn,'09:00');const first=A.salaryCalc(month);A.verifiedStorageSet('attendance_v8',[],'attendance');assert(first.earned>0);assert.equal(A.salaryCalc(month).earned,0)});
+    A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.renderAll();
+  });
+
+  await test('Saved adjustments, punch edits and future dates stay consistent across Home, Salary and Reports',async()=>{
+    const A=w.AttendanceAppApi,previous=w.localStorage.getItem('attendance_v8'),adjustments=w.localStorage.getItem('attendance_salary_adjustments_v1559'),month=A.monthNow();
+    const rows=[{id:'sync24',date:month+'-01',status:'Present',checkIn:'09:00',checkOut:'18:00'},{id:'future24',date:month+'-30',status:'Paid Leave'}];A.verifiedStorageSet('attendance_v8',rows,'attendance');A.verifiedStorageSet('attendance_salary_adjustments_v1559',{[month]:{amount:125,type:'subtract'}},'salary adjustments');A.showScreen('setting-salary');w.salarySelectedMonth=month;A.renderAll();const final=w.document.getElementById('salaryFinalAmount').textContent;assert.equal(w.document.getElementById('qSalary').textContent,final);
+    A.showScreen('setting-reports');setValue(w,'reportMonth',month);assert.equal(w.document.getElementById('reportSalary').textContent,final);assert.equal(w.document.getElementById('reportLeave').textContent,'0');assert.equal(w.document.getElementById('reportNet').textContent,w.document.getElementById('qOT').textContent);
+    rows[0].checkIn='10:00';rows[0].checkOut='19:00';A.verifiedStorageSet('attendance_v8',rows,'attendance');A.renderAll();assert(w.document.querySelector('#reportPunchChart .chartReadout').textContent.includes('10:00'));assert(w.document.querySelector('#reportPunchChart .chartReadout').textContent.includes('19:00'));
+    A.verifiedStorageSet('attendance_salary_adjustments_v1559',{[month]:{amount:250,type:'add'}},'salary adjustments');await wait(35);assert.equal(w.document.getElementById('reportSalary').textContent,w.document.getElementById('qSalary').textContent);
+    A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.verifiedStorageSet('attendance_salary_adjustments_v1559',parseJSON(adjustments),'salary adjustments');A.renderAll();
+  });
+
+  await test('Language observer ignores SVG animation traffic and translates only newly changed Hindi labels',async()=>{
+    const A=w.AttendanceAppApi;A.showScreen('home');w.AttendanceI18n.setLanguage('hi');await wait(80);const stats=w.AttendanceI18n.stats,full=stats.fullPasses;
+    const svg=w.document.createElementNS('http://www.w3.org/2000/svg','svg');w.document.body.appendChild(svg);await wait(30);const visits=stats.textVisits;
+    for(let i=0;i<60;i++){const label=w.document.createElementNS('http://www.w3.org/2000/svg','text');label.textContent='animation '+i;svg.appendChild(label)}await wait(45);assert.equal(stats.textVisits,visits);assert.equal(stats.fullPasses,full);
+    const label=w.document.createElement('span');label.textContent='Salary Earned';w.document.body.appendChild(label);await wait(35);assert.equal(label.textContent,w.AttendanceI18n.t('Salary Earned'));assert.equal(stats.fullPasses,full);
+    label.remove();svg.remove();w.AttendanceI18n.setLanguage('en');await wait(30);
+  });
+
+  await test('Excel monthly net OT matches the app after OT is exchanged for paid leave',async()=>{
+    const A=w.AttendanceAppApi,previous=w.localStorage.getItem('attendance_v8'),flags=w.localStorage.getItem('attendance_ot_cover_v15518'),settings=w.localStorage.getItem('attendance_settings_v8'),month=A.monthNow();A.verifiedStorageSet('attendance_settings_v8',{h:9,m:0,otDelay:30},'work settings');A.verifiedStorageSet('attendance_ot_cover_v15518',{[month]:true},'OT cover');A.verifiedStorageSet('attendance_v8',[{id:'ex24-ot',date:month+'-04',status:'Week Off',checkIn:'09:00',checkOut:'18:00'},{id:'ex24-pl',date:month+'-05',status:'Paid Leave'}],'attendance');assert.equal(A.salaryCalc(month).net,0);
+    const before=nativeState.savedFiles.length;click(w,'exportExcelBtn');await wait(15);setValue(w,'excelExportMonth',month);click(w,'excelExportGo');for(let i=0;i<30&&nativeState.savedFiles.length===before;i++)await wait(100);const file=[...nativeState.savedFiles].reverse().find(x=>/\.xlsx$/i.test(x[0]));assert(file&&nativeState.savedFiles.length>before);const book=new (require('exceljs').Workbook)();await book.xlsx.load(Buffer.from(file[3],'base64'));const ws=book.worksheets[0],days=new Date(+month.slice(0,4),+month.slice(5,7),0).getDate();assert.equal(ws.getCell(7+days,9).value,'0:00');
+    A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.verifiedStorageSet('attendance_ot_cover_v15518',parseJSON(flags),'OT cover');A.verifiedStorageSet('attendance_settings_v8',parseJSON(settings),'work settings');A.renderAll();
   });
 
   await test('Important action buttons exist after all UI patches',async()=>{
