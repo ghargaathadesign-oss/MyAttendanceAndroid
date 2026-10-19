@@ -833,7 +833,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
   await test('Salary cards open live details in info popups',async()=>{
     const A=w.AttendanceAppApi;A.showScreen('setting-salary');A.renderAll();
     const cards=[...w.document.querySelectorAll('.salarySummary>div,.salaryInfoCard,.salaryAdjustment,.salaryFinal,#salaryOtCover,.payrollSetup')];
-    for(const card of cards){const button=card.querySelector(':scope > .salaryInfoButton');assert(button,'Missing info button');button.click();assert(w.document.getElementById('appDialogOverlay'));assert(w.document.querySelector('.appDialogText').textContent.length>0,'Empty details for '+button.getAttribute('aria-label'));click(w,w.document.querySelector('.appDialogBtn'));}
+    for(const card of cards){const button=[...card.querySelectorAll('.salaryInfoButton')].find(b=>b._salaryInfoOwner===card);assert(button,'Missing info button');button.click();assert(w.document.getElementById('appDialogOverlay'));assert(w.document.querySelector('.appDialogText').textContent.length>0,'Empty details for '+button.getAttribute('aria-label'));click(w,w.document.querySelector('.appDialogBtn'));}
     const css=fs.readFileSync(path.join(assets,'v15518-ui.css'),'utf8');assert(css.includes('.salaryCardInfo'));assert(css.includes('display:none!important'));
   });
 
@@ -860,9 +860,26 @@ for(const s of [...w.document.querySelectorAll('script')]){
     const A=w.AttendanceAppApi,previous=w.localStorage.getItem('attendance_v8');A.verifiedStorageSet('attendance_v8',[{id:'chart-1',date:'2026-10-05',status:'Present',checkIn:'09:00',checkOut:'18:00'},{id:'chart-2',date:'2026-10-06',status:'Present',checkIn:'22:00',checkOut:'06:00'}],'attendance');
     A.showScreen('setting-reports');setValue(w,'reportMonth','2026-10');assert.equal(w.document.querySelectorAll('#reportTrend .chartSeries').length,2);assert.equal(w.document.querySelectorAll('#reportPunchChart .chartSeries').length,2);assert.equal(w.document.querySelectorAll('#reportPunchChart .chartPoint').length,4);
     const out=w.document.querySelector('#reportPunchChart .chartPoint.series1:last-child');out.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));assert(w.document.querySelector('#reportPunchChart .chartReadout').textContent.includes('+1 day'));
-    setValue(w,'reportMonth','2026-09');assert.equal(w.document.querySelectorAll('#reportPunchChart .chartPoint').length,0);assert(w.document.querySelector('#reportPunchChart .chartReadout').textContent.includes('No recorded data'));
+    setValue(w,'reportMonth','2026-09');assert.equal(w.document.querySelectorAll('#reportPunchChart .chartPoint').length,0);assert(w.document.getElementById('reportPunchChart').textContent.includes('No recorded data'));
     assert.equal(w.document.querySelector('#inviteEmployeeBtn [data-lottie]').dataset.lottie,'lottie/invite-v15519.json');for(const folder of ['lottie','lottie-dark','lottie-white'])assert(JSON.parse(fs.readFileSync(path.join(assets,folder,'invite-v15519.json'),'utf8')).layers.length);
     A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');
+  });
+
+  await test('Compact info buttons remain inline, unique and working after repeated refreshes',async()=>{
+    const A=w.AttendanceAppApi;A.showScreen('setting-salary');A.renderAll();const count=w.document.querySelectorAll('.salaryInfoButton').length;for(let i=0;i<4;i++)A.renderAll();assert.equal(w.document.querySelectorAll('.salaryInfoButton').length,count);
+    for(const b of w.document.querySelectorAll('.salaryInfoButton')){assert(b.parentNode.classList.contains('salaryInfoHeading'));assert(b._salaryInfoOwner);}
+    const css=fs.readFileSync(path.join(assets,'v15520-ui.css'),'utf8');assert(css.includes('width:18px;height:18px'));assert(css.includes('position:static!important'));
+  });
+
+  await test('Invite share action opens Android sharing without needing an email',async()=>{
+    let shared=0;w.Android.shareAppInvite=()=>shared++;click(w,'inviteEmployeeBtn');const email=w.document.querySelector('.inviteEmailInput');assert.equal(email.value,'');click(w,'inviteShareBtn');assert.equal(shared,1);assert(w.document.getElementById('appDialogOverlay'));click(w,w.document.querySelector('.appDialogBtn.outline'));
+    const invite=fs.readFileSync(path.join(assets,'v15518-ui.js'),'utf8');assert(invite.includes('https://my-attendance-download.lively-cloud-6542.chatgpt.site'));assert(!invite.includes('github.com'));
+  });
+
+  await test('Report charts fit the screen and update selected-day details from the picker',async()=>{
+    const A=w.AttendanceAppApi,original=w.localStorage.getItem('attendance_v8');A.verifiedStorageSet('attendance_v8',[{id:'c20-1',date:'2026-10-05',status:'Present',checkIn:'09:00',checkOut:'18:00'},{id:'c20-2',date:'2026-10-07',status:'Present',checkIn:'10:00',checkOut:'19:00'}],'attendance');A.showScreen('setting-reports');setValue(w,'reportMonth','2026-10');
+    assert.equal(w.document.querySelectorAll('#reportTrend .chartMetric20').length,2);assert.equal(w.document.querySelectorAll('#reportPunchChart .chartMetric20').length,2);const picker=w.document.querySelector('#reportPunchChart .chartPicker20');assert.equal(picker.options.length,2);picker.value='0';fire(w,picker,'change');assert(w.document.querySelector('#reportPunchChart .chartReadout').textContent.includes('09:00'));assert(w.document.querySelector('#reportPunchChart .chartReadout').textContent.includes('18:00'));
+    assert(w.document.querySelector('#reportTrend svg').getAttribute('viewBox').startsWith('0 0 350'));A.verifiedStorageSet('attendance_v8',parseJSON(original),'attendance');
   });
 
   await test('Important action buttons exist after all UI patches',async()=>{
