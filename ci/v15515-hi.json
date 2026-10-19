@@ -330,7 +330,7 @@
   "Monthly Overview": "मासिक विवरण",
   "Monthly salary and attendance-based estimate": "मासिक वेतन और उपस्थिति पर आधारित अनुमान",
   "Monthly salary details": "मासिक वेतन विवरण",
-  "Net OT / Deficit": "कुल ओवरटाइम / कमी",
+  "Net OT / Deficit": "शुद्ध ओटी / कमी",
   "Net OT / Short": "कुल ओवरटाइम / कम समय",
   "New here? Create an account.": "नए हैं? खाता बनाएँ।",
   "Notification history": "सूचनाओं का इतिहास",
@@ -559,5 +559,9 @@
   "Today’s shift is in progress. Its OT and salary are finalized after Clock Out.": "आज की शिफ्ट जारी है। क्लॉक आउट के बाद इसका ओटी और वेतन तय होगा।",
   "Daily In & Out": "दैनिक आने और जाने का समय",
   "Paid leave used": "इस्तेमाल की गई सवेतन छुट्टी",
-  "Unpaid leave": "अवैतनिक छुट्टी"
+  "Unpaid leave": "अवैतनिक छुट्टी",
+  "Shortfall after OT cover": "ओटी समायोजन के बाद कम घंटे",
+  "Gross OT earned": "अर्जित कुल ओटी",
+  "Same net balance as Home for this month. Earned OT minus OT used for leave and uncovered shortfall.": "इस महीने के लिए होम जैसा ही शुद्ध शेष। अर्जित ओटी में से छुट्टी के लिए इस्तेमाल ओटी और शेष कम घंटे घटाए जाते हैं।",
+  "Under 6 hours: Half Day. 6 hours or more: Present. Pay for full attendance days follows actual worked hours.": "6 घंटे से कम: आधा दिन। 6 घंटे या अधिक: उपस्थित। पूरे उपस्थिति दिनों का वेतन वास्तविक काम के घंटों पर आधारित है।"
 }
