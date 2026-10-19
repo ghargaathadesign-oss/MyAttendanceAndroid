@@ -6,10 +6,10 @@ var chartKey='';
 function number(v){return Number(Number(v||0).toFixed(2))}
 function render(){
  var A=window.AttendanceAppApi;if(!A||!E('qPartial'))return;
- var month=A.monthNow(),today=A.nowDate(),records=A.dataGet(),settings=A.setGet(),c=A.salaryCalc(month),present=0,partial=0,off={},paid=0,unpaid=0,pending=false;
+ var month=A.monthNow(),today=A.nowDate(),records=A.dataGet(),settings=A.setGet(),c=A.salaryCalc(month),present=0,partial=0,off={},paid=0,unpaid=0,absent=0,pending=false;
  var parts=month.split('-');for(var day=1;day<=+today.slice(8,10);day++){var date=month+'-'+String(day).padStart(2,'0');if(AttendancePolicy.isSunday(date))off[date]=true}
  records.forEach(function(r){if(r.date.slice(0,7)!==month||r.date>today)return;var st=AttendancePolicy.attendanceStatus(r),d=AttendancePolicy.daily(r,settings,today);
-  if(st==='Paid Leave')paid++;if(st==='Unpaid Leave')unpaid++;
+  if(st==='Paid Leave')paid++;if(st==='Unpaid Leave')unpaid++;if(st==='Absent')absent++;
   if(d.pending)pending=true;
   if(st==='Week Off'||AttendancePolicy.isSunday(r.date)){off[r.date]=true;return}
   if(st==='Half Day')partial++;
@@ -20,7 +20,7 @@ function render(){
  E('qPresent').textContent=present;E('qPartial').textContent=partial;E('qWeekOff').textContent=Object.keys(off).length;
  E('qOT').textContent=A.signedDuration(c.net);E('qOT').className=c.net<0?'deficit21':'surplus21';
  E('qLeave').textContent=number(paid+unpaid);E('qLeaveRemaining').textContent=number(leave.available);
- E('homeLeaveNote21').textContent=t('Paid leave used')+': '+number(leave.used)+' · '+t('Unpaid leave')+': '+unpaid;
+ E('qPaidLeaveUsed23').textContent=number(leave.used);E('qUnpaidLeave23').textContent=number(unpaid);E('qAbsentDays23').textContent=number(absent);
  E('qGrossSalary').textContent=A.money(c.earned);E('qPF').textContent=A.money(c.pfDeduction);E('qESIC').textContent=A.money(c.esicDeduction);E('qOtherDeductions').textContent=A.money(deduction);E('qBonus').textContent=A.money(bonus);E('homeBonusRow21').hidden=bonus===0;
  E('qSalary').textContent=A.money(c.netEarned+bonus-deduction);
  E('homeSalaryNote21').textContent=t(pending?'Today’s shift is in progress. Its OT and salary are finalized after Clock Out.':'Based on completed attendance this month.');

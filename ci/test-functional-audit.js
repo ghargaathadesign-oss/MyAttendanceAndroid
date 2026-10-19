@@ -919,6 +919,14 @@ for(const s of [...w.document.querySelectorAll('script')]){
     A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.verifiedStorageSet('attendance_settings_v8',parseJSON(settings),'work settings');A.renderAll();
   });
 
+  await test('Home has separate paid, unpaid and absent counters without including future dates',async()=>{
+    const A=w.AttendanceAppApi,original=w.localStorage.getItem('attendance_v8'),month=A.monthNow(),flags=w.localStorage.getItem('attendance_ot_cover_v15518');A.verifiedStorageSet('attendance_ot_cover_v15518',{},'OT cover');
+    A.verifiedStorageSet('attendance_v8',[{id:'l23-paid',date:month+'-01',status:'Paid Leave'},{id:'l23-unpaid',date:month+'-02',status:'Unpaid Leave'},{id:'l23-absent',date:month+'-03',status:'Absent'},{id:'l23-future',date:month+'-30',status:'Absent'}],'attendance');A.showScreen('home');A.renderHome();assert.equal(w.document.getElementById('qPaidLeaveUsed23').textContent,'1');assert.equal(w.document.getElementById('qUnpaidLeave23').textContent,'1');assert.equal(w.document.getElementById('qAbsentDays23').textContent,'1');assert.equal(w.document.getElementById('qLeave').textContent,'2');assert(!w.document.getElementById('homeLeaveNote21'));
+    for(const id of ['qPaidLeaveUsed23','qUnpaidLeave23','qAbsentDays23'])assert(w.document.getElementById(id).parentNode.parentNode.classList.contains('homeBalances21'));
+    A.verifiedStorageSet('attendance_v8',[],'attendance');A.renderHome();for(const id of ['qPaidLeaveUsed23','qUnpaidLeave23','qAbsentDays23'])assert.equal(w.document.getElementById(id).textContent,'0');
+    A.verifiedStorageSet('attendance_v8',parseJSON(original),'attendance');A.verifiedStorageSet('attendance_ot_cover_v15518',parseJSON(flags),'OT cover');A.renderAll();
+  });
+
   await test('Important action buttons exist after all UI patches',async()=>{
     const ids=['saveBtn','resetBtn','saveWorkSettings','saveSalary','saveProfile','saveLeaves','saveDocument','saveRemindersBtn','testReminderBtn','saveAppLockBtn','settingsLogoutBtn','editClose','editCancel','editSave','editPopupDelete'];
     for(const id of ids)assert(w.document.getElementById(id),'Missing '+id);
