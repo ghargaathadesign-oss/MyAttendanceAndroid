@@ -66,8 +66,14 @@ function isSunday(date){var x=normalizeDate(date);if(!x)return false;var d=new D
 function isSpecial(record){return !!(record&&(record.specialOT===true||normalizeStatus(record.status)==='Holiday'||normalizeStatus(record.status)==='Week Off'||isSunday(record.date)))}
 function standardMinutes(settings){var s=normalizeSettings(settings);return s.h*60+s.m}
 function requiredMinutes(record,settings){if(!record)return 0;var std=standardMinutes(settings),st=normalizeStatus(record.status)||'Present';if(isSunday(record.date)||st==='Paid Leave'||st==='Holiday'||st==='Week Off')return 0;if(st==='Half Day')return Math.round(std/2);return std}
-function daily(record,settings){
+function localToday(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function isOpenShift(record,asOfDate){
+ var st=normalizeStatus(record&&record.status);
+ return !!(record&&record.date===(asOfDate||localToday())&&minuteOfDay(record.checkIn)!==null&&normalizeTime(record.checkOut)===''&&st!=='Absent'&&st!=='Unpaid Leave'&&st!=='Paid Leave');
+}
+function daily(record,settings,asOfDate){
   var s=normalizeSettings(settings),worked=workedMinutes(record),required=requiredMinutes(record,s),special=isSpecial(record),balance=0,st=normalizeStatus(record&&record.status)||'Present';
+  if(isOpenShift(record,asOfDate))return{worked:0,required:0,balance:0,overtime:0,shortfall:0,special:special,pending:true};
   if(special)balance=worked;
   else if(st==='Paid Leave'||st==='Holiday'||st==='Week Off')balance=0;
   else if(st==='Absent'||st==='Unpaid Leave')balance=-required;
@@ -79,8 +85,8 @@ function salaryMonth(records,month,settings,salary){
   var s=normalizeSettings(settings),sal=salary||{},monthly=Math.max(0,n(sal.monthly,0)),mult=clamp(n(sal.otMultiplier,1),0,5),p=String(month||'').split('-'),year=+p[0],mon=+p[1],days=(year&&mon)?new Date(year,mon,0).getDate():30,std=Math.max(1,standardMinutes(s)),dayRate=monthly/days,hourRate=dayRate/(std/60),normalOt=0,specialOt=0,shortfall=0,paid=0,recordedDays=0,pfWages=0,wageDays=0,unpaidDates=[],paidLeaveDates=[],basic=Math.min(monthly,Math.max(0,n(sal.basicDa,0))),i,r,d,st,unit;
   records=Array.isArray(records)?records:[];
   for(i=0;i<records.length;i++){
-    r=records[i];if(!r||String(r.date||'').slice(0,7)!==month)continue;
-    recordedDays++;d=daily(r,s);st=normalizeStatus(r.status)||'Present';
+    r=records[i];if(!r||String(r.date||'').slice(0,7)!==month||(sal.asOfDate&&String(r.date)>sal.asOfDate))continue;
+    recordedDays++;d=daily(r,s,sal.asOfDate);if(d.pending)continue;st=normalizeStatus(r.status)||'Present';
     if(d.special)specialOt+=d.worked;else normalOt+=d.overtime;
     shortfall+=d.shortfall;
     if(st==='Absent'||st==='Unpaid Leave'){unit=0;if(!sal.asOfDate||String(r.date)<=sal.asOfDate)unpaidDates.push(String(r.date))}
@@ -149,5 +155,5 @@ function normalizeStorage(storage){
   return{ok:true,storage:out,count:base.count,totalChars:base.totalChars};
 }
 function validateStorage(storage){var x=normalizeStorage(storage);return x.ok?{ok:true,count:x.count,totalChars:x.totalChars}:x}
-return{normalizeSettings:normalizeSettings,normalizeDate:normalizeDate,normalizeTime:normalizeTime,normalizeStatus:normalizeStatus,standardMinutes:standardMinutes,minutesBetween:minutesBetween,workedMinutes:workedMinutes,isSunday:isSunday,isSpecial:isSpecial,requiredMinutes:requiredMinutes,daily:daily,balanceMinutes:balanceMinutes,salaryMonth:salaryMonth,leaveAccrued:leaveAccrued,normalizeRecord:normalizeRecord,validateRecord:validateRecord,normalizeStorage:normalizeStorage,validateStorage:validateStorage};
+return{normalizeSettings:normalizeSettings,normalizeDate:normalizeDate,normalizeTime:normalizeTime,normalizeStatus:normalizeStatus,standardMinutes:standardMinutes,minutesBetween:minutesBetween,workedMinutes:workedMinutes,isSunday:isSunday,isSpecial:isSpecial,requiredMinutes:requiredMinutes,isOpenShift:isOpenShift,daily:daily,balanceMinutes:balanceMinutes,salaryMonth:salaryMonth,leaveAccrued:leaveAccrued,normalizeRecord:normalizeRecord,validateRecord:validateRecord,normalizeStorage:normalizeStorage,validateStorage:validateStorage};
 });

@@ -786,13 +786,13 @@ for(const s of [...w.document.querySelectorAll('script')]){
 
   await test('PF and ESIC settings validate, persist, and update salary across screens',async()=>{
     const A=w.AttendanceAppApi;A.showScreen('setting-salary');await wait(40);
-    const original=A.salaryGet(),month=A.monthNow();w.salarySelectedMonth=month;
+    const original=A.salaryGet(),month=A.monthNow(),attendanceBeforePF=w.localStorage.getItem('attendance_v8');A.verifiedStorageSet('attendance_v8',[{id:'pf-completed',date:month+'-01',status:'Present',checkIn:'09:00',checkOut:'18:00'}],'attendance');w.salarySelectedMonth=month;
     setValue(w,'salaryAmount',31000,'input');setValue(w,'salaryBasicDa',15500,'input');
     w.document.getElementById('salaryPfEnabled').checked=true;fire(w,w.document.getElementById('salaryPfEnabled'),'change');
     w.document.getElementById('salaryEsicEnabled').checked=true;fire(w,w.document.getElementById('salaryEsicEnabled'),'change');
     assert.equal(w.document.getElementById('salaryPfFields').hidden,false);
     click(w,'saveSalary');await wait(120);assert.equal(A.salaryGet().pfEnabled,true);assert.equal(A.salaryGet().basicDa,15500);
-    const c=A.salaryCalc(month);assert(c.pfDeduction>0);assert.equal(moneyNumber(w.document.getElementById('qSalary').textContent),Math.round(c.netEarned));
+    const c=A.salaryCalc(month);assert(c.pfDeduction>0);assert.equal(moneyNumber(w.document.getElementById('qSalary').textContent),Math.round(c.netEarned+((JSON.parse(w.localStorage.getItem('attendance_salary_adjustments_v1559')||'{}')[month]||{}).amount||0)*((JSON.parse(w.localStorage.getItem('attendance_salary_adjustments_v1559')||'{}')[month]||{}).type==='subtract'?-1:1)));
     assert(w.document.getElementById('salaryPayrollBreakdown').textContent.includes('PF'));
     const adj=Number(w.document.getElementById('salaryAdjustmentAmount').value)||0,sign=w.document.getElementById('salaryAdjustmentType').value==='subtract'?-1:1;
     assert.equal(moneyNumber(w.document.getElementById('salaryFinalAmount').textContent),Math.round(c.netEarned+sign*adj));
@@ -803,6 +803,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
     setValue(w,'salaryAmount',original.monthly,'input');setValue(w,'salaryBasicDa',original.basicDa||0,'input');
     w.document.getElementById('salaryPfEnabled').checked=false;w.document.getElementById('salaryEsicEnabled').checked=false;click(w,'saveSalary');await wait(100);
     assert.equal(A.salaryGet().pfEnabled,false);assert.equal(A.salaryCalc(month).netEarned,A.salaryCalc(month).earned);
+    A.verifiedStorageSet('attendance_v8',parseJSON(attendanceBeforePF),'attendance');A.renderAll();
   });
 
   await test('Support native methods receive exact argument counts and errors do not look like empty inboxes',async()=>{
@@ -880,6 +881,27 @@ for(const s of [...w.document.querySelectorAll('script')]){
     const A=w.AttendanceAppApi,original=w.localStorage.getItem('attendance_v8');A.verifiedStorageSet('attendance_v8',[{id:'c20-1',date:'2026-10-05',status:'Present',checkIn:'09:00',checkOut:'18:00'},{id:'c20-2',date:'2026-10-07',status:'Present',checkIn:'10:00',checkOut:'19:00'}],'attendance');A.showScreen('setting-reports');setValue(w,'reportMonth','2026-10');
     assert.equal(w.document.querySelectorAll('#reportTrend .chartMetric20').length,2);assert.equal(w.document.querySelectorAll('#reportPunchChart .chartMetric20').length,2);const picker=w.document.querySelector('#reportPunchChart .chartPicker20');assert.equal(picker.options.length,2);picker.value='0';fire(w,picker,'change');assert(w.document.querySelector('#reportPunchChart .chartReadout').textContent.includes('09:00'));assert(w.document.querySelector('#reportPunchChart .chartReadout').textContent.includes('18:00'));
     assert(w.document.querySelector('#reportTrend svg').getAttribute('viewBox').startsWith('0 0 350'));A.verifiedStorageSet('attendance_v8',parseJSON(original),'attendance');
+  });
+
+  await test('Home separates attendance, excludes future days and shares leave/salary balances',async()=>{
+    const A=w.AttendanceAppApi,previous=w.localStorage.getItem('attendance_v8'),adj=w.localStorage.getItem('attendance_salary_adjustments_v1559'),month=A.monthNow(),today=A.nowDate();
+    const first=month+'-01',second=month+'-02',third=month+'-03',fourth=month+'-04',fifth=month+'-05';
+    A.verifiedStorageSet('attendance_v8',[{id:'h21-1',date:first,status:'Present',checkIn:'09:00',checkOut:'18:00'},{id:'h21-2',date:second,status:'Half Day',checkIn:'09:00',checkOut:'13:30'},{id:'h21-3',date:third,status:'Short Day',checkIn:'09:00',checkOut:'17:00'},{id:'h21-4',date:fourth,status:'Week Off'},{id:'h21-5',date:fifth,status:'Paid Leave'},{id:'h21-open',date:today,status:'Present',checkIn:'10:00',checkOut:''},{id:'h21-future',date:month+'-30',status:'Paid Leave'}],'attendance');
+    A.verifiedStorageSet('attendance_salary_adjustments_v1559',{[month]:{type:'subtract',amount:100}},'salary adjustments');A.showScreen('home');A.renderHome();
+    const c=A.salaryCalc(month),s=w.AttendanceV15512.leaveSummary(month);assert.equal(w.document.getElementById('qPresent').textContent,'2');assert.equal(w.document.getElementById('qPartial').textContent,'2');assert.equal(w.document.getElementById('qWeekOff').textContent,'3');assert.equal(w.document.getElementById('qLeave').textContent,'1');assert.equal(Number(w.document.getElementById('qLeaveRemaining').textContent),Number(s.available.toFixed(2)));assert.equal(w.document.getElementById('qOT').textContent,A.signedDuration(c.net));
+    for(const [id,value] of [['qGrossSalary',c.earned],['qPF',c.pfDeduction],['qESIC',c.esicDeduction],['qOtherDeductions',100],['qSalary',c.netEarned-100]])assert.equal(w.document.getElementById(id).textContent,A.money(value));assert(w.document.getElementById('homeSalaryNote21').textContent.includes('in progress'));
+    A.verifiedStorageSet('attendance_salary_adjustments_v1559',{[month]:{type:'add',amount:250}},'salary adjustments');A.renderHome();assert.equal(w.document.getElementById('qSalary').textContent,A.money(c.netEarned+250));assert.equal(w.document.getElementById('homeBonusRow21').hidden,false);assert.equal(w.document.getElementById('qOtherDeductions').textContent,A.money(0));
+    A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.verifiedStorageSet('attendance_salary_adjustments_v1559',parseJSON(adj),'salary adjustments');A.renderAll();
+  });
+
+  await test('Daily In & Out area chart is last on Home, interactive and has unique gradients',async()=>{
+    const A=w.AttendanceAppApi,previous=w.localStorage.getItem('attendance_v8'),month=A.monthNow();
+    A.verifiedStorageSet('attendance_v8',[{id:'area1',date:month+'-01',status:'Present',checkIn:'09:00',checkOut:'18:00'},{id:'area2',date:month+'-02',status:'Present',checkIn:'10:00',checkOut:'19:00'}],'attendance');A.showScreen('home');A.renderHome();
+    assert(w.document.getElementById('screen-home').lastElementChild.classList.contains('homePunch21'));assert.equal(w.document.querySelectorAll('#homePunchChart21 .chartArea20').length,2);assert.equal(w.document.querySelectorAll('#homePunchChart21 .chartSeries').length,2);
+    const picker=w.document.querySelector('#homePunchChart21 select');picker.value='0';fire(w,picker,'change');assert(w.document.querySelector('#homePunchChart21 .chartReadout').textContent.includes('09:00'));
+    A.showScreen('setting-reports');setValue(w,'reportMonth',month);assert(!w.document.getElementById('screen-setting-reports').textContent.includes('Daily rhythm'));assert(w.document.getElementById('screen-setting-reports').textContent.includes('Daily In & Out'));
+    const ids=[...w.document.querySelectorAll('linearGradient')].map(e=>e.id);assert.equal(new Set(ids).size,ids.length);
+    A.verifiedStorageSet('attendance_v8',[],'attendance');A.renderHome();assert(w.document.getElementById('homePunchChart21').textContent.includes('No recorded data'));A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.renderAll();
   });
 
   await test('Important action buttons exist after all UI patches',async()=>{

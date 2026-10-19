@@ -95,3 +95,20 @@ cover=p.salaryMonth([rec('2026-10-04','09:00','13:30','Week Off',{specialOT:true
 console.log('OT paid-leave refunds passed');
 
 cover=p.salaryMonth([rec('2026-10-04','09:00','18:00','Week Off',{specialOT:true}),rec('2026-10-25','','','Paid Leave')],'2026-10',s,{monthly:31000,otCoverEnabled:true,asOfDate:'2026-10-19'});assert.equal(cover.otPaidLeaveRefund,0);assert.equal(cover.otPaidMinutes,540);
+
+// An active shift is attendance, but has no finalized pay or OT until checkout.
+for(const [date,status] of [['2026-10-19','Present'],['2026-10-18','Week Off'],['2026-10-19','Holiday']]){
+ const open=rec(date,'10:00','',status),closed=rec(date,'10:00','19:00',status);
+ const d=p.daily(open,s,date);assert.equal(d.pending,true);assert.equal(d.shortfall,0);assert.equal(d.required,0);
+ const pending=p.salaryMonth([open],'2026-10',s,{monthly:31000,basicDa:15500,pfEnabled:true,esicEnabled:true,asOfDate:date});
+ assert.equal(pending.net,0);assert.equal(pending.earned,0);assert.equal(pending.pfDeduction,0);assert.equal(pending.esicDeduction,0);
+ assert(p.salaryMonth([closed],'2026-10',s,{monthly:31000,asOfDate:date}).earned>0);
+}
+assert.equal(p.daily(rec('2026-10-18','10:00','','Present'),s,'2026-10-19').pending,undefined); // Historical missing punches remain diagnosable.
+assert.equal(p.daily(rec('2026-10-19','','','Absent'),s,'2026-10-19').shortfall,540);
+assert.equal(p.salaryMonth([rec('2026-10-20','09:00','18:00')],'2026-10',s,{monthly:31000,asOfDate:'2026-10-19'}).earned,0);
+const currentOT=[rec('2026-10-05','09:00','22:13'),rec('2026-10-19','10:00','')];
+assert.equal(p.salaryMonth(currentOT,'2026-10',s,{monthly:31000,asOfDate:'2026-10-19'}).net,223);
+assert.equal(p.daily(rec('2026-10-19','10:00','18:00'),s,'2026-10-19').shortfall,60);
+assert.equal(p.daily(rec('2026-10-19','22:00','08:00'),s,'2026-10-19').overtime,30);
+console.log('Open shift, completed shift, future record and payroll regression cases passed');

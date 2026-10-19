@@ -543,5 +543,21 @@
   "Required vs worked hours · Last six months · Recorded days only": "आवश्यक और काम किए घंटे · पिछले छह महीने · केवल दर्ज दिन",
   "Your in and out times at a glance. Recorded punch days only; +1 day means the following day.": "आने-जाने का समय एक नज़र में। केवल दर्ज पंच वाले दिन; +1 day का अर्थ अगला दिन है।",
   "Only recorded punch days are plotted. Missing punches are gaps.": "चार्ट में केवल दर्ज पंच वाले दिन हैं। अधूरे पंच में अंतराल रहता है।",
-  "Required and worked hours across six months. Missing months are gaps.": "छह महीने के आवश्यक और काम किए घंटे। बिना रिकॉर्ड वाले महीनों में अंतराल रहता है।"
+  "Required and worked hours across six months. Missing months are gaps.": "छह महीने के आवश्यक और काम किए घंटे। बिना रिकॉर्ड वाले महीनों में अंतराल रहता है।",
+  "Half / Incomplete Days": "आधे / अधूरे दिन",
+  "Leaves Taken": "ली गई छुट्टियाँ",
+  "Remaining Paid Leaves": "शेष सवेतन छुट्टियाँ",
+  "Gross Salary Earned": "कटौती से पहले अर्जित वेतन",
+  "Before PF, ESIC and other deductions": "पीएफ, ईएसआईसी और अन्य कटौतियों से पहले",
+  "PF Deduction": "पीएफ कटौती",
+  "ESIC Deduction": "ईएसआईसी कटौती",
+  "Other Deductions": "अन्य कटौतियाँ",
+  "Bonus / Addition": "बोनस / अतिरिक्त राशि",
+  "Net Salary Earned": "कटौती के बाद अर्जित वेतन",
+  "View details": "विवरण देखें",
+  "Based on completed attendance this month.": "इस महीने की पूरी हुई उपस्थिति के आधार पर।",
+  "Today’s shift is in progress. Its OT and salary are finalized after Clock Out.": "आज की शिफ्ट जारी है। क्लॉक आउट के बाद इसका ओटी और वेतन तय होगा।",
+  "Daily In & Out": "दैनिक आने और जाने का समय",
+  "Paid leave used": "इस्तेमाल की गई सवेतन छुट्टी",
+  "Unpaid leave": "अवैतनिक छुट्टी"
 }
