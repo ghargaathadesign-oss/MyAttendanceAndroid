@@ -1,0 +1,12 @@
+/* Keep both punch controls readable at phone widths. */
+#screen-add .punchFields26,#editModal .punchFields26{display:grid;grid-template-columns:minmax(0,1fr)!important;gap:14px}
+#screen-add .punchFields26 .timeRow,#editModal .punchFields26 .timeRow{gap:10px}
+#screen-add .punchFields26 .customSelectButton,#editModal .punchFields26 .customSelectButton{font-size:calc(14px * var(--font-body-scale,1))!important;min-height:46px;padding-left:10px!important;padding-right:28px!important}
+#screen-add .punchFields26 .customSelectButton:after,#editModal .punchFields26 .customSelectButton:after{right:12px!important}
+.holidayTarget26{background:var(--soft,#f6f8fc);border:1px solid var(--line);border-radius:16px;padding:14px;margin:12px 0;min-width:0}
+.holidayTarget26[hidden]{display:none!important}.holidayTarget26 .targetFields26{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.holidayTarget26 label{display:block;font-size:11px;color:var(--muted);line-height:1.5}.holidayTarget26 input{display:block;width:100%;box-sizing:border-box;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--surface,#fff);color:var(--text);font:inherit;margin-top:5px;padding:10px}
+.holidayTarget26 p{font-size:11px;line-height:1.6;color:var(--muted);margin:10px 0 0}.statusBadge.halfholiday,.v15Status.halfholiday{background:rgba(32,173,158,.12);color:#148d80}
+#editModal .sheet{max-height:90vh;overflow-y:auto}
+
+.v15Day.halfholiday .v15DayStatus,.v15StatusDot.halfholiday{color:#148d80;background:rgba(32,173,158,.12)}

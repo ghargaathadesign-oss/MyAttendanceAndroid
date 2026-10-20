@@ -4,7 +4,7 @@
   else root.AttendancePolicy=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
-var VALID_STATUS={'Present':1,'Absent':1,'Paid Leave':1,'Unpaid Leave':1,'Half Day':1,'Short Day':1,'Holiday':1,'Week Off':1};
+var VALID_STATUS={'Present':1,'Absent':1,'Paid Leave':1,'Unpaid Leave':1,'Half Day':1,'Half Day Holiday':1,'Short Day':1,'Holiday':1,'Week Off':1};
 var STATUS_ALIASES={
   'p':'Present','present':'Present',
   'a':'Absent','ab':'Absent','absent':'Absent',
@@ -12,6 +12,7 @@ var STATUS_ALIASES={
   'ul':'Unpaid Leave','unpaid leave':'Unpaid Leave','unpaidleave':'Unpaid Leave',
   'hd':'Half Day','half day':'Half Day','halfday':'Half Day',
   'sd':'Short Day','short':'Short Day','short day':'Short Day','shortday':'Short Day',
+  'hdh':'Half Day Holiday','half day holiday':'Half Day Holiday',
   'h':'Holiday','holiday':'Holiday',
   'wo':'Week Off','week off':'Week Off','weekoff':'Week Off','off':'Week Off','sunday':'Week Off'
 };
@@ -64,6 +65,7 @@ function minutesBetween(a,b){var x=minuteOfDay(a),y=minuteOfDay(b);if(x==null||y
 function workedMinutes(record){return record?minutesBetween(record.checkIn,record.checkOut):0}
 function isSunday(date){var x=normalizeDate(date);if(!x)return false;var d=new Date(x+'T00:00:00');return d.getDay()===0}
 function isSpecial(record){return !!(record&&(record.specialOT===true||normalizeStatus(record.status)==='Holiday'||normalizeStatus(record.status)==='Week Off'||isSunday(record.date)))}
+function holidayWorkMinutes(record,settings){var std=standardMinutes(settings),v=Number(record&&record.holidayWorkMinutes);return isFinite(v)&&v>0?Math.min(std,Math.round(v)):Math.round(std/2)}
 function standardMinutes(settings){var s=normalizeSettings(settings);return s.h*60+s.m}
 // Completed regular shifts use elapsed work, independent of the original status label.
 function attendanceStatus(record){
@@ -72,7 +74,7 @@ function attendanceStatus(record){
  if(record&&!isSpecial(record)&&(st==='Present'||st==='Half Day'||st==='Short Day')&&minuteOfDay(record.checkIn)!==null&&minuteOfDay(record.checkOut)!==null)return workedMinutes(record)<360?'Half Day':'Present';
  return st;
 }
-function requiredMinutes(record,settings){if(!record)return 0;var std=standardMinutes(settings),st=attendanceStatus(record);if(isSunday(record.date)||st==='Paid Leave'||st==='Holiday'||st==='Week Off')return 0;if(st==='Half Day')return Math.round(std/2);return std}
+function requiredMinutes(record,settings){if(!record)return 0;var std=standardMinutes(settings),st=attendanceStatus(record);if(isSunday(record.date)||st==='Paid Leave'||st==='Holiday'||st==='Week Off')return 0;if(st==='Half Day Holiday')return holidayWorkMinutes(record,settings);if(st==='Half Day')return Math.round(std/2);return std}
 function localToday(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
 function isOpenShift(record,asOfDate){
  var st=normalizeStatus(record&&record.status);
@@ -134,6 +136,8 @@ function normalizeRecord(r){
   out.notes=String(r.notes==null?'':r.notes).slice(0,5000);
   if(r.specialOT===true||r.specialOT===false)out.specialOT=!!r.specialOT;
   if(isSunday(date)){out.status='Week Off';out.specialOT=true}
+  if(status==='Half Day Holiday'&&r.holidayWorkMinutes!==undefined){var target=Number(r.holidayWorkMinutes);if(!isFinite(target)||target<1||target>1439||Math.floor(target)!==target)return{ok:false,error:'Invalid half-day holiday work target'};out.holidayWorkMinutes=target}
+  if(status!=='Half Day Holiday')delete out.holidayWorkMinutes;
   out.status=attendanceStatus(out);
   return{ok:true,record:out};
 }
@@ -164,5 +168,5 @@ function normalizeStorage(storage){
   return{ok:true,storage:out,count:base.count,totalChars:base.totalChars};
 }
 function validateStorage(storage){var x=normalizeStorage(storage);return x.ok?{ok:true,count:x.count,totalChars:x.totalChars}:x}
-return{normalizeSettings:normalizeSettings,normalizeDate:normalizeDate,normalizeTime:normalizeTime,normalizeStatus:normalizeStatus,standardMinutes:standardMinutes,minutesBetween:minutesBetween,workedMinutes:workedMinutes,isSunday:isSunday,isSpecial:isSpecial,requiredMinutes:requiredMinutes,attendanceStatus:attendanceStatus,isOpenShift:isOpenShift,daily:daily,balanceMinutes:balanceMinutes,salaryMonth:salaryMonth,leaveAccrued:leaveAccrued,normalizeRecord:normalizeRecord,validateRecord:validateRecord,normalizeStorage:normalizeStorage,validateStorage:validateStorage};
+return{normalizeSettings:normalizeSettings,normalizeDate:normalizeDate,normalizeTime:normalizeTime,normalizeStatus:normalizeStatus,standardMinutes:standardMinutes,holidayWorkMinutes:holidayWorkMinutes,minutesBetween:minutesBetween,workedMinutes:workedMinutes,isSunday:isSunday,isSpecial:isSpecial,requiredMinutes:requiredMinutes,attendanceStatus:attendanceStatus,isOpenShift:isOpenShift,daily:daily,balanceMinutes:balanceMinutes,salaryMonth:salaryMonth,leaveAccrued:leaveAccrued,normalizeRecord:normalizeRecord,validateRecord:validateRecord,normalizeStorage:normalizeStorage,validateStorage:validateStorage};
 });
