@@ -984,6 +984,19 @@ for(const s of [...w.document.querySelectorAll('script')]){
     }finally{if(flag===null)w.localStorage.removeItem(key);else w.localStorage.setItem(key,flag);A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.renderAll()}
   });
 
+  await test('Holiday countdown and progress use the saved target and refresh after edits',async()=>{
+    const RealDate=w.Date,fixed=Date.now();const A=w.AttendanceAppApi,previous=w.localStorage.getItem('attendance_v8'),settings=w.localStorage.getItem('attendance_settings_v8'),now=new Date(),date=A.nowDate();if(w.AttendancePolicy.isSunday(date))return;
+    const before=new Date(now.getTime()-60*60000),time=String(before.getHours()).padStart(2,'0')+':'+String(before.getMinutes()).padStart(2,'0'),r={id:'countdown27',date,status:'Half Day Holiday',checkIn:time,checkOut:'',holidayWorkMinutes:270};
+    function display(){A.renderHome();w.AttendanceV15511.renderPunchTimes();return [...w.document.querySelectorAll('#todayStatus section b')].map(x=>x.textContent)}
+    async function ring(target){await wait(1150);const pct=1-(Number(w.document.getElementById('workProgressValue').style.strokeDashoffset)/351.858377);assert(Math.abs(pct-Math.min(1,60/target))<.005,'wrong progress for '+target+': '+pct)}
+    try{w.Date=class extends RealDate{constructor(...args){super(...(args.length?args:[fixed]))}static now(){return fixed}};A.verifiedStorageSet('attendance_settings_v8',{h:9,m:0,otDelay:30,fmt:'12h'},'work settings');A.verifiedStorageSet('attendance_v8',[r],'attendance');A.showScreen('home');assert.deepEqual(display(),['03:30','01:00']);await ring(270);
+      r.holidayWorkMinutes=180;A.verifiedStorageSet('attendance_v8',[r],'attendance');assert.deepEqual(display(),['02:00','01:00']);await ring(180);
+      r.holidayWorkMinutes=30;A.verifiedStorageSet('attendance_v8',[r],'attendance');assert.deepEqual(display(),['00:00','01:00']);await ring(30);
+      r.status='Present';delete r.holidayWorkMinutes;A.verifiedStorageSet('attendance_v8',[r],'attendance');assert.deepEqual(display(),['08:00','01:00']);await ring(540);
+      r.status='Holiday';r.specialOT=true;A.verifiedStorageSet('attendance_v8',[r],'attendance');assert.deepEqual(display(),['00:00','01:00']);
+    }finally{w.Date=RealDate;A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.verifiedStorageSet('attendance_settings_v8',parseJSON(settings),'work settings');A.renderAll()}
+  });
+
   await test('Important action buttons exist after all UI patches',async()=>{
     const ids=['saveBtn','resetBtn','saveWorkSettings','saveSalary','saveProfile','saveLeaves','saveDocument','saveRemindersBtn','testReminderBtn','saveAppLockBtn','settingsLogoutBtn','editClose','editCancel','editSave','editPopupDelete'];
     for(const id of ids)assert(w.document.getElementById(id),'Missing '+id);
