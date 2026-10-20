@@ -957,6 +957,33 @@ for(const s of [...w.document.querySelectorAll('script')]){
     A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.verifiedStorageSet('attendance_ot_cover_v15518',parseJSON(flags),'OT cover');A.verifiedStorageSet('attendance_settings_v8',parseJSON(settings),'work settings');A.renderAll();
   });
 
+  await test('Half Day Holiday saves its target, earns full-day credit and stays consistent after edits',async()=>{
+    const A=w.AttendanceAppApi,previous=w.localStorage.getItem('attendance_v8'),settings=w.localStorage.getItem('attendance_settings_v8'),month=A.monthNow(),date=month+'-05';
+    try{
+      A.verifiedStorageSet('attendance_v8',[],'attendance');A.verifiedStorageSet('attendance_settings_v8',{h:9,m:0,otDelay:30,fmt:'12h'},'work settings');A.resetForm();A.showScreen('add');setValue(w,'dateInput',date);setValue(w,'statusInput','Half Day Holiday');assert.equal(w.document.getElementById('holiday26').hidden,false);assert.equal(w.document.getElementById('holiday26Hours').value,'4');assert.equal(w.document.getElementById('holiday26Minutes').value,'30');
+      setValue(w,'holiday26Hours','3');setValue(w,'holiday26Minutes','0');
+      for(const [id,value] of Object.entries({checkInH:9,checkInM:0,checkInP:'AM',checkOutH:12,checkOutM:0,checkOutP:'PM'}))setValue(w,id,value);click(w,'saveBtn');await wait(40);
+      let r=A.dataGet()[0];assert.equal(r.status,'Half Day Holiday');assert.equal(r.holidayWorkMinutes,180);const full=A.salaryCalc(month);assert.equal(full.paid,1);assert.equal(full.net,0);A.showScreen('home');A.renderAll();assert.equal(w.document.getElementById('qPresent').textContent,'1');assert.equal(w.document.getElementById('qPartial').textContent,'0');assert.equal(w.document.getElementById('qLeave').textContent,'0');
+      A.showScreen('setting-reports');setValue(w,'reportMonth',month);assert.equal(w.document.getElementById('reportSalary').textContent,w.document.getElementById('qSalary').textContent);const series=w.AttendanceReports19.series(month,A.dataGet(),A.setGet(),A.nowDate());assert.equal(series.months[5].required,3);assert.equal(series.months[5].worked,3);
+      A.openEdit(r.id);assert.equal(w.document.getElementById('editHoliday26Hours').value,'3');assert.equal(w.document.getElementById('editHoliday26').hidden,false);setValue(w,'editHoliday26Hours','4');click(w,'editSave');await wait(40);assert.equal(A.dataGet()[0].holidayWorkMinutes,240);assert.equal(A.salaryCalc(month).shortfall,60);A.showScreen('home');A.renderHome();assert.equal(w.document.getElementById('qPartial').textContent,'1');assert(A.salaryCalc(month).earned<full.earned);
+      A.openEdit(r.id);setValue(w,'editPopupStatus','Present');assert.equal(w.document.getElementById('editHoliday26').hidden,true);click(w,'editSave');assert.equal(A.dataGet()[0].holidayWorkMinutes,undefined);assert.equal(A.dataGet()[0].status,'Half Day');
+    }finally{A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.verifiedStorageSet('attendance_settings_v8',parseJSON(settings),'work settings');A.renderAll()}
+  });
+
+  await test('Holiday target validation prevents invalid saves and keeps punch controls on separate rows',async()=>{
+    const A=w.AttendanceAppApi,previous=w.localStorage.getItem('attendance_v8');
+    try{A.verifiedStorageSet('attendance_v8',[],'attendance');A.resetForm();A.showScreen('add');setValue(w,'dateInput',A.monthNow()+'-05');setValue(w,'statusInput','Half Day Holiday');setValue(w,'holiday26Hours',0);setValue(w,'holiday26Minutes',0);click(w,'saveBtn');assert.equal(A.dataGet().length,0);setValue(w,'holiday26Hours',23);click(w,'saveBtn');assert.equal(A.dataGet().length,0);
+      for(const id of ['checkInRow','checkOutRow','editInRow','editOutRow'])assert(w.document.getElementById(id).closest('.punchFields26'));
+      const stylesheet=fs.readFileSync(path.join(assets,'v15526-attendance.css'),'utf8');assert(stylesheet.includes('grid-template-columns:minmax(0,1fr)!important'));
+    }finally{A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.resetForm();A.showScreen('home');A.renderAll()}
+  });
+
+  await test('Clock In preserves a scheduled Half Day Holiday and its custom target',async()=>{
+    const A=w.AttendanceAppApi,previous=w.localStorage.getItem('attendance_v8'),today=A.nowDate(),key='attendance_special_ot_'+today,flag=w.localStorage.getItem(key);if(w.AttendancePolicy.isSunday(today))return;
+    try{A.verifiedStorageSet('attendance_v8',[{id:'scheduled-holiday26',date:today,status:'Half Day Holiday',checkIn:'',checkOut:'',holidayWorkMinutes:180}],'attendance');w.localStorage.setItem(key,'holiday');A.showScreen('home');click(w,'punchBtn');const r=A.dataGet()[0];assert.equal(r.status,'Half Day Holiday');assert.equal(r.holidayWorkMinutes,180);assert(r.checkIn);assert.equal(w.AttendancePolicy.daily(r,A.setGet(),today).pending,true);assert.equal(A.salaryCalc(today.slice(0,7)).net,0);
+    }finally{if(flag===null)w.localStorage.removeItem(key);else w.localStorage.setItem(key,flag);A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.renderAll()}
+  });
+
   await test('Important action buttons exist after all UI patches',async()=>{
     const ids=['saveBtn','resetBtn','saveWorkSettings','saveSalary','saveProfile','saveLeaves','saveDocument','saveRemindersBtn','testReminderBtn','saveAppLockBtn','settingsLogoutBtn','editClose','editCancel','editSave','editPopupDelete'];
     for(const id of ids)assert(w.document.getElementById(id),'Missing '+id);
