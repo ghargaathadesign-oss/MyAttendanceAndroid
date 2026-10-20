@@ -1,0 +1,34 @@
+name: Send one test notification to all My Attendance users
+on:
+  push:
+    branches: [notify-test-20261020-142538]
+permissions:
+  contents: read
+jobs:
+  notify:
+    if: github.event.created == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Install Firebase sender dependencies
+        run: python3 -m pip install --disable-pip-version-check --quiet google-auth requests
+      - name: Send labelled test to all subscribed app installations
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          import requests
+          from google.auth.transport.requests import Request
+          from google.oauth2 import service_account
+          info = json.loads(os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"])
+          assert info["project_id"] == "my-attendance-c5c23", "Unexpected Firebase project"
+          credentials = service_account.Credentials.from_service_account_info(info, scopes=["https://www.googleapis.com/auth/firebase.messaging"])
+          credentials.refresh(Request())
+          payload = {"message": {"topic": "attendance_all", "data": {"id": "test-" + os.environ["GITHUB_RUN_ID"], "type": "general", "title": "My Attendance — Test notification", "body": "This is a test notification. No action is needed."}, "android": {"priority": "high", "ttl": "600s"}}}
+          response = requests.post("https://fcm.googleapis.com/v1/projects/my-attendance-c5c23/messages:send", headers={"Authorization": "Bearer " + credentials.token, "Content-Type": "application/json"}, json=payload, timeout=30)
+          response.raise_for_status()
+          name = response.json().get("name")
+          assert name, "FCM did not return a message ID"
+          print("TEST_NOTIFICATION_ACCEPTED " + name)
+          PY
