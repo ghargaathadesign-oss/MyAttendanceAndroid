@@ -10,8 +10,8 @@ android {
         applicationId 'com.personal.attendance'
         minSdk 26
         targetSdk 35
-        versionCode 61
-        versionName '15.5.27'
+        versionCode 62
+        versionName '15.5.28'
 
         def firebaseApiKey = System.getenv('FIREBASE_API_KEY') ?: ''
         def firebaseAppCheckEnabled = (System.getenv('FIREBASE_APP_CHECK_ENABLED') ?: 'false').toBoolean()
@@ -41,6 +41,7 @@ android {
 }
 
 dependencies {
+    implementation 'com.google.android.gms:play-services-location:21.3.0'
     implementation 'androidx.core:core:1.13.1'
     implementation 'androidx.webkit:webkit:1.16.0'
     implementation 'androidx.biometric:biometric:1.1.0'
