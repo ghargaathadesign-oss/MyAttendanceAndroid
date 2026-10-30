@@ -10,8 +10,8 @@ s=s[:a]+'''function renderStats(month){
  var a=monthRecords(month),s=settings(),days=0,leave=0,hours=0,partial=0,i,x,st,d,c=A.salaryCalc(month);
  for(i=0;i<a.length;i++){x=a[i];if(x.date>A.nowDate())continue;st=AttendancePolicy.attendanceStatus(x);d=AttendancePolicy.daily(x,s,A.nowDate());hours+=worked(x);if(st==='Present'||st==='Half Day'||st==='Short Day'||st==='Half Day Holiday')days++;if(st==='Paid Leave'||st==='Unpaid Leave')leave++;if(st==='Half Day'||st==='Half Day Holiday'&&!d.pending&&AttendancePolicy.workedMinutes(x)<AttendancePolicy.requiredMinutes(x,s))partial++}
  var box=E('attendanceStats');if(!box)return;
- function card(value,label,icon){return '<div class="v15Stat"><span class="v15StatIcon v155StatLottie lottieIcon" data-lottie="lottie/'+icon+'" aria-hidden="true"></span><b>'+esc(value)+'</b><small>'+esc(label)+'</small></div>'}
- box.innerHTML=card(days,'Worked','worked-v155.json')+card(leave,'Leaves','leaves.json')+card(c.weekOffDays,'Week Off','week-off-v15522.json')+card(partial,'Half Day','half-day-v15522.json')+card(Math.round(hours/6)/10+'h','Hours','hours-v155.json')+card(duration(c.net),'Net OT / Short','work.json');
+ function card(value,label,icon){return '<div class="v15Stat"><span class="v15StatIcon v155StatLottie lottieIcon" data-lottie="'+icon+'" aria-hidden="true"></span><b>'+esc(value)+'</b><small>'+esc(label)+'</small></div>'}
+ box.innerHTML=card(days,'Worked','lottie/worked-v155.json')+card(leave,'Leaves','lottie/leaves.json')+card(c.weekOffDays,'Week Off','lottie/week-off-v15522.json')+card(partial,'Half Day','lottie/half-day-v15522.json')+card(Math.round(hours/6)/10+'h','Hours','lottie/hours-v155.json')+card(duration(c.net),'Net OT / Short','lottie/work.json');
  if(window.initLottie)window.initLottie(box)
 }'''+s[b:];f.write_text(s)
 f=p/'v15521-home.js';s=f.read_text();s=rep(s,"E('qWeekOff').textContent=Object.keys(off).length;","E('qWeekOff').textContent=c.weekOffDays;");f.write_text(s)
