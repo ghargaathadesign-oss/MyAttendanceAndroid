@@ -7,6 +7,10 @@ const assert=require('assert');
 const {JSDOM}=require('jsdom');
 const {indexedDB,IDBKeyRange}=require('fake-indexeddb');
 const {webcrypto}=require('crypto');
+// Keep month/day-dependent regressions stable while timers continue normally.
+const SystemDate=Date,auditStarted=SystemDate.now(),auditEpoch=new SystemDate('2026-10-20T12:00:00Z').getTime();
+class AuditDate extends SystemDate{constructor(...args){super(...(args.length?args:[auditEpoch+SystemDate.now()-auditStarted]))}static now(){return auditEpoch+SystemDate.now()-auditStarted}}
+global.Date=AuditDate;
 
 const assets=path.resolve(process.argv[2]||'app/src/main/assets');
 const htmlPath=path.join(assets,'index.html');
@@ -35,6 +39,7 @@ const dom=new JSDOM(html,{
   pretendToBeVisual:true
 });
 const w=dom.window;
+w.Date=AuditDate;
 const nativeState={
   secure:new Map(), calls:[], reminders:null, appLock:null, signedOut:false,
   savedFiles:[], sharedFiles:[], csvFiles:[], updateChecks:0, pushRefresh:0, tests:0, markAll:0, clears:0, installs:[], diagRuns:0, cacheClears:0, historyChecks:0
@@ -225,7 +230,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert.strictEqual(+w.document.getElementById('fontSmallScale').value,1);
   });
 
-  await test('Salary accrues only from recorded paid days and saves correctly',async()=>{
+  await test('Salary accrues recorded days plus elapsed paid Sundays and saves correctly',async()=>{
     salaryAuditOriginalAttendance=w.localStorage.getItem('attendance_v8')||'[]';
     const mo=new Date().toISOString().slice(0,7),records=[];
     for(let i=1;i<=7;i++)records.push({id:'salary-audit-'+i,date:mo+'-'+String(i).padStart(2,'0'),status:'Present',checkIn:'09:00',checkOut:i===7?'18:13':'18:00',reason:'',notes:''});
@@ -236,7 +241,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
     assert.strictEqual(+saved.monthly,40000);assert.strictEqual(+saved.otMultiplier,1);
     const daily=moneyNumber(w.document.getElementById('salaryDaily').textContent),paid=Number(w.document.getElementById('salaryPaidDays').textContent),earned=moneyNumber(w.document.getElementById('salaryEstimated').textContent);
     assert(daily>1200&&daily<1400,'Unexpected daily rate: '+daily);
-    assert.strictEqual(paid,7,'Unrecorded future days were counted as paid: '+paid);
+    assert.strictEqual(paid,9,'Seven records plus elapsed missing Sundays 11 and 18 should be paid; future Sundays excluded');
     assert(earned>0&&earned<40000,'Earned salary should accrue from recorded days, got '+earned);
     salaryAuditEstimatedText=w.document.getElementById('salaryEstimated').textContent;
     assert(/saved/i.test(w.document.getElementById('salarySaveStatus').textContent));
@@ -826,7 +831,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
     const records=[{id:'cover-1',date:'2026-10-04',status:'Week Off',checkIn:'09:00',checkOut:'18:00',specialOT:true},{id:'cover-2',date:'2026-10-05',status:'Absent'},{id:'cover-3',date:'2026-10-06',status:'Paid Leave'}];
     A.verifiedStorageSet('attendance_v8',records,'attendance');A.showScreen('setting-salary');w.salarySelectedMonth='2026-10';A.renderAll();
     const beforeRecords=w.localStorage.getItem('attendance_v8'),leaveBefore=JSON.stringify(w.AttendanceV15512.leaveSummary('2026-10'));w.document.getElementById('salaryOtCoverEnabled').checked=true;fire(w,w.document.getElementById('salaryOtCoverEnabled'),'change');
-    const c=A.salaryCalc('2026-10');assert.equal(c.otCoveredDays,1);assert.equal(c.otUsedForLeave,540);assert.equal(c.otPay,0);assert.equal(c.paid,2);assert.equal(c.otPaidLeaveRefund,1);assert.equal(w.localStorage.getItem('attendance_v8'),beforeRecords);assert.equal(w.AttendanceV15512.leaveSummary('2026-10').used,0);
+    const c=A.salaryCalc('2026-10');assert.equal(c.otCoveredDays,1);assert.equal(c.otUsedForLeave,540);assert.equal(c.otPay,0);assert.equal(c.paid,4);assert.equal(c.otPaidLeaveRefund,1);assert.equal(w.localStorage.getItem('attendance_v8'),beforeRecords);assert.equal(w.AttendanceV15512.leaveSummary('2026-10').used,0);
     click(w,'salaryNextMonth');assert.equal(w.document.getElementById('salaryOtCoverEnabled').checked,false);click(w,'salaryPrevMonth');assert.equal(w.document.getElementById('salaryOtCoverEnabled').checked,true);
     A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');if(work)A.verifiedStorageSet('attendance_settings_v8',parseJSON(work),'work');if(cfg)w.localStorage.setItem('attendance_ot_cover_v15518',cfg);else w.localStorage.removeItem('attendance_ot_cover_v15518');A.renderAll();
   });
@@ -906,7 +911,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
 
   await test('Six-hour Home attendance rule uses supplied icons and preserves hourly salary',async()=>{
     const A=w.AttendanceAppApi,previous=w.localStorage.getItem('attendance_v8'),settings=w.localStorage.getItem('attendance_settings_v8'),month=A.monthNow();A.verifiedStorageSet('attendance_settings_v8',{h:9,m:0,otDelay:30},'work settings');
-    const rows=[{id:'half22',date:month+'-01',status:'Present',checkIn:'09:00',checkOut:'14:59'},{id:'full22',date:month+'-02',status:'Half Day',checkIn:'09:00',checkOut:'15:00'},{id:'eight22',date:month+'-03',status:'Short Day',checkIn:'09:00',checkOut:'17:00'}];A.verifiedStorageSet('attendance_v8',rows,'attendance');A.showScreen('home');A.renderHome();assert.equal(w.document.getElementById('qPartial').textContent,'1');assert.equal(w.document.getElementById('qPresent').textContent,'2');assert.equal(A.dataGet()[0].status,'Half Day');assert.equal(A.dataGet()[1].status,'Present');assert.equal(A.dataGet()[2].status,'Present');assert(Math.abs(A.salaryCalc(month).paid-(.5+6/9+8/9))<1e-9);
+    const rows=[{id:'half22',date:month+'-01',status:'Present',checkIn:'09:00',checkOut:'14:59'},{id:'full22',date:month+'-02',status:'Half Day',checkIn:'09:00',checkOut:'15:00'},{id:'eight22',date:month+'-03',status:'Short Day',checkIn:'09:00',checkOut:'17:00'}];A.verifiedStorageSet('attendance_v8',rows,'attendance');A.showScreen('home');A.renderHome();assert.equal(w.document.getElementById('qPartial').textContent,'1');assert.equal(w.document.getElementById('qPresent').textContent,'2');assert.equal(A.dataGet()[0].status,'Half Day');assert.equal(A.dataGet()[1].status,'Present');assert.equal(A.dataGet()[2].status,'Present');assert(Math.abs(A.salaryCalc(month).paid-(.5+6/9+8/9+3))<1e-9);
     const first=w.document.getElementById('qPartial').parentNode,last=w.document.getElementById('qWeekOff').parentNode;assert.equal(first.querySelector('small').textContent,'Half Day');assert.equal(first.querySelector('[data-lottie]').dataset.lottie,'lottie/half-day-v15522.json');assert.equal(last.querySelector('[data-lottie]').dataset.lottie,'lottie/week-off-v15522.json');
     for(const file of ['half-day-v15522.json','week-off-v15522.json'])for(const folder of ['lottie','lottie-dark','lottie-white'])assert(JSON.parse(fs.readFileSync(path.join(assets,folder,file),'utf8')).layers.length);
     A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.verifiedStorageSet('attendance_settings_v8',parseJSON(settings),'work settings');A.renderAll();
@@ -963,7 +968,7 @@ for(const s of [...w.document.querySelectorAll('script')]){
       A.verifiedStorageSet('attendance_v8',[],'attendance');A.verifiedStorageSet('attendance_settings_v8',{h:9,m:0,otDelay:30,fmt:'12h'},'work settings');A.resetForm();A.showScreen('add');setValue(w,'dateInput',date);setValue(w,'statusInput','Half Day Holiday');assert.equal(w.document.getElementById('holiday26').hidden,false);assert.equal(w.document.getElementById('holiday26Hours').value,'4');assert.equal(w.document.getElementById('holiday26Minutes').value,'30');
       setValue(w,'holiday26Hours','3');setValue(w,'holiday26Minutes','0');
       for(const [id,value] of Object.entries({checkInH:9,checkInM:0,checkInP:'AM',checkOutH:12,checkOutM:0,checkOutP:'PM'}))setValue(w,id,value);click(w,'saveBtn');await wait(40);
-      let r=A.dataGet()[0];assert.equal(r.status,'Half Day Holiday');assert.equal(r.holidayWorkMinutes,180);const full=A.salaryCalc(month);assert.equal(full.paid,1);assert.equal(full.net,0);A.showScreen('home');A.renderAll();assert.equal(w.document.getElementById('qPresent').textContent,'1');assert.equal(w.document.getElementById('qPartial').textContent,'0');assert.equal(w.document.getElementById('qLeave').textContent,'0');
+      let r=A.dataGet()[0];assert.equal(r.status,'Half Day Holiday');assert.equal(r.holidayWorkMinutes,180);const full=A.salaryCalc(month);assert.equal(full.paid,4);assert.equal(full.net,0);A.showScreen('home');A.renderAll();assert.equal(w.document.getElementById('qPresent').textContent,'1');assert.equal(w.document.getElementById('qPartial').textContent,'0');assert.equal(w.document.getElementById('qLeave').textContent,'0');
       A.showScreen('setting-reports');setValue(w,'reportMonth',month);assert.equal(w.document.getElementById('reportSalary').textContent,w.document.getElementById('qSalary').textContent);const series=w.AttendanceReports19.series(month,A.dataGet(),A.setGet(),A.nowDate());assert.equal(series.months[5].required,3);assert.equal(series.months[5].worked,3);
       A.openEdit(r.id);assert.equal(w.document.getElementById('editHoliday26Hours').value,'3');assert.equal(w.document.getElementById('editHoliday26').hidden,false);setValue(w,'editHoliday26Hours','4');click(w,'editSave');await wait(40);assert.equal(A.dataGet()[0].holidayWorkMinutes,240);assert.equal(A.salaryCalc(month).shortfall,60);A.showScreen('home');A.renderHome();assert.equal(w.document.getElementById('qPartial').textContent,'1');assert(A.salaryCalc(month).earned<full.earned);
       A.openEdit(r.id);setValue(w,'editPopupStatus','Present');assert.equal(w.document.getElementById('editHoliday26').hidden,true);click(w,'editSave');assert.equal(A.dataGet()[0].holidayWorkMinutes,undefined);assert.equal(A.dataGet()[0].status,'Half Day');
@@ -1032,6 +1037,28 @@ for(const s of [...w.document.querySelectorAll('script')]){
     const A=w.AttendanceAppApi,previous={...nativeState.reminders},oldRequest=w.Android.requestNotificationPermission;let requests=0;w.Android.requestNotificationPermission=()=>{requests++};
     try{A.showScreen('setting-reminders');w.document.getElementById('clockReminderMaster').checked=true;w.document.getElementById('remClockInEnabled').checked=true;setValue(w,'remClockInTime','09:15');click(w,'saveRemindersBtn');await wait(240);requests=0;w.document.getElementById('clockReminderMaster').checked=false;fire(w,w.document.getElementById('clockReminderMaster'),'change');await wait(240);assert.equal(nativeState.reminders.masterEnabled,false);assert.equal(nativeState.reminders.clockInEnabled,true);assert.equal(nativeState.reminders.clockInTime,'09:15');assert.equal(requests,0);assert(w.document.getElementById('clockReminderControls').hidden);assert(!w.document.getElementById('saveRemindersBtn').closest('#clockReminderControls'));w.document.getElementById('clockReminderMaster').checked=true;fire(w,w.document.getElementById('clockReminderMaster'),'change');await wait(240);assert.equal(nativeState.reminders.masterEnabled,true);assert.equal(nativeState.reminders.clockInTime,'09:15');}
     finally{nativeState.reminders=previous;w.Android.requestNotificationPermission=oldRequest;A.showScreen('home')}
+  });
+
+  await test('Chart points refresh visible dropdown date, weekday and times in both directions',async()=>{
+    const A=w.AttendanceAppApi,box=w.document.getElementById('homePunchChart21');A.showScreen('home');
+    const rows=[{date:'2026-10-01',inTime:600,outTime:1140},{date:'2026-10-02',inTime:615,outTime:1155}];
+    w.AttendanceReports19.chart(box,rows,['inTime','outTime'],true,true);w.attendanceDecorateSelects(box);
+    let picker=box.querySelector('select'),button=box.querySelector('.customSelectButton');assert(button.textContent.includes('2 Oct'));assert(button.textContent.includes('Friday'));
+    box.querySelector('.chartPoint[data-index="0"]').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));
+    assert.equal(picker.value,'0');assert(button.textContent.includes('1 Oct'));assert(button.textContent.includes('Thursday'));assert(box.querySelector('.chartReadout').textContent.includes('10:00'));assert.equal(box.querySelectorAll('.chartPoint.selected').length,2);
+    button.click();const options=box.querySelectorAll('.customSelectOption');assert(options[1].querySelector('.customOptionDetail29').textContent.includes('10:15'));options[1].click();assert.equal(picker.value,'1');assert(button.textContent.includes('Friday'));assert(box.querySelector('.chartReadout').textContent.includes('19:15'));
+    const point=box.querySelector('.chartPoint[data-index="0"]');point.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));assert.equal(picker.value,'0');
+    w.AttendanceReports19.chart(box,rows,['inTime','outTime'],true,true);w.attendanceDecorateSelects(box);assert(box.querySelector('.customSelectButton').textContent.includes('1 Oct'));
+    assert.equal(box.querySelector('[data-lottie]').dataset.lottie,'lottie/calendar-v155.json');
+    A.invalidateData();A.renderAll();
+  });
+  await test('Attendance has six cards using exact Home Week Off and Half Day animations',async()=>{
+    const A=w.AttendanceAppApi,previous=w.localStorage.getItem('attendance_v8');
+    A.verifiedStorageSet('attendance_v8',[{id:'card29-a',date:'2026-10-01',status:'Present',checkIn:'09:00',checkOut:'18:00'},{id:'card29-b',date:'2026-10-02',status:'Present',checkIn:'09:00',checkOut:'13:30'}],'attendance');
+    A.showScreen('attendance');setValue(w,'monthFilter','2026-10');A.renderAll();const cards=w.document.querySelectorAll('#attendanceStats .v15Stat');assert.equal(cards.length,6);assert.equal(cards[2].querySelector('small').textContent,'Week Off');assert.equal(cards[2].querySelector('b').textContent,'3');assert.equal(cards[3].querySelector('b').textContent,'1');assert.equal(cards[2].querySelector('[data-lottie]').dataset.lottie,w.document.getElementById('qWeekOff').parentNode.querySelector('[data-lottie]').dataset.lottie);assert.equal(cards[3].querySelector('[data-lottie]').dataset.lottie,w.document.getElementById('qPartial').parentNode.querySelector('[data-lottie]').dataset.lottie);
+    A.showScreen('home');A.renderHome();assert.equal(w.document.getElementById('qWeekOff').textContent,'3');assert.equal(w.document.getElementById('qPartial').textContent,'1');
+    A.verifiedStorageSet('attendance_v8',parseJSON(previous),'attendance');A.renderAll();
+    const css=fs.readFileSync(path.join(assets,'v15529-fixes.css'),'utf8');assert(css.includes('padding:16px 18px!important'));assert(css.includes('grid-template-columns:repeat(2,minmax(0,1fr))'));
   });
 
   await test('Important action buttons exist after all UI patches',async()=>{

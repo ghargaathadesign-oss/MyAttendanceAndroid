@@ -91,12 +91,31 @@ function daily(record,settings,asOfDate){
   return{worked:worked,required:required,balance:balance,overtime:Math.max(0,balance),shortfall:Math.max(0,-balance),special:special};
 }
 function balanceMinutes(record,settings){return daily(record,settings).balance}
+// Missing elapsed Sundays receive paid weekoff credit without writing attendance.
+function eligibleWeekOffDates(records,month,asOfDate,employmentStartDate){
+ records=Array.isArray(records)?records:[];
+ var dates=records.map(function(r){return normalizeDate(r&&r.date)}).filter(Boolean).sort(),today=localToday(),cutoff=normalizeDate(asOfDate)||today;
+ if(cutoff>today)cutoff=today;
+ if(!dates.length||dates[0]>cutoff)return [];
+ var start=normalizeDate(employmentStartDate)||dates[0],parts=String(month).split('-'),out=[];
+ if(!/^\d{4}-\d{2}$/.test(month))return out;
+ for(var day=1,count=new Date(+parts[0],+parts[1],0).getDate();day<=count;day++){
+  var date=month+'-'+pad(day);if(date>=start&&date<=cutoff&&isSunday(date))out.push(date);
+ }
+ return out;
+}
 function salaryMonth(records,month,settings,salary){
   var s=normalizeSettings(settings),sal=salary||{},monthly=Math.max(0,n(sal.monthly,0)),mult=clamp(n(sal.otMultiplier,1),0,5),p=String(month||'').split('-'),year=+p[0],mon=+p[1],days=(year&&mon)?new Date(year,mon,0).getDate():30,std=Math.max(1,standardMinutes(s)),dayRate=monthly/days,hourRate=dayRate/(std/60),normalOt=0,specialOt=0,shortfall=0,paid=0,recordedDays=0,pfWages=0,wageDays=0,unpaidDates=[],paidLeaveDates=[],basic=Math.min(monthly,Math.max(0,n(sal.basicDa,0))),i,r,d,st,unit;
   records=Array.isArray(records)?records:[];
+  var autoWeekOffDates=[],weekOffMap={};
+  if(sal.autoWeekOffs===true){
+   var recorded={};records.forEach(function(r){if(r&&r.date)recorded[r.date]=true});
+   autoWeekOffDates=eligibleWeekOffDates(records,month,sal.asOfDate,sal.employmentStartDate).filter(function(date){return !recorded[date]});
+   records=records.concat(autoWeekOffDates.map(function(date){return {date:date,status:'Week Off',checkIn:'',checkOut:'',automaticWeekOff:true}}));
+  }
   for(i=0;i<records.length;i++){
     r=records[i];if(!r||String(r.date||'').slice(0,7)!==month||(sal.asOfDate&&String(r.date)>sal.asOfDate))continue;
-    recordedDays++;d=daily(r,s,sal.asOfDate);if(d.pending)continue;st=attendanceStatus(r);
+    if(!r.automaticWeekOff)recordedDays++;d=daily(r,s,sal.asOfDate);if(d.pending)continue;st=attendanceStatus(r);
     if(d.special)specialOt+=d.worked;else normalOt+=d.overtime;
     shortfall+=d.shortfall;
     if(st==='Absent'||st==='Unpaid Leave'){unit=0;if(!sal.asOfDate||String(r.date)<=sal.asOfDate)unpaidDates.push(String(r.date))}
@@ -104,6 +123,7 @@ function salaryMonth(records,month,settings,salary){
     else if(st==='Holiday'||st==='Week Off'||d.special)unit=1;
     else if(st==='Half Day')unit=.5-(d.shortfall/std);
     else unit=1-(d.shortfall/std);
+    if(st==='Week Off'||isSunday(r.date))weekOffMap[r.date]=true;
     unit=clamp(unit,0,1);paid+=unit;if(unit>0)wageDays++;
     pfWages+=(sal.pfFullWages?basic:Math.min(basic,String(r.date)<'2026-09-17'?15000:25000))*unit/days;
   }
@@ -115,7 +135,7 @@ function salaryMonth(records,month,settings,salary){
   var remainingShortfall=Math.max(0,shortfall-covered*std);
   var baseEarned=dayRate*paid,deduction=(remainingShortfall/60)*hourRate,normalOtPay=((normalOt-normalUsed)/60)*hourRate*mult,specialPay=((specialOt-specialUsed)/60)*hourRate,earned=Math.max(0,baseEarned+normalOtPay+specialPay);
   var pf=sal.pfEnabled===true?Math.round(pfWages*.12):0,esiExempt=wageDays>0&&baseEarned/wageDays<=176,esic=sal.esicEnabled===true&&!esiExempt?Math.ceil(Math.max(0,earned*.0075-1e-9)):0;
-  return{otCoveredDays:covered+refunded,otCoveredUnpaidDays:covered,otPaidLeaveRefund:refunded,otLeaveAllocations:allocations,remainingShortfall:remainingShortfall,otUsedForLeave:otUsed,otPaidMinutes:Math.max(0,normalOt+specialOt-otUsed),unpaidDaysAfterOT:Math.max(0,unpaidDates.length-covered),pfDeduction:pf,esicDeduction:esic,payrollDeduction:pf+esic,pfWages:pfWages,esicExempt:esiExempt,netEarned:Math.max(0,earned-pf-esic),days:days,recordedDays:recordedDays,paid:paid,ot:normalOt+specialOt,net:(normalOt+specialOt-otUsed)-remainingShortfall,shortfall:shortfall,dayRate:dayRate,hourRate:hourRate,otPay:normalOtPay+specialPay,normalOt:normalOt,specialOt:specialOt,normalOtPay:normalOtPay,specialPay:specialPay,deduction:deduction,baseSalary:monthly,baseEarned:baseEarned,earned:earned};
+  return{autoWeekOffDays:autoWeekOffDates.length,autoWeekOffDates:autoWeekOffDates,weekOffDays:Object.keys(weekOffMap).length,otCoveredDays:covered+refunded,otCoveredUnpaidDays:covered,otPaidLeaveRefund:refunded,otLeaveAllocations:allocations,remainingShortfall:remainingShortfall,otUsedForLeave:otUsed,otPaidMinutes:Math.max(0,normalOt+specialOt-otUsed),unpaidDaysAfterOT:Math.max(0,unpaidDates.length-covered),pfDeduction:pf,esicDeduction:esic,payrollDeduction:pf+esic,pfWages:pfWages,esicExempt:esiExempt,netEarned:Math.max(0,earned-pf-esic),days:days,recordedDays:recordedDays,paid:paid,ot:normalOt+specialOt,net:(normalOt+specialOt-otUsed)-remainingShortfall,shortfall:shortfall,dayRate:dayRate,hourRate:hourRate,otPay:normalOtPay+specialPay,normalOt:normalOt,specialOt:specialOt,normalOtPay:normalOtPay,specialPay:specialPay,deduction:deduction,baseSalary:monthly,baseEarned:baseEarned,earned:earned};
 }
 function leaveAccrued(asOf,totalCap,rate){
   var d=asOf instanceof Date?asOf:new Date(asOf||Date.now());if(isNaN(d.getTime()))d=new Date();
@@ -168,5 +188,5 @@ function normalizeStorage(storage){
   return{ok:true,storage:out,count:base.count,totalChars:base.totalChars};
 }
 function validateStorage(storage){var x=normalizeStorage(storage);return x.ok?{ok:true,count:x.count,totalChars:x.totalChars}:x}
-return{normalizeSettings:normalizeSettings,normalizeDate:normalizeDate,normalizeTime:normalizeTime,normalizeStatus:normalizeStatus,standardMinutes:standardMinutes,holidayWorkMinutes:holidayWorkMinutes,minutesBetween:minutesBetween,workedMinutes:workedMinutes,isSunday:isSunday,isSpecial:isSpecial,requiredMinutes:requiredMinutes,attendanceStatus:attendanceStatus,isOpenShift:isOpenShift,daily:daily,balanceMinutes:balanceMinutes,salaryMonth:salaryMonth,leaveAccrued:leaveAccrued,normalizeRecord:normalizeRecord,validateRecord:validateRecord,normalizeStorage:normalizeStorage,validateStorage:validateStorage};
+return{eligibleWeekOffDates:eligibleWeekOffDates,normalizeSettings:normalizeSettings,normalizeDate:normalizeDate,normalizeTime:normalizeTime,normalizeStatus:normalizeStatus,standardMinutes:standardMinutes,holidayWorkMinutes:holidayWorkMinutes,minutesBetween:minutesBetween,workedMinutes:workedMinutes,isSunday:isSunday,isSpecial:isSpecial,requiredMinutes:requiredMinutes,attendanceStatus:attendanceStatus,isOpenShift:isOpenShift,daily:daily,balanceMinutes:balanceMinutes,salaryMonth:salaryMonth,leaveAccrued:leaveAccrued,normalizeRecord:normalizeRecord,validateRecord:validateRecord,normalizeStorage:normalizeStorage,validateStorage:validateStorage};
 });

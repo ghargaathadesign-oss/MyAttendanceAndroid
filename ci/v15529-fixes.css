@@ -1,0 +1,18 @@
+/* Reuse Home icons in a balanced two-column attendance grid. */
+#attendanceStats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#attendanceStats .v15Stat{padding:14px 10px}
+#attendanceStats .v15Stat:nth-child(3) .v155StatLottie,#attendanceStats .v15Stat:nth-child(4) .v155StatLottie{width:28px;height:28px;transform:none}
+/* Keep metric content away from the rounded card edge, including narrow phones. */
+.screen .chartMetrics20 .chartMetric20,#screen-home .homePunch21 .chartMetric20{padding:16px 18px!important;text-align:left}
+.screen .chartMetric20>small{flex-wrap:wrap;row-gap:4px}
+/* Date – Day and punch times share a left edge. The calendar and arrow keep their own space. */
+#screen-home .homePunch21 .chartDetails20{grid-template-columns:30px minmax(0,1fr);column-gap:12px;row-gap:0;padding:16px!important;overflow:visible}
+#homePunchChart21 .homeCalendar25{grid-row:1 / 3;align-self:center}
+.screen .chartDetails20>.customSelect{min-width:0;max-width:100%}
+.screen .chartDetails20 .customSelectButton{border:0!important;background:transparent!important;box-shadow:none!important;text-align:left!important;padding:4px 28px 4px 0!important;min-height:28px;font-size:12px!important;line-height:1.5;white-space:normal;overflow-wrap:anywhere}
+.screen .chartDetails20 .customSelectButton:after{right:4px!important}
+.screen .chartDetails20 .chartReadout,#homePunchChart21 .chartReadout{margin:0;padding:2px 28px 0 0;text-align:left;line-height:1.6;font-size:11px;white-space:normal;overflow-wrap:anywhere}
+.screen .chartDetails20>.chartPicker20{padding:4px 28px 4px 0!important;text-align:left;margin:0;min-height:28px}
+.screen .chartDetails20 .customSelectMenu{text-align:left;max-width:100%;z-index:40}
+.customOptionLabel29{display:block}.customOptionDetail29{display:block;font-size:10px;line-height:1.5;color:var(--muted);margin-top:3px;font-weight:400}
+@media(max-width:360px){.screen .chartMetrics20 .chartMetric20,#screen-home .homePunch21 .chartMetric20{padding:14px!important}.screen .chartMetric20>b{font-size:18px}#screen-home .homePunch21 .chartDetails20{padding:12px!important;column-gap:9px}}
